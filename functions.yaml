@@ -1,0 +1,36 @@
+httpbin_get:
+  - name: step0
+    summary: ip address
+    description: ip address
+    fn: http
+    args:
+        data_source: idfc
+        params:
+        data:
+        config:
+          url : /ip
+          method: get
+  - name: step1
+    summary: user-agent
+    description: user-agent
+    fn: http
+    args:
+        data_source: idfc
+        params:
+        data:
+        config:
+          url : /user-agent
+          method: get
+  - name: step2
+    fn: transform
+    args:
+       transform: |
+        {
+            code: 200,
+            success : true,
+            data: {
+                ip: outputs.step0.origin,
+                'user-agent': outputs.step1['user-agent']
+            },
+            message: ''
+        }
