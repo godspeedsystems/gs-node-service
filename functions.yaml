@@ -10,6 +10,7 @@ httpbin_get:
         config:
           url : /ip
           method: get
+          
   - name: step1
     summary: user-agent
     description: user-agent
@@ -21,15 +22,16 @@ httpbin_get:
         config:
           url : /user-agent
           method: get
+
   - name: step2
     fn: transform
     args:
-       transform: |
+      - |
         {
             code: 200,
             success : true,
             data: {
-                ip: outputs.step0.origin,
+                [if 'origin' in outputs.step0 then 'ip']: outputs.step0.origin,
                 'user-agent': outputs.step1['user-agent']
             },
             message: ''

@@ -8,6 +8,7 @@ const jsonnet = new Jsonnet();
 
 
 import app from './http_listener'
+import { brotliCompress } from 'zlib';
 
 
 function loadFunctions() {
@@ -60,30 +61,31 @@ async function main() {
         const handler = functions[events[event.type].fn];
         
         //TODO: GSStatus
-        let ctx = {data: {}, code: '', message: '', success: true}
+        let ctx = {data: {}, code: 200, message: '', success: true}
         let outputs: { [key: string]: any; } = {}
 
         for (let step of handler) {
             let {fn, args} = step;
+            let success = true;
+            
             switch(fn) {
                 case 'http':
                     try {
                         const res = await datasources[args.data_source].paths[args.config.url][args.config.method](args.params, args.data, args.config)
                         outputs[step.name] = res.data;
-                        console.log(outputs);
                     } catch(ex) {
                         console.error(ex);
                         ctx.message = (ex as Error).message;
-                        ctx.success = false;
-                        break; //to break for loop
+                        success = ctx.success = false;
+                        ctx.code = 500;
                     }
                     break
                 case 'transform':
                     console.log(outputs);
-                    let snippet = "local outputs = std.extVar('outputs');\n" + args.transform;
+                    let snippet = "local outputs = std.extVar('outputs');\n" + args[0];
 
-                    ctx.data = await jsonnet.extCode("outputs", JSON.stringify(outputs))
-                        .evaluateSnippet(snippet)
+                    ctx = JSON.parse(await jsonnet.extCode("outputs", JSON.stringify(outputs))
+                        .evaluateSnippet(snippet))
                     console.log(ctx.data)
                     break
                 case 'emit':
@@ -91,12 +93,16 @@ async function main() {
                     break;
 
             }
+
+            if (!success) {
+                break;
+            }
         }
 
         if (ctx.success) {
-            event.metadata.http.res.status(200).send(ctx.data);
+            event.metadata.http.res.status(200).send(ctx);
         } else {
-            event.metadata.http.res.status(500).send(ctx.message);
+            event.metadata.http.res.status(ctx.code).send(ctx);
         }
     }
 
