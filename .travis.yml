@@ -1,0 +1,16 @@
+language: node_js
+node_js:
+  - "5"
+services:
+  - elasticsearch
+before_srcipt:
+  - sleep 10
+before_install:
+  - curl -O https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-1.7.2.deb && sudo dpkg -i --force-confnew elasticsearch-1.7.2.deb && sudo service elasticsearch restart
+
+
+# notification
+notifications:
+  slack:
+    rooms:
+      - lifemakerteam:YIeGcbINkIlcVQeGD3NZ4fVH#general:#builds
