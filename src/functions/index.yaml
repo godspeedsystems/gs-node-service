@@ -1,5 +1,5 @@
 httpbin_get:
-  - name: step0
+  - id: step0
     summary: ip address
     description: ip address
     fn: http
@@ -12,7 +12,7 @@ httpbin_get:
           url : /ip
           method: get
           
-  - name: step1
+  - id: step1
     summary: user-agent
     description: user-agent
     fn: http
@@ -26,7 +26,7 @@ httpbin_get:
           url : /user-agent
           method: get
 
-  - name: step2
+  - id: step2
     fn: transform
     args:
       - |

@@ -4,6 +4,7 @@ import EventEmitter from 'events';
 import OpenAPIClientAxios from 'openapi-client-axios';
 import express from 'express';
 import { Jsonnet } from "@hanazuki/node-jsonnet";
+import {GSCloudEvent} from 'gs_runtime';
 const jsonnet = new Jsonnet();
 
 
@@ -11,7 +12,7 @@ import app from './http_listener'
 
 
 function loadFunctions() {
-    return YAML.parse(fs.readFileSync(__dirname + '/functions/index.yaml', 'utf8'));
+    const functions = YAML.parse(fs.readFileSync(__dirname + '/functions/index.yaml', 'utf8'));
 }
 
 async function loadDatasources() {
@@ -56,7 +57,7 @@ async function main() {
 
     httpListener(ee);
 
-    async function processEvent(event: {type: string, metadata:{http: {res: express.Response}}}) {
+    async function processEvent(event: {type: string, metadata:{http: {res: express.Response}}}) { //GSCLoudEvent 
         const handler = functions[events[event.type].fn];
         
         //TODO: GSStatus
