@@ -1,41 +1,54 @@
-httpbin_get:
-  - id: step0
-    summary: ip address
-    description: ip address
-    fn: http
-    args:
-        data_source: idfc
+# config, inputs, ouputs, vars
+# Environment variables will be loaded in config files via some convention
+namespace: com.pinelabs.lenders_integration
+id: create_account_hdfc
+summary: Multiplexing create loan for hdfc api calls
+tasks: 
+    - id: step1 # the response of this will be accessible within the parent step key, under the step1 sub key
+      description: create account in the bank
+      fn: com.gs.http
+      args:
+        datasource: idfc
         params:
-        data:
+        data: |
+          {
+              "partner_application_id": "PSAM-2015",
+              "mobile_number": "9822128318",
+              "personal_email_id": "shane.rajb3@growthsourceft.com",
+              "customer_consent": true,
+              "gender": "M",
+              "date_of_birth": "21-06-1991",
+              "pan_number": "AZOPB6713Y",
+              "customer_name": "shane belgal"
+          }
         config:
-          headers:
-          url : /ip
-          method: get
-          
-  - id: step1
-    summary: user-agent
-    description: user-agent
-    fn: http
-    args:
-        data_source: idfc
-        params:
-        data:
-          a: 10
-          b : 20
-        config:
-          url : /user-agent
-          method: get
+          url : /loki/v1/application/
+          method: post
 
-  - id: step2
-    fn: transform
-    args:
-      - |
-        {
-            code: 200,
-            success : true,
-            data: {
-                [if 'origin' in outputs.step0 then 'ip']: outputs.step0.origin,
-                'user-agent': outputs.step1['user-agent']
-            },
-            message: ''
-        }
+
+      retry: #Kestra spec compliant retry mechanism. By default turned off.
+        maxAttempt: 5
+        type: constant
+        interval: PT15M
+
+      on_error:
+        continue: true
+
+    - id: step2
+      fn: com.gs.transform
+      args: |
+          if outputs.step1.data['response_code'] == 'S001' then {
+              code: 200,
+              success : true,
+              data: {
+                  application_id: outputs.step1.data['response_data']['application_id']
+              },
+              message: ''
+          } else {
+              code: outputs.step1.status,
+              success : false,
+              data: {
+                lender_response_code: outputs.step1.data['response_code']
+              },
+              message:  outputs.step1.data['response_string']
+          }

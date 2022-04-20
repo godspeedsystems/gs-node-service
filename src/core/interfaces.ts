@@ -1,6 +1,6 @@
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE } from './common';
 import { setAtPath, getAtPath } from './utils';
-import R from 'ramda';
+//import R from 'ramda';
 /**
   * SPEC:
   * Lender's integration:
@@ -53,7 +53,6 @@ export class GSFunction {
   functionType: ExecutionOrder = 'single';
   function: GSAction;
   onError?: GSAction;
-  finally?: GSAction;
   constructor(id: string, _function: GSAction, args?: any[], summary?: string, description?: string, functionType: ExecutionOrder = 'single', onError?: GSAction, _finally?: GSAction) {
     this.id = id;
     this.function = _function;
@@ -62,7 +61,6 @@ export class GSFunction {
     this.summary = summary;
     this.description = description;
     this.onError = onError;
-    this.finally = _finally;
   }
   /**
    * 
@@ -100,11 +98,13 @@ export class GSFunction {
           }
         }
       } catch (err) {
-        //This function threw an error, so it has failed
-        ctx.outputs[this.id] = {
-          success: false,
-          message: err.message,
-          data: err.stack
+        if (err instanceof Error) {
+          //This function threw an error, so it has failed
+          ctx.outputs[this.id] = {
+            success: false,
+            message: err.message,
+            data: err.stack
+          }
         }
       }
     }
@@ -173,22 +173,18 @@ export class GSCloudEvent {
  * __actor (alias to __event.actor), __vars, __config, __src, __modules, __env, __event, __res (starting from the first parent span), __args (of the running GS instruction)
  */
 export class GSContext { //span executions
-  shared: object; //This data, which can be having query promises, results, entities etc, when updated will get reflected across everyone using same instance of GSContext
-  vars?: object; //This, when updated, will create a new GSContext instance with rest of the data copied, and this one cloned.
+  shared: {[key: string]: any; }; //This data, which can be having query promises, results, entities etc, when updated will get reflected across everyone using same instance of GSContext
   inputs: GSCloudEvent; //The very original event for which this workflow context was created
   outputs:{[key: string]: GSStatus; }; //DAG result. This context has a trace history and responses of all instructions in the DAG are stored in this object
-  env: object; //All the environment variables
   log_events: GSLogEvent[] = [];
-  //response: GSStatus; // execution status of the previous function call
-  //function: GSFunction; //args
-  config: object; //app config
-  constructor(config: object, shared: object = {}, _private: object = {}, event: GSCloudEvent) {//_function?: GSFunction
+  config: {[key: string]: any; }; //app config
+  datasources: {[key: string]: any; }; //app config
+  constructor(config: {[key: string]: any; }, datasources: {[key: string]: any; }, shared: {[key: string]: any; } = {}, event: GSCloudEvent) {//_function?: GSFunction
     this.shared = shared;
-    this.vars = _private;
     this.inputs = event;
     this.config = config;
     this.outputs = {};
-    this.env = {};
+    this.datasources = datasources;
   }
 
   public addLogEvent(event: GSLogEvent): void {
@@ -203,19 +199,10 @@ export class GSContext { //span executions
     if (typeof key === 'object' && !Array.isArray(key)) {
       key = JSON.stringify(key);
     }
-    const value = getAtPath(this.shared, <string>key) || getAtPath(this.vars, <string>key);
+    const value = getAtPath(this.shared, <string>key);
     return value;
   }
-   /**
-   * Looks for data stored for particular key in the immutable this.vars object
-   * @param key 
-   */
-  public getVar(key: string | object) {
-    if (typeof key === 'object' && !Array.isArray(key)) {
-      key = JSON.stringify(key)
-    }
-    return getAtPath(this.vars, <string>key);
-  }
+  
   /**
    * Looks for data stored for particular key in this.shared object
    * @param key 
@@ -231,30 +218,13 @@ export class GSContext { //span executions
   * @param {any} key - If an object, it is strigified as JSON. Else used as it is.
   * @param {any} value - The value to be stored against the key
   **/
-  public setShared(key: object | string, value) {
+  public setShared(key: object | string, value: any) {
     if (typeof key === 'object' && !Array.isArray(key)) {
       key = JSON.stringify(key)
     }
     this.shared[<string>key] = value;
     setAtPath(this.shared, <string>key, value);
   }
-
-  /**
-  * Sets JSON.stringify(key) = res in the immutable part of GSContext, thus cloning this instance and returning the cloned GSContext with new data.
-  * Note: This does not make any change in `this` GSFunargs: [ 1, 2 ainst the key
-  * @return {Cache} - new Cache object with same data, but immutable object cloned and with updated val/key pair
-  **/
-  public setVars(key: object | string, val) {
-    if (typeof key === 'object' && !Array.isArray(key)) {
-      key = JSON.stringify(key)
-    }
-    if (!Array.isArray(key)) {
-      key = [key]
-    }
-    const newVars = R.assocPath(key, val, this.vars);
-    return new GSContext(this.config, this.shared, newVars, this.inputs); //, this.function
-  }
-
 }
 
 /**
@@ -274,12 +244,12 @@ export class GSLogEvent {
   }
 }
 
-export class GSActor {
+export interface GSActor {
   type: ACTOR_TYPE;
   tenant_id: string;
   name: string; // Fully qualified name
   id: string; // id of the actor
-  data: object | {}; //Other information in key value pairs. For example IP address
+  data: {[key: string]: any; } | {}; //Other information in key value pairs. For example IP address
 }
 
 
@@ -307,14 +277,14 @@ if (require.main === module) {
   // }
   const sumGSFunction = new GSFunction('sum', sum, [1,2],);
   const sumOtherGSFunction = new GSFunction('sumOther', sum, [3,2],);
-  const i = new GSFunction('seriesExample', seriesExecutor, [{children: [sumGSFunction, sumOtherGSFunction]}], null, null, 'series' );
+  //const i = new GSFunction('seriesExample', seriesExecutor, [{children: [sumGSFunction, sumOtherGSFunction]}], null, null, 'series' );
    
 
   // //Set pre auths
   // i.preAuthHooks.push(createSpan);
   // i.finally = [closeSpan, sendLogs];
 
-  i.execute(new GSContext({})).then((ctx) => console.log(JSON.stringify(ctx.outputs))).catch(console.log)
+  //i.execute(new GSContext({})).then((ctx) => console.log(JSON.stringify(ctx.outputs))).catch(console.log)
   //sync request : grpc and http
   //async request - response
 

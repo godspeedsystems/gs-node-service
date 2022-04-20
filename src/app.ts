@@ -1,32 +1,83 @@
 import YAML from 'yaml';
-import fs from 'fs';
+import fs, { cpSync } from 'fs';
 import EventEmitter from 'events';
 import OpenAPIClientAxios from 'openapi-client-axios';
+import axios from 'axios';
+
 import express from 'express';
 import { Jsonnet } from "@hanazuki/node-jsonnet";
-import {GSCloudEvent} from 'gs_runtime';
-const jsonnet = new Jsonnet();
+import {GSCloudEvent, GSStatus} from './core/interfaces';
 
 
 import app from './http_listener'
+import { any } from 'rambda';
+import { config } from 'process';
 
 
 function loadFunctions() {
-    const functions = YAML.parse(fs.readFileSync(__dirname + '/functions/index.yaml', 'utf8'));
+    const out:{[key:string]: any;} = {};
+    const workflow = YAML.parse(fs.readFileSync(__dirname + '/functions/index.yaml', 'utf8'));
+    console.log(workflow)
+    out[workflow.namespace + '.' + workflow.id] = workflow;
+    return out;
 }
 
 async function loadDatasources() {
     const datasources = YAML.parse(fs.readFileSync(__dirname + '/datasources/idfc.yaml', 'utf8'));
 
-    const __ds:any = {}
+    const ds:any = {}
 
-    for (let ds in datasources) {
-        const api = new OpenAPIClientAxios({definition: datasources[ds].schema});
-        api.init();
-        __ds[ds] =  await api.getClient();
+    for (let s in datasources) {
+        const security = datasources[s].security;
+        const securitySchemes = datasources[s].securitySchemes;
+
+        if (datasources[s].schema) {
+            const api = new OpenAPIClientAxios({definition: datasources[s].schema});
+            api.init();
+            ds[s] =  {
+                client: await api.getClient(),
+                schema: true,
+            }
+        } else {
+            ds[s] =  {
+                client: axios.create({
+                    baseURL: datasources[s].base_url
+                }),
+                schema: false
+            };
+
+            console.log('security', security);
+
+            if (security && security.length) {
+                for (let values of security) {
+
+                    let [scheme, value] = Object.entries(values)[0];
+                    let securityScheme = securitySchemes[scheme];
+
+
+                    if(securityScheme.type == 'apiKey') {
+                        if (securityScheme.in == 'header') {
+                            try {
+                                if ((value as string).includes('${')) {
+                                    value = (value as string).replace('"\${(.*?)}"', '$1');
+                                    //TODO: pass other context variables
+                                    value = Function('config', 'return ' + value)(config);
+                                }
+
+                                ds[s].client.defaults.headers.common[securityScheme.name] = value;
+                                console.log('Adding header', securityScheme.name, value);
+                            } catch(ex) {
+                                console.error(ex);
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
     }
 
-    return __ds
+    return ds
 }
 
 
@@ -40,13 +91,32 @@ async function loadEvents(ee: EventEmitter, processEvent: (...args: any[]) => vo
     return events
 }
 
-function httpListener(ee: EventEmitter) {
-    app.use('/', function(req: express.Request, res: express.Response) {
-        //TODO: convert to cloudevent
-        let type = req.path + '.http.' + req.method.toLocaleLowerCase()
-        console.log('type', type)
-        ee.emit(type, {type, data: req.body || {}, metadata: {http: {res}}});
-    })
+function httpListener(ee: EventEmitter, events: any) {
+
+    for (let route in events) {
+        if (route.includes('.http.')) {
+            let method = 'get';
+            let originalRoute = route;
+
+            [route, method] = route.split('.http.')
+            route = route.replace(/{(.*?)}/g, ":$1");
+
+            console.log('registering handler', route, method);
+            // @ts-ignore   
+            app[method](route, function(req: express.Request, res: express.Response) {
+                //let type = req.path + '.http.' + req.method.toLocaleLowerCase()
+                //console.log('type', type)
+                //TODO: convert to cloudevent
+                console.log('emitting http handler', originalRoute);
+                ee.emit(originalRoute, {type: originalRoute, data: {
+                    body: req.body,
+                    params: req.params,
+                    query: req.query,
+                    headers: req.headers,
+                }, metadata: {http: {res}}});
+            })
+        }
+    }
 }
 
 async function main() {
@@ -55,41 +125,82 @@ async function main() {
     const ee = new EventEmitter({ captureRejections: true });
     ee.on('error', console.log);
 
-    httpListener(ee);
 
-    async function processEvent(event: {type: string, metadata:{http: {res: express.Response}}}) { //GSCLoudEvent 
+    async function processEvent(event: {type: string, data:{[key:string]: any;}, metadata:{http: {res: express.Response}}}) { //GSCLoudEvent 
+        console.log(events[event.type], event)
         const handler = functions[events[event.type].fn];
         
-        //TODO: GSStatus
-        let ctx: {[key: string]: any; } = {data: {}, code: 200, message: '', success: true}
+        let ctx: GSStatus = new GSStatus();
         let outputs: { [key: string]: any; } = {}
 
         console.log('calling processevent');
-        for (let step of handler) {
+
+        for (let step of handler.tasks) {
             let {fn, args} = step;
             let success = true;
             
             switch(fn) {
-                case 'http':
+                case 'com.gs.http':
                     try {
-                        const res = await datasources[args.data_source].paths[args.config.url][args.config.method](args.params, args.data, args.config)
-                        outputs[step.name] = res.data;
+                        const jsonnet = new Jsonnet();
+                        let snippet = "local inputs = std.extVar('inputs');\n";
+                        
+                        jsonnet.extCode("inputs", JSON.stringify(event.data));
+                        
+                        snippet += JSON.stringify(args).replace(/\"\${(.*?)}\"/g, "$1")
+                        console.log(snippet);
+                        args = JSON.parse(await jsonnet.evaluateSnippet(snippet))
+                        console.log(args);
+
+                        const ds = datasources[args.datasource];
+                        let res;
+                        
+                        try {
+                            if (ds.schema) {
+                                console.log('invoking with schema');
+                                res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config)
+                            } else {
+                                console.log('invoking wihout schema');
+                                res = await ds.client({
+                                    ...args.config,
+                                    params: args.params,
+                                    data: args.data,
+                                })
+                            }
+                        } catch(ex) {
+                            // console.error(ex);
+                            // @ts-ignore   
+                            res = ex.response;
+                        }
+                        outputs[step.id] = {
+                            data: res.data,
+                            status: res.status,
+                            statusText: res.statusText,
+                            headers: res.headers,
+                        }
                     } catch(ex) {
                         console.error(ex);
-                        ctx.message = (ex as Error).message;
-                        success = ctx.success = false;
-                        ctx.code = 500;
+                        success = true;
+                        //if (step)
+                        // console.error(ex);
+                        // ctx.message = (ex as Error).message;
+                        // success = ctx.success = false;
+                        // ctx.code = 500;
                     }
-                    break
-                case 'transform':
+                    break;
+                
+                case 'com.gs.transform':
                     console.log(outputs);
-                    let snippet = "local outputs = std.extVar('outputs');\n" + args[0];
+                    const jsonnet = new Jsonnet();
+
+                    let snippet = "local outputs = std.extVar('outputs');\n" + args;
 
                     ctx = JSON.parse(await jsonnet.extCode("outputs", JSON.stringify(outputs))
                         .evaluateSnippet(snippet))
                     console.log(ctx.data)
                     break
-                case 'emit':
+                
+                case 'com.gs.emit':
                     ee.emit(args.name, args.data)
                     break;
 
@@ -104,11 +215,12 @@ async function main() {
         if (ctx.success) {
             event.metadata.http.res.status(200).send(ctx);
         } else {
-            event.metadata.http.res.status(ctx.code).send(ctx);
+            event.metadata.http.res.status(ctx.code ?? 200).send(ctx);
         }
     }
 
     const events = await loadEvents(ee, processEvent);
+    httpListener(ee, events);
 }
 
 main();
