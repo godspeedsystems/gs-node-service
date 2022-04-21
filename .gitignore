@@ -2,3 +2,4 @@ node_modules
 .*swo*
 .*swp*
 .*swn*
+dist

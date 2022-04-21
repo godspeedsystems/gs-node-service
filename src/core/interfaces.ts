@@ -146,7 +146,7 @@ export class GSCloudEvent {
   channel: CHANNEL_TYPE;
   actor: GSActor;
   //JSON schema: This data will be validated in the function definition in YAML. In __args.schema
-  data?: object; //{body, params, query, headers}, flattened and merged into a single object
+  data: {[key:string]:any;}; //{body, params, query, headers}, flattened and merged into a single object
   metadata?: {
     http?: {
       express: {

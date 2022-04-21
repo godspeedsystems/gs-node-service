@@ -11,6 +11,11 @@ import {GSCloudEvent, GSStatus} from './core/interfaces';
 
 import app from './http_listener'
 import { config } from 'process';
+import { config as appConfig , validate} from './core/loader';
+
+console.log("loader events:",appConfig.app.events)
+console.log("loader functions:",appConfig.app.functions)
+console.log("loader datasources:",appConfig.app.datasources)
 
 function randomString(length: number, characters: string) {
     let result = '';
@@ -57,7 +62,7 @@ function expandVariable(value: string) {
 }
 
 async function loadDatasources() {
-    const datasources = YAML.parse(fs.readFileSync(__dirname + '/datasources/growthsource.yaml', 'utf8'));
+    const datasources = appConfig.app.datasources;
 
     const ds:any = {}
 
@@ -131,7 +136,7 @@ async function loadDatasources() {
 
 
 async function loadEvents(ee: EventEmitter, processEvent: (...args: any[]) => void) {
-    const events = YAML.parse(fs.readFileSync(__dirname + '/events/index.yaml', 'utf8'));
+    const events = appConfig.app.events
 
     for (let e in events) {
         ee.on(e, processEvent)
@@ -177,6 +182,7 @@ async function main() {
 
     async function processEvent(event: {type: string, data:{[key:string]: any;}, metadata:{http: {res: express.Response}}}) { //GSCLoudEvent 
         console.log(events[event.type], event)
+        //const valid = validate(event);
         const handler = functions[events[event.type].fn];
 
         let ctx: GSStatus = new GSStatus();
@@ -227,7 +233,7 @@ async function main() {
                                 })
                             }
                         } catch(ex) {
-                            // console.error(ex);
+                            console.error(ex);
                             // @ts-ignore   
                             res = ex.response;
                         }
