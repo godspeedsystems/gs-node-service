@@ -10,9 +10,30 @@ import {GSCloudEvent, GSStatus} from './core/interfaces';
 
 
 import app from './http_listener'
-import { any } from 'rambda';
 import { config } from 'process';
 
+function randomString(length: number, characters: string) {
+    let result = '';
+
+    if (!characters) {
+        characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    }
+
+    let charactersLength = characters.length;
+    for(let i = 0; i < length; i++ ) {
+      let c = characters.charAt(Math.floor(Math.random() * charactersLength));
+      if (!result && c == '0') {
+          continue
+      }
+
+      result += c;
+    }
+    return result;
+}
+
+function randomInt(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 function loadFunctions() {
     const out:{[key:string]: any;} = {};
@@ -22,8 +43,21 @@ function loadFunctions() {
     return out;
 }
 
+function expandVariable(value: string) {
+    try {
+        if ((value as string).includes('${')) {
+            value = (value as string).replace('"\${(.*?)}"', '$1');
+            //TODO: pass other context variables
+            value = Function('config', 'return ' + value)(config);
+        }
+    } catch(ex) {
+        console.error(ex);
+    }
+    return value;
+}
+
 async function loadDatasources() {
-    const datasources = YAML.parse(fs.readFileSync(__dirname + '/datasources/idfc.yaml', 'utf8'));
+    const datasources = YAML.parse(fs.readFileSync(__dirname + '/datasources/growthsource.yaml', 'utf8'));
 
     const ds:any = {}
 
@@ -54,16 +88,10 @@ async function loadDatasources() {
                     let [scheme, value] = Object.entries(values)[0];
                     let securityScheme = securitySchemes[scheme];
 
-
                     if(securityScheme.type == 'apiKey') {
                         if (securityScheme.in == 'header') {
                             try {
-                                if ((value as string).includes('${')) {
-                                    value = (value as string).replace('"\${(.*?)}"', '$1');
-                                    //TODO: pass other context variables
-                                    value = Function('config', 'return ' + value)(config);
-                                }
-
+                                value = expandVariable(value as string);
                                 ds[s].client.defaults.headers.common[securityScheme.name] = value;
                                 console.log('Adding header', securityScheme.name, value);
                             } catch(ex) {
@@ -71,9 +99,30 @@ async function loadDatasources() {
                             }
                         }
                     }
+                    else if(securityScheme.type == 'http') {
+                        if (securityScheme.scheme == 'basic') {
+                            let auth = {username: '', password: ''};
+                            if (Array.isArray(value)) {
+                                auth.username = expandVariable(value[0]);
+                                auth.password = expandVariable(value[1]);
+                            }
+                            else {
+                                //@ts-ignore
+                                auth.username = expandVariable(value.username);
+                                //@ts-ignore
+                                auth.password = expandVariable(value.password);
+                            }
+
+                            ds[s].client.defaults.auth = auth;
+                        }
+                        else if (securityScheme.scheme == 'bearer') {
+                            ds[s].client.defaults.headers.common['Authorization'] = `Bearer ${expandVariable(value as string)}`;
+                        } else {
+                            ds[s].client.defaults.headers.common['Authorization'] = `${securityScheme.scheme} ${expandVariable(value as string)}`;
+                        }
+                    }
                 }
             }
-
         }
     }
 
@@ -129,7 +178,7 @@ async function main() {
     async function processEvent(event: {type: string, data:{[key:string]: any;}, metadata:{http: {res: express.Response}}}) { //GSCLoudEvent 
         console.log(events[event.type], event)
         const handler = functions[events[event.type].fn];
-        
+
         let ctx: GSStatus = new GSStatus();
         let outputs: { [key: string]: any; } = {}
 
@@ -138,23 +187,33 @@ async function main() {
         for (let step of handler.tasks) {
             let {fn, args} = step;
             let success = true;
-            
+
             switch(fn) {
                 case 'com.gs.http':
                     try {
                         const jsonnet = new Jsonnet();
-                        let snippet = "local inputs = std.extVar('inputs');\n";
-                        
+                        let snippet = `local inputs = std.extVar('inputs');
+                                local randomString = std.native('randomString');
+                                local randomInt = std.native('randomInt');
+                        `;
+
                         jsonnet.extCode("inputs", JSON.stringify(event.data));
-                        
+                        jsonnet.nativeCallback("randomString", (length, only_number) => randomString(Number(length), String(only_number)), "length", 'only_number');
+                        jsonnet.nativeCallback("randomInt", (min, max) => randomInt(Number(min), Number(max)), "min", 'max');
+
                         snippet += JSON.stringify(args).replace(/\"\${(.*?)}\"/g, "$1")
+                                .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
+                                .replace(/\\"/g, '"')
+                                .replace(/\\n/g, ' ')
+
+
                         console.log(snippet);
                         args = JSON.parse(await jsonnet.evaluateSnippet(snippet))
                         console.log(args);
 
                         const ds = datasources[args.datasource];
                         let res;
-                        
+
                         try {
                             if (ds.schema) {
                                 console.log('invoking with schema');
@@ -188,7 +247,7 @@ async function main() {
                         // ctx.code = 500;
                     }
                     break;
-                
+
                 case 'com.gs.transform':
                     console.log(outputs);
                     const jsonnet = new Jsonnet();
@@ -199,7 +258,7 @@ async function main() {
                         .evaluateSnippet(snippet))
                     console.log(ctx.data)
                     break
-                
+
                 case 'com.gs.emit':
                     ee.emit(args.name, args.data)
                     break;

@@ -1,4 +1,4 @@
-'/do_kyc/{bank_id}.http.get': # event id. Will include path params. For ex. com.abc.do_kyc/{bank_id}/process/{user_id}
+'/do_kyc/{bank_id}.http.post': # event id. Will include path params. For ex. com.abc.do_kyc/{bank_id}/process/{user_id}
   fn: com.pinelabs.lenders_integration.create_account_hdfc
   data: 
     examples: # <string, ExampleObject>

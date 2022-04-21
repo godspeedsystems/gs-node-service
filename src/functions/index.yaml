@@ -3,28 +3,41 @@
 namespace: com.pinelabs.lenders_integration
 id: create_account_hdfc
 summary: Multiplexing create loan for hdfc api calls
-tasks: 
+tasks:
     - id: step1 # the response of this will be accessible within the parent step key, under the step1 sub key
       description: create account in the bank
       fn: com.gs.http
       args:
-        datasource: idfc
+        datasource: growthsource
         params:
-        data: |
-          {
-              "partner_application_id": "PSAM-2015",
-              "mobile_number": "9822128318",
-              "personal_email_id": "shane.rajb3@growthsourceft.com",
-              "customer_consent": true,
-              "gender": "M",
-              "date_of_birth": "21-06-1991",
-              "pan_number": "AZOPB6713Y",
-              "customer_name": "shane belgal"
-          }
+        data:
+            #partner_application_id: PSAM-2022
+            partner_application_id: ${'PSAM-' + randomString(5, '0123456789')}
+            mobile_number: "9823123318"
+            personal_email_id: ${std.get(inputs.body, 'sambasiva', 'shane.raew3@growthsourceft.com')}
+            customer_consent: true
+            gender: ${if randomInt(0, 1) == 1 then 'M' else 'F'}
+            date_of_birth: "21-06-1991"
+            pan_number: "AZOPB8813Y"
+            customer_name: "shane belgal"
+
+        # data: |
+        #   <transform>
+        #     {
+        #       partner_application_id: 'PSAM-' + randomString(5, '0123456789'),
+        #       mobile_number: "9823123318",
+        #       personal_email_id: std.get(inputs.body, 'sambasiva', 'shane.raew3@growthsourceft.com'),
+        #       customer_consent: true,
+        #       gender: if randomInt(0, 1) == 1 then 'M' else 'F',
+        #       date_of_birth: "21-06-1991",
+        #       pan_number: "AZOPB8813Y",
+        #       customer_name: "shane belgal"
+        #     }
+        #   </transform>
+        #data: ${inputs.body}
         config:
           url : /loki/v1/application/
           method: post
-
 
       retry: #Kestra spec compliant retry mechanism. By default turned off.
         maxAttempt: 5
