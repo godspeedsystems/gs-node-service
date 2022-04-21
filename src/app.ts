@@ -11,7 +11,7 @@ import {GSCloudEvent, GSStatus} from './core/interfaces';
 
 import app from './http_listener'
 import { config } from 'process';
-import { config as appConfig , validate} from './core/loader';
+import { config as appConfig , validateSchema, validateResponse } from './core/loader';
 
 console.log("loader events:",appConfig.app.events)
 console.log("loader functions:",appConfig.app.functions)
@@ -182,12 +182,24 @@ async function main() {
 
     async function processEvent(event: {type: string, data:{[key:string]: any;}, metadata:{http: {res: express.Response}}}) { //GSCLoudEvent 
         console.log(events[event.type], event)
-        //const valid = validate(event);
-        const handler = functions[events[event.type].fn];
-
-        let ctx: GSStatus = new GSStatus();
+        console.log('event.type: ',event.type)
+        
+        let status: GSStatus = new GSStatus();
         let outputs: { [key: string]: any; } = {}
 
+        let valid_status = validateSchema(event.type,event);
+        console.log("valid status: ",valid_status)
+        if(valid_status.success === false)
+        {
+            status.success = false
+            status.code = 400
+            status.message = valid_status.error[0].message
+            status.data = valid_status.error
+            event.metadata.http.res.status(400).send(status);
+            return
+        }
+        
+        const handler = functions[events[event.type].fn];
         console.log('calling processevent');
 
         for (let step of handler.tasks) {
@@ -260,9 +272,9 @@ async function main() {
 
                     let snippet = "local outputs = std.extVar('outputs');\n" + args;
 
-                    ctx = JSON.parse(await jsonnet.extCode("outputs", JSON.stringify(outputs))
+                    status = JSON.parse(await jsonnet.extCode("outputs", JSON.stringify(outputs))
                         .evaluateSnippet(snippet))
-                    console.log(ctx.data)
+                    console.log(status.data)
                     break
 
                 case 'com.gs.emit':
@@ -276,11 +288,24 @@ async function main() {
             }
         }
 
-        console.log('end', ctx)
-        if (ctx.success) {
-            event.metadata.http.res.status(200).send(ctx);
+        console.log('end', status)
+        valid_status = validateResponse(event.type,status);
+        console.log("Response valid status: ",valid_status)
+        
+        if(valid_status.success === false)
+        {
+            status.success = false
+            status.code = 500
+            status.message = 'Internal Server Error - Error in validating the response schema'
+            status.data = valid_status.error
+            event.metadata.http.res.status(500).send(status);
+            return
+        }
+
+        if (status.success) {
+            event.metadata.http.res.status(200).send(status);
         } else {
-            event.metadata.http.res.status(ctx.code ?? 200).send(ctx);
+            event.metadata.http.res.status(status.code ?? 200).send(status);
         }
     }
 

@@ -2,7 +2,7 @@ import Ajv from "ajv"
 import addFormats from "ajv-formats";
 import iterate_yaml_directories from './configLoader';
 import * as _ from "lodash";
-import { GSCloudEvent , GSActor } from "../core/interfaces";
+import { GSCloudEvent , GSActor , GSStatus } from "../core/interfaces";
 const ajv = new Ajv()
 
 let config:{[key:string]:any;} = {}
@@ -47,62 +47,128 @@ function loadJsonValidation() {
         });
 
         // Add params schema in ajv for each param per topic
-        const params= eventObj[topic]['data']['schema']['params'];
+        const params = eventObj[topic]['data']['schema']['params'];
 
-        Object.keys(params).forEach(function(k) {
-            if(params[k]['schema']) {
-                const topic_param = topic + ':'+ params[k]['name']
-                ajv.addSchema(params[k]['schema'], topic_param)
-            }
-        });
+        if(params) {
+            Object.keys(params).forEach(function(k) {
+                if(params[k]['schema']) {
+                    const topic_param = topic + ':'+ params[k]['name']
+                    ajv.addSchema(params[k]['schema'], topic_param)
+                }
+            });
+        }
+
+        // Add responses schema in ajv for each response per topic
+        const responses = eventObj[topic]['responses'];
+
+        if(responses) {
+            Object.keys(responses).forEach(function(k) {
+                if(responses[k]['schema']['data']['content']['application/json']['schema']) {
+                    const response_schema = responses[k]['schema']['data']['content']['application/json']['schema']
+                    const topic_response = topic + ':responses:'+ k
+                    console.log("topic_response: ",topic_response)
+                    ajv.addSchema(response_schema, topic_response)
+                }
+            });
+        }
+
     });
 }
 
 /* Function to validate GSCloudEvent */
-function validate(topic: string, event: GSCloudEvent): boolean {    
-    let status=false
+function validateSchema(topic: string, event: GSCloudEvent): {[key:string]: any;} {    
+    let status:{[key:string]: any;} = {};
+    console.log("event.data['body']: ",event.data['body'])
+    console.log("event.data['params']: ",event.data['params'])
 
     // Validate event.data['body']
     if(event.data['body'])
     {
+        //console.log("ajvschemas: ",ajv.schemas[topic])
         const ajv_validate = ajv.getSchema(topic)
         if(ajv_validate !== undefined)
         {
+            //console.log("ajv_validate: ",ajv_validate)
             if (! ajv_validate(event.data['body'])) {
-              return false
-          } 
+                console.log("! ajv_validate: ")
+                status.success = false
+                status.error = ajv_validate.errors
+            }
+            else{
+                console.log("ajv validated")
+                status.success = true
+            } 
         }
         else{
-            return false
+            status.success = false
+            status.error = "Schema is not found in ajv"
         } 
     }
     else {
-        return false
+        status.success = false
+        status.error = "Body not present"
     }
   
     // Validate event.data['params']
-    _.each(event.data['params'], (paramObj, param) => {
-      const topic_param = topic + ':'+ param
-      const ajv_validate = ajv.getSchema(topic_param)
-      if(ajv_validate !== undefined)
-      {
-          if (! ajv_validate(paramObj)) {
-          status=false
-          return false
-          }
-          else {
-          status=true
-          return true
-          }
-      }
-    })
+    if(event.data.params) {
+        _.each(event.data['params'], (paramObj, param) => {
+        const topic_param = topic + ':'+ param
+        const ajv_validate = ajv.getSchema(topic_param)
+        if(ajv_validate !== undefined)
+        {
+            if (! ajv_validate(paramObj)) {
+                status.success = false
+                status.error = ajv_validate.errors
+                return false
+            }
+            else {
+                status.success = true
+                return true
+            }
+        }
+        })
+    }
+    return status
+}
+
+/* Function to validate GSStatus */
+function validateResponse(topic: string, gs_status: GSStatus): {[key:string]: any;} {    
+    let status:{[key:string]: any;} = {};
+    //console.log("gs_status: ",gs_status)
+
+    if(gs_status.data)
+    {
+        const topic_response = topic + ':responses:' + gs_status.code 
+        const ajv_validate = ajv.getSchema(topic_response)
+        if(ajv_validate !== undefined)
+        {
+            //console.log("ajv_validate: ",ajv_validate)
+            if (! ajv_validate(gs_status.data)) {
+                console.log("! ajv_validate: ")
+                status.success = false
+                status.error = ajv_validate.errors
+            }
+            else{
+                console.log("ajv validated")
+                status.success = true
+            } 
+        }
+        else{
+            status.success = false
+            status.error = "Response Schema is not found in ajv"
+        } 
+    }
+    else {
+        status.success = false
+        status.error = "Response data is not present"
+    }
     return status
 }
 
 loadSources();
 loadJsonValidation();
 
-export { config , validate };
+export { config , validateSchema , validateResponse };
 
 if (require.main === module) {
     const actor: GSActor = {
