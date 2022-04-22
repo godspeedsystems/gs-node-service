@@ -3,13 +3,20 @@ import addFormats from "ajv-formats";
 import iterate_yaml_directories from './configLoader';
 import * as _ from "lodash";
 import { GSCloudEvent , GSActor , GSStatus } from "../core/interfaces";
+import { PlainObject } from "./common";
+import loadModules from "./codeLoader";
 const ajv = new Ajv()
 
 let config:{[key:string]:any;} = {}
 
-function loadSources() {
-    var events:any;
+async function loadSources() {
     config.app = iterate_yaml_directories( __dirname + '/../../src').src;
+    let functions = await loadModules( __dirname + '/../../src/functions');
+    config.app.functions = {
+        ...config.app.functions,
+        ...functions
+    }
+    config.app.plugins = await( __dirname + '/../../src/plugins');
 }
 
 function loadJsonValidation() {
@@ -60,8 +67,8 @@ function loadJsonValidation() {
 }
 
 /* Function to validate GSCloudEvent */
-function validateSchema(topic: string, event: any): {[key:string]: any;} {    
-    let status:{[key:string]: any;} = {};
+function validateSchema(topic: string, event: any): PlainObject{
+    let status:PlainObject= {};
     console.log("event.data['body']: ",event.data['body'])
     console.log("event.data['params']: ",event.data['params'])
 
@@ -81,18 +88,18 @@ function validateSchema(topic: string, event: any): {[key:string]: any;} {
             else{
                 console.log("ajv validated")
                 status.success = true
-            } 
+            }
         }
         else{
             status.success = false
             status.error = "Schema is not found in ajv"
-        } 
+        }
     }
     else {
         status.success = false
         status.error = "Body not present"
     }
-  
+
     // Validate event.data['params']
     if(event.data.params) {
         _.each(event.data['params'], (paramObj, param) => {
@@ -116,13 +123,13 @@ function validateSchema(topic: string, event: any): {[key:string]: any;} {
 }
 
 /* Function to validate GSStatus */
-function validateResponse(topic: string, gs_status: GSStatus): {[key:string]: any;} {    
-    let status:{[key:string]: any;} = {};
+function validateResponse(topic: string, gs_status: GSStatus): PlainObject{
+    let status:PlainObject= {};
     //console.log("gs_status: ",gs_status)
 
     if(gs_status.data)
     {
-        const topic_response = topic + ':responses:' + gs_status.code 
+        const topic_response = topic + ':responses:' + gs_status.code
         const ajv_validate = ajv.getSchema(topic_response)
         if(ajv_validate !== undefined)
         {
@@ -135,11 +142,11 @@ function validateResponse(topic: string, gs_status: GSStatus): {[key:string]: an
             else{
                 console.log("ajv validated")
                 status.success = true
-            } 
+            }
         }
         else{
             status.success = true
-        } 
+        }
     }
     else {
         status.success = false
@@ -148,7 +155,10 @@ function validateResponse(topic: string, gs_status: GSStatus): {[key:string]: an
     return status
 }
 
-loadSources();
+(async() => {
+    await loadSources();
+})();
+
 loadJsonValidation();
 
 export { config , validateSchema , validateResponse };
@@ -161,10 +171,10 @@ if (require.main === module) {
         id: "44",
         data: {}
       };
-      const time:Date= new Date("2022/04/19"); 
+      const time:Date= new Date("2022/04/19");
       const new_event = new GSCloudEvent("1","type",time,"source","1.0",{ "body": {"id": "Smith"}, "params": {"bank_id": "HDB01"} },"REST",actor,{})
-    
+
       // Call validate function to validate event.data (body and params)
       const valid = validateSchema("/do_kyc/{bank_id}.http.post",new_event);
-      console.log(valid);    
+      console.log(valid);
 }

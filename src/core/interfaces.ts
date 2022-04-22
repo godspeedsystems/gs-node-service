@@ -1,5 +1,5 @@
 import { Jsonnet } from '@hanazuki/node-jsonnet';
-import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE } from './common';
+import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { setAtPath, getAtPath } from './utils';
 //import R from 'ramda';
 /**
@@ -43,30 +43,6 @@ import { setAtPath, getAtPath } from './utils';
  *  logic to consume it. If it returns anything, it will be ignored and not passed to subsequent hooks.
  *
  */
-
-//TODO: load these from plugins folder
- function randomString(length: number, characters: string) {
-  let result = '';
-
-  if (!characters) {
-      characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  }
-
-  let charactersLength = characters.length;
-  for(let i = 0; i < length; i++ ) {
-    let c = characters.charAt(Math.floor(Math.random() * charactersLength));
-    if (!result && c == '0') {
-        continue
-    }
-
-    result += c;
-  }
-  return result;
-}
-
-function randomInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 export class GSFunction extends Function {
   id: string; // can be dot separated fqn
@@ -188,15 +164,8 @@ export class GSSeriesFunction extends GSFunction {
   override async _call(ctx: GSContext) {
     console.log('inside series executor', ctx, this.args)
     
-    for await (const child of this.args!) {
-      if (child instanceof GSFunction) {
-        if (this.fn instanceof GSFunction) {
-          await (<GSFunction>this.fn)(ctx);
-        }
-        else if (typeof this.fn === 'function') {
-          ctx.outputs[child.id] = await this._executefn(ctx);
-        }
-      }
+    for (const child of this.args!) {
+      await child(ctx);
     }
   }
 }
@@ -208,16 +177,10 @@ export class GSParallelFunction extends GSFunction {
     const promises = [];
     
     for (const child of this.args!) {
-      if (child instanceof GSFunction) {
-        promises.push(child(ctx));
-      }
+      promises.push(child(ctx));
     }
 
-    let outputs = await Promise.all(promises);
-
-    for (let output in outputs) {
-      ctx.outputs[this.args![output].id] = outputs[output];
-    }
+    await Promise.all(promises);
   }
 }
 
@@ -304,41 +267,42 @@ export class GSCloudEvent {
  * __actor (alias to __event.actor), __vars, __config, __src, __modules, __env, __event, __res (starting from the first parent span), __args (of the running GS instruction)
  */
 export class GSContext { //span executions
-  shared: {[key: string]: any; }; //This data, which can be having query promises, results, entities etc, when updated will get reflected across everyone using same instance of GSContext
+  shared: PlainObject; //This data, which can be having query promises, results, entities etc, when updated will get reflected across everyone using same instance of GSContext
   inputs: GSCloudEvent; //The very original event for which this workflow context was created
   outputs:{[key: string]: GSStatus; }; //DAG result. This context has a trace history and responses of all instructions in the DAG are stored in this object
   log_events: GSLogEvent[] = [];
-  config: {[key: string]: any; }; //app config
-  datasources: {[key: string]: any; }; //app config
+  config: PlainObject; //app config
+  datasources: PlainObject; //app config
   jsonnet: Jsonnet;
   mappings: any;
   jsonnetSnippet: string;
+  plugins: PlainObject;
 
-  constructor(config: {[key: string]: any; }, datasources: {[key: string]: any; }, 
-      shared: {[key: string]: any; } = {}, event: GSCloudEvent, mappings: any) {//_function?: GSFunction
+  constructor(config: PlainObject, datasources: PlainObject, 
+      shared: PlainObject = {}, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
     this.shared = shared;
     this.inputs = event;
     this.config = config;
     this.outputs = {};
     this.datasources = datasources;
     this.mappings = mappings;
+    this.plugins = plugins;
+    this.jsonnetSnippet = jsonnetSnippet;
+
     const jsonnet = this.jsonnet = new Jsonnet();
     
-    this.jsonnetSnippet = `local inputs = std.extVar('inputs');
-            local mappings = std.extVar('mappings');
-            local outputs = std.extVar('outputs');
-            local config = std.extVar('config');
-            local randomString = std.native('randomString');
-            local randomInt = std.native('randomInt');
-    `;
+    for (let fn in plugins) {
+      const args = /\((.*?)\)/.exec(fn.toString());
+      if (args) {
+        let a = args[1].replace(/, */, ',').split(',')
+        jsonnet.nativeCallback(fn, plugins[fn], ...a);
+      }
+    }
 
     jsonnet.extCode("inputs", JSON.stringify(event.data));
     jsonnet.extCode("outputs", JSON.stringify(this.outputs));
     jsonnet.extCode("config", JSON.stringify(this.config));
     jsonnet.extCode("mappings", JSON.stringify(this.mappings));
-
-    jsonnet.nativeCallback("randomString", (length, only_number) => randomString(Number(length), String(only_number)), "length", 'only_number');
-    jsonnet.nativeCallback("randomInt", (min, max) => randomInt(Number(min), Number(max)), "min", 'max');
   }
 
   public addLogEvent(event: GSLogEvent): void {
@@ -403,9 +367,9 @@ export class GSActor {
   tenant_id?: string;
   name?: string; // Fully qualified name
   id?: string; // id of the actor
-  data?: {[key: string]: any; }; //Other information in key value pairs. For example IP address
+  data?: PlainObject; //Other information in key value pairs. For example IP address
 
-  constructor(type: ACTOR_TYPE, tenant_id?: string, name?: string, id?: string, data?: {[key: string]: any; }) {
+  constructor(type: ACTOR_TYPE, tenant_id?: string, name?: string, id?: string, data?: PlainObject) {
     this.type = type;
     this.tenant_id = tenant_id;
     this.name = name;

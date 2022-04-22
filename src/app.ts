@@ -7,17 +7,33 @@ import axios from 'axios';
 import express from 'express';
 import {GSActor, GSCloudEvent, GSContext, GSFunction, GSStatus} from './core/interfaces';
 
-
 import app from './http_listener'
 import { config } from 'process';
 import { config as appConfig , validateSchema, validateResponse } from './core/loader';
+import { PlainObject } from './core/common';
 
 console.log("loader events:",appConfig.app.events)
 console.log("loader functions:",appConfig.app.functions)
 console.log("loader datasources:",appConfig.app.datasources)
 
+let jsonnetSnippet = (function() {
+    let snippet = `local inputs = std.extVar('inputs');
+        local mappings = std.extVar('mappings');
+        local outputs = std.extVar('outputs');
+        local config = std.extVar('config');
+    `;
+
+    for (let fn in appConfig.app.plugins) {
+        snippet += `
+            local ${fn} = std.native('${fn}');
+            `
+    }
+
+    return snippet;
+})();
+
 function loadFunctions() {
-    const out:{[key:string]: any;} = {};
+    const out:PlainObject= {};
     const workflow = YAML.parse(fs.readFileSync(__dirname + '/../src/functions/index.yaml', 'utf8'));
     console.log(workflow)
     out[workflow.namespace + '.' + workflow.id] = workflow;
@@ -162,7 +178,7 @@ async function main() {
         console.log('event.type: ',event.type)
         
         let status: GSStatus = new GSStatus();
-        let outputs: { [key: string]: any; } = {}
+        let outputs: PlainObject = {}
 
         let valid_status = validateSchema(event.type,event);
         console.log("valid status: ",valid_status)
@@ -184,7 +200,9 @@ async function main() {
             appConfig.app.datasources,
             {},
             event,
-            appConfig.app.mappings
+            appConfig.app.mappings,
+            jsonnetSnippet,
+            appConfig.app.plugins
         ))
         // for (let step of handler.tasks) {
         //     let {fn, args} = step;

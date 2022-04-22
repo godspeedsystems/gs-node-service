@@ -1,4 +1,6 @@
-export function getAtPath(obj: {[key: string]: any; }, path: string) {
+import { PlainObject } from "./common";
+
+export function getAtPath(obj: PlainObject, path: string) {
   const keys = path.split('.');
   for (const key of keys) {
     if (key in obj) { //obj[key]
@@ -9,11 +11,11 @@ export function getAtPath(obj: {[key: string]: any; }, path: string) {
   }
   return obj;
 }
-export function setAtPath(o: {[key: string]: any; }, path: string, value: any) {
+export function setAtPath(o: PlainObject, path: string, value: any) {
   const keys = path.split('.');
   let obj = o;
-  //prepare the array to ensure that there is nested {[key: string]: any; } till the last key
-  //Ensure there is an {[key: string]: any; } as value till the second last key
+  //prepare the array to ensure that there is nested PlainObject till the last key
+  //Ensure there is an PlainObject as value till the second last key
   for (let i = 0; i< keys.length - 1; i++) {
     const key = keys[i];
     if (key in obj) { //obj[key]

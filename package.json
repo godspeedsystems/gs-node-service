@@ -18,6 +18,7 @@
     "body-parser": "^1.20.0",
     "cmake-js": "^6.3.0",
     "express": "^4.17.3",
+    "glob": "^8.0.1",
     "js-yaml": "^4.1.0",
     "morgan": "^1.10.0",
     "openapi-client-axios": "^5.1.2",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@types/body-parser": "^1.19.2",
     "@types/express": "^4.17.13",
+    "@types/glob": "^7.2.0",
     "@types/js-yaml": "^4.0.5",
     "@types/lodash": "^4.14.182",
     "@types/morgan": "^1.9.3",
