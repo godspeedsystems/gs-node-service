@@ -1,12 +1,11 @@
 import YAML from 'yaml';
-import fs, { cpSync } from 'fs';
+import fs from 'fs';
 import EventEmitter from 'events';
 import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 
 import express from 'express';
-import { Jsonnet } from "@hanazuki/node-jsonnet";
-import {GSCloudEvent, GSStatus} from './core/interfaces';
+import {GSActor, GSCloudEvent, GSContext, GSFunction, GSStatus} from './core/interfaces';
 
 
 import app from './http_listener'
@@ -16,29 +15,6 @@ import { config as appConfig , validateSchema, validateResponse } from './core/l
 console.log("loader events:",appConfig.app.events)
 console.log("loader functions:",appConfig.app.functions)
 console.log("loader datasources:",appConfig.app.datasources)
-
-function randomString(length: number, characters: string) {
-    let result = '';
-
-    if (!characters) {
-        characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    }
-
-    let charactersLength = characters.length;
-    for(let i = 0; i < length; i++ ) {
-      let c = characters.charAt(Math.floor(Math.random() * charactersLength));
-      if (!result && c == '0') {
-          continue
-      }
-
-      result += c;
-    }
-    return result;
-}
-
-function randomInt(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 function loadFunctions() {
     const out:{[key:string]: any;} = {};
@@ -162,12 +138,13 @@ function httpListener(ee: EventEmitter, events: any) {
                 //console.log('type', type)
                 //TODO: convert to cloudevent
                 console.log('emitting http handler', originalRoute);
-                ee.emit(originalRoute, {type: originalRoute, data: {
+                const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
                     params: req.params,
                     query: req.query,
                     headers: req.headers,
-                }, metadata: {http: {res}}});
+                }, 'REST', new GSActor('user'),  {http: {res}} );
+                ee.emit(originalRoute, event);
             })
         }
     }
@@ -180,7 +157,7 @@ async function main() {
     ee.on('error', console.log);
 
 
-    async function processEvent(event: {type: string, data:{[key:string]: any;}, metadata:{http: {res: express.Response}}}) { //GSCLoudEvent 
+    async function processEvent(event: GSCloudEvent) { //GSCLoudEvent 
         console.log(events[event.type], event)
         console.log('event.type: ',event.type)
         
@@ -195,103 +172,110 @@ async function main() {
             status.code = 400
             status.message = valid_status.error[0].message
             status.data = valid_status.error
-            event.metadata.http.res.status(400).send(status);
+            (event.metadata?.http?.express.res as express.Response).status(400).send(status);
             return
         }
         
-        const handler = functions[events[event.type].fn];
+        const handler = functions[events[event.type].fn] as GSFunction;
         console.log('calling processevent');
 
-        for (let step of handler.tasks) {
-            let {fn, args} = step;
-            let success = true;
+        let output = await handler(new GSContext(
+            {},
+            appConfig.app.datasources,
+            {},
+            event,
+            appConfig.app.mappings
+        ))
+        // for (let step of handler.tasks) {
+        //     let {fn, args} = step;
+        //     let success = true;
 
-            switch(fn) {
-                case 'com.gs.http':
-                    try {
-                        const jsonnet = new Jsonnet();
-                        let snippet = `local inputs = std.extVar('inputs');
-                                local randomString = std.native('randomString');
-                                local randomInt = std.native('randomInt');
-                        `;
+        //     switch(fn) {
+        //         case 'com.gs.http':
+        //             try {
+        //                 const jsonnet = new Jsonnet();
+        //                 let snippet = `local inputs = std.extVar('inputs');
+        //                         local randomString = std.native('randomString');
+        //                         local randomInt = std.native('randomInt');
+        //                 `;
 
-                        Object.keys(appConfig.app).forEach(function(key) {
-                            snippet += `local ${key} = std.extVar('${key}');\n`;
-                            jsonnet.extCode(key, JSON.stringify(appConfig.app[key]));
-                        });
+        //                 Object.keys(appConfig.app).forEach(function(key) {
+        //                     snippet += `local ${key} = std.extVar('${key}');\n`;
+        //                     jsonnet.extCode(key, JSON.stringify(appConfig.app[key]));
+        //                 });
 
-                        jsonnet.extCode("inputs", JSON.stringify(event.data));
-                        jsonnet.nativeCallback("randomString", (length, only_number) => randomString(Number(length), String(only_number)), "length", 'only_number');
-                        jsonnet.nativeCallback("randomInt", (min, max) => randomInt(Number(min), Number(max)), "min", 'max');
+        //                 jsonnet.extCode("inputs", JSON.stringify(event.data));
+        //                 jsonnet.nativeCallback("randomString", (length, only_number) => randomString(Number(length), String(only_number)), "length", 'only_number');
+        //                 jsonnet.nativeCallback("randomInt", (min, max) => randomInt(Number(min), Number(max)), "min", 'max');
 
-                        snippet += JSON.stringify(args).replace(/\"\${(.*?)}\"/g, "$1")
-                                .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
-                                .replace(/\\"/g, '"')
-                                .replace(/\\n/g, ' ')
+        //                 snippet += JSON.stringify(args).replace(/\"\${(.*?)}\"/g, "$1")
+        //                         .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
+        //                         .replace(/\\"/g, '"')
+        //                         .replace(/\\n/g, ' ')
 
 
-                        console.log(snippet);
-                        args = JSON.parse(await jsonnet.evaluateSnippet(snippet))
-                        console.log(args);
+        //                 console.log(snippet);
+        //                 args = JSON.parse(await jsonnet.evaluateSnippet(snippet))
+        //                 console.log(args);
 
-                        const ds = datasources[args.datasource];
-                        let res;
+        //                 const ds = datasources[args.datasource];
+        //                 let res;
 
-                        try {
-                            if (ds.schema) {
-                                console.log('invoking with schema');
-                                res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config)
-                            } else {
-                                console.log('invoking wihout schema');
-                                res = await ds.client({
-                                    ...args.config,
-                                    params: args.params,
-                                    data: args.data,
-                                })
-                            }
-                        } catch(ex) {
-                            console.error(ex);
-                            // @ts-ignore   
-                            res = ex.response;
-                        }
-                        outputs[step.id] = {
-                            data: res.data,
-                            status: res.status,
-                            statusText: res.statusText,
-                            headers: res.headers,
-                        }
-                    } catch(ex) {
-                        console.error(ex);
-                        success = true;
-                        //if (step)
-                        // console.error(ex);
-                        // ctx.message = (ex as Error).message;
-                        // success = ctx.success = false;
-                        // ctx.code = 500;
-                    }
-                    break;
+        //                 try {
+        //                     if (ds.schema) {
+        //                         console.log('invoking with schema');
+        //                         res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config)
+        //                     } else {
+        //                         console.log('invoking wihout schema');
+        //                         res = await ds.client({
+        //                             ...args.config,
+        //                             params: args.params,
+        //                             data: args.data,
+        //                         })
+        //                     }
+        //                 } catch(ex) {
+        //                     console.error(ex);
+        //                     // @ts-ignore   
+        //                     res = ex.response;
+        //                 }
+        //                 outputs[step.id] = {
+        //                     data: res.data,
+        //                     status: res.status,
+        //                     statusText: res.statusText,
+        //                     headers: res.headers,
+        //                 }
+        //             } catch(ex) {
+        //                 console.error(ex);
+        //                 success = true;
+        //                 //if (step)
+        //                 // console.error(ex);
+        //                 // ctx.message = (ex as Error).message;
+        //                 // success = ctx.success = false;
+        //                 // ctx.code = 500;
+        //             }
+        //             break;
 
-                case 'com.gs.transform':
-                    console.log(outputs);
-                    const jsonnet = new Jsonnet();
+        //         case 'com.gs.transform':
+        //             console.log(outputs);
+        //             const jsonnet = new Jsonnet();
 
-                    let snippet = "local outputs = std.extVar('outputs');\n" + args;
+        //             let snippet = "local outputs = std.extVar('outputs');\n" + args;
 
-                    status = JSON.parse(await jsonnet.extCode("outputs", JSON.stringify(outputs))
-                        .evaluateSnippet(snippet))
-                    console.log(status.data)
-                    break
+        //             status = JSON.parse(await jsonnet.extCode("outputs", JSON.stringify(outputs))
+        //                 .evaluateSnippet(snippet))
+        //             console.log(status.data)
+        //             break
 
-                case 'com.gs.emit':
-                    ee.emit(args.name, args.data)
-                    break;
+        //         case 'com.gs.emit':
+        //             ee.emit(args.name, args.data)
+        //             break;
 
-            }
+        //     }
 
-            if (!success) {
-                break;
-            }
-        }
+        //     if (!success) {
+        //         break;
+        //     }
+        // }
 
         console.log('end', status)
         valid_status = validateResponse(event.type,status);
@@ -303,14 +287,14 @@ async function main() {
             status.code = 500
             status.message = 'Internal Server Error - Error in validating the response schema'
             status.data = valid_status.error
-            event.metadata.http.res.status(500).send(status);
+            (event.metadata?.http?.express.res as express.Response).status(500).send(status);
             return
         }
 
         if (status.success) {
-            event.metadata.http.res.status(200).send(status);
+            (event.metadata?.http?.express.res as express.Response).status(200).send(status);
         } else {
-            event.metadata.http.res.status(status.code ?? 200).send(status);
+            (event.metadata?.http?.express.res as express.Response).status(status.code ?? 200).send(status);
         }
     }
 

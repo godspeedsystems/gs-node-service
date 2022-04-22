@@ -1,3 +1,4 @@
+import { Jsonnet } from '@hanazuki/node-jsonnet';
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE } from './common';
 import { setAtPath, getAtPath } from './utils';
 //import R from 'ramda';
@@ -27,7 +28,7 @@ import { setAtPath, getAtPath } from './utils';
  * LOG EVENT HANDLING (including error)
  * OPTION A:
  *  Whether error happens or not, it can return multiple GSEvents of type: error, warning,
- *  debug, info. On error, the called GSAction MUST itself handle error internally.
+ *  debug, info. On error, the called Function MUST itself handle error internally.
  *  These events will be logged by the common code. If there is an event with error,
  *  the common code will straightaway jump to the finally block.
  * OPTION B:
@@ -43,17 +44,39 @@ import { setAtPath, getAtPath } from './utils';
  *
  */
 
-export type GSAction = GSFunction | Function;
+//TODO: load these from plugins folder
+ function randomString(length: number, characters: string) {
+  let result = '';
+
+  if (!characters) {
+      characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  }
+
+  let charactersLength = characters.length;
+  for(let i = 0; i < length; i++ ) {
+    let c = characters.charAt(Math.floor(Math.random() * charactersLength));
+    if (!result && c == '0') {
+        continue
+    }
+
+    result += c;
+  }
+  return result;
+}
+
+function randomInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 export class GSFunction extends Function {
   id: string; // can be dot separated fqn
   args?: any[];
   summary?: string;
   description?: string;
-  fn: GSAction;
-  onError?: GSAction;
+  fn: Function;
+  onError?: Function;
   
-  constructor(id: string, _function: GSAction, args?: any[], summary?: string, description?: string, onError?: GSAction, _finally?: GSAction) {
+  constructor(id: string, _function: Function, args?: any[], summary?: string, description?: string, onError?: Function, _finally?: Function) {
     super('...args', 'return this._bound._call(...args)')
     this.id = id;
     this.fn = _function;
@@ -68,9 +91,42 @@ export class GSFunction extends Function {
     return this._bound;
   }
 
+  async _evaluateVariables(ctx: GSContext, args: any) {
+
+    if (!args) {
+      return;
+    }
+
+    let snippet = ctx.jsonnetSnippet;
+
+    //TODO: expand datasources
+    // if (args.constructor === Object) {
+    //   if (args.datasource) {
+    //     args.datasource = ctx.datasources[args.datasource];
+    //   }
+    // }
+
+    snippet += JSON.stringify(args).replace(/\"\${(.*?)}\"/g, "$1")
+            .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, ' ')
+
+
+    console.log(snippet);
+    return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet))
+  }
+
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
-      let res = await this.fn.apply(null, this.args)
+      const args = this._evaluateVariables(ctx, this.args);
+
+      let res;
+      
+      if (Array.isArray(args)) {
+        res = await this.fn.apply(null, args)
+      } else {
+        res = await this.fn(args);
+      }
       
       if (res instanceof GSStatus) {
         return res; 
@@ -254,12 +310,35 @@ export class GSContext { //span executions
   log_events: GSLogEvent[] = [];
   config: {[key: string]: any; }; //app config
   datasources: {[key: string]: any; }; //app config
-  constructor(config: {[key: string]: any; }, datasources: {[key: string]: any; }, shared: {[key: string]: any; } = {}, event: GSCloudEvent) {//_function?: GSFunction
+  jsonnet: Jsonnet;
+  mappings: any;
+  jsonnetSnippet: string;
+
+  constructor(config: {[key: string]: any; }, datasources: {[key: string]: any; }, 
+      shared: {[key: string]: any; } = {}, event: GSCloudEvent, mappings: any) {//_function?: GSFunction
     this.shared = shared;
     this.inputs = event;
     this.config = config;
     this.outputs = {};
     this.datasources = datasources;
+    this.mappings = mappings;
+    const jsonnet = this.jsonnet = new Jsonnet();
+    
+    this.jsonnetSnippet = `local inputs = std.extVar('inputs');
+            local mappings = std.extVar('mappings');
+            local outputs = std.extVar('outputs');
+            local config = std.extVar('config');
+            local randomString = std.native('randomString');
+            local randomInt = std.native('randomInt');
+    `;
+
+    jsonnet.extCode("inputs", JSON.stringify(event.data));
+    jsonnet.extCode("outputs", JSON.stringify(this.outputs));
+    jsonnet.extCode("config", JSON.stringify(this.config));
+    jsonnet.extCode("mappings", JSON.stringify(this.mappings));
+
+    jsonnet.nativeCallback("randomString", (length, only_number) => randomString(Number(length), String(only_number)), "length", 'only_number');
+    jsonnet.nativeCallback("randomInt", (min, max) => randomInt(Number(min), Number(max)), "min", 'max');
   }
 
   public addLogEvent(event: GSLogEvent): void {
@@ -319,12 +398,20 @@ export class GSLogEvent {
   }
 }
 
-export interface GSActor {
+export class GSActor {
   type: ACTOR_TYPE;
-  tenant_id: string;
-  name: string; // Fully qualified name
-  id: string; // id of the actor
-  data: {[key: string]: any; } | {}; //Other information in key value pairs. For example IP address
+  tenant_id?: string;
+  name?: string; // Fully qualified name
+  id?: string; // id of the actor
+  data?: {[key: string]: any; }; //Other information in key value pairs. For example IP address
+
+  constructor(type: ACTOR_TYPE, tenant_id?: string, name?: string, id?: string, data?: {[key: string]: any; }) {
+    this.type = type;
+    this.tenant_id = tenant_id;
+    this.name = name;
+    this.id = id;
+    this.data = data;
+  }
 }
 
 

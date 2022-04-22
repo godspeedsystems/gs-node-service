@@ -1,19 +1,7 @@
-import { Jsonnet } from "@hanazuki/node-jsonnet";
-import { GSContext, GSStatus } from "../../../core/interfaces";
 
-export default async function(args:{[key:string]:any;}, ctx: GSContext, stepId: string) {
+export default async function(args:{[key:string]:any;}) {
     try {
-        const jsonnet = new Jsonnet();
-        let snippet = "local inputs = std.extVar('inputs');\n";
-        
-        jsonnet.extCode("inputs", JSON.stringify(ctx.inputs));
-        
-        snippet += JSON.stringify(args).replace(/\"\${(.*?)}\"/g, "$1")
-        console.log(snippet);
-        args = JSON.parse(await jsonnet.evaluateSnippet(snippet))
-        console.log(args);
-
-        const ds = ctx.datasources[args.datasource];
+        const ds = args.datasource;
         let res;
 
         if (ds.schema) {
@@ -27,9 +15,12 @@ export default async function(args:{[key:string]:any;}, ctx: GSContext, stepId: 
                 data: args.data,
             })
         }
-        ctx.outputs[stepId] = new GSStatus(true, res.status, '', {data: res.data, statusText: res.statusText, headers: res.headers});
+        
+        return {success: true, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex) {
-        console.error(ex);
-        ctx.outputs[stepId] = new GSStatus(false, 500, (ex as Error).message)
+        //console.error(ex);
+        //@ts-ignore
+        let res = ex.response;
+        return {success: false, data: res.data, message: (ex as Error).message, headers: res.headers};
     }
 }
