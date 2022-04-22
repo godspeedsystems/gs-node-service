@@ -295,7 +295,9 @@ export class GSContext { //span executions
       const args = /\((.*?)\)/.exec(fn.toString());
       if (args) {
         let a = args[1].replace(/, */, ',').split(',')
-        jsonnet.nativeCallback(fn, plugins[fn], ...a);
+        let f = fn.split('.')
+        let n = f[f.length - 1];
+        jsonnet.nativeCallback(n, plugins[fn], ...a);
       }
     }
 

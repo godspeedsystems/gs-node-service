@@ -24,6 +24,9 @@ let jsonnetSnippet = (function() {
     `;
 
     for (let fn in appConfig.app.plugins) {
+        let f = fn.split('.')
+        fn = f[f.length - 1];
+
         snippet += `
             local ${fn} = std.native('${fn}');
             `
