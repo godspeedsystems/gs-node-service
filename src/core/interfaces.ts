@@ -44,69 +44,80 @@ import { setAtPath, getAtPath } from './utils';
  */
 
 export type GSAction = GSFunction | Function;
-type ExecutionOrder = 'series' | 'parallel' | 'single' | 'if_else';
-export class GSFunction {
+
+export class GSFunction extends Function {
   id: string; // can be dot separated fqn
   args?: any[];
   summary?: string;
   description?: string;
-  functionType: ExecutionOrder = 'single';
-  function: GSAction;
+  fn: GSAction;
   onError?: GSAction;
-  constructor(id: string, _function: GSAction, args?: any[], summary?: string, description?: string, functionType: ExecutionOrder = 'single', onError?: GSAction, _finally?: GSAction) {
+  
+  constructor(id: string, _function: GSAction, args?: any[], summary?: string, description?: string, onError?: GSAction, _finally?: GSAction) {
+    super('...args', 'return this._bound._call(...args)')
     this.id = id;
-    this.function = _function;
+    this.fn = _function;
     this.args = args;
-    this.functionType = functionType;
     this.summary = summary;
     this.description = description;
     this.onError = onError;
+
+    //@ts-ignore
+    this._bound = this.bind(this);
+    //@ts-ignore
+    return this._bound;
   }
+
+  async _executefn(ctx: GSContext):Promise<GSStatus> {
+    try {
+      let res = await this.fn.apply(null, this.args)
+      
+      if (res instanceof GSStatus) {
+        return res; 
+      } else {
+        if (typeof(res) == 'object') {
+          let {success, code, data, message, headers} = res;
+          return new GSStatus(success, code, message, data, headers);
+        }
+        //This function gives a non GSStatus comliant return, then create a new GSStatus and set in the output for this function
+        return new GSStatus(
+          true,
+          undefined,
+          undefined,
+          res
+          //message: skip
+          //code: skip
+        );
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        //This function threw an error, so it has failed
+        return new GSStatus(
+          false,
+          undefined,
+          err.message,
+          err.stack
+        );
+      }
+    }
+
+    //shouldn't come here
+    return new GSStatus();
+  }
+
   /**
    * 
    * @param instruction
    * @param ctx
    */
-  execute = async (
-    ctx: GSContext,
-  ): Promise<GSContext> => {
+  async _call(ctx: GSContext) {
     
     //TODO: Later. Low priority: Execute all hooks one by one, in a reusable code manner
-    if (this.function instanceof GSFunction) {
-  
-      ctx = await (<GSFunction>this.function).execute(ctx);
-  
-    } else if (typeof this.function === 'function') {
-      try {
-        let res;
-        if (this.functionType === 'series') {
-          console.log('inside series', this.args && this.args[0].children)
-          res =  await this.function.apply(null, [ctx, this.args && this.args[0].children])
-        } else {
-          res = await this.function.apply(null, this.args)
-        }
-        
-        if (res instanceof GSStatus) {
-          ctx.outputs[this.id] = res; 
-        } else {
-          //This function gives a non GSStatus comliant return, then create a new GSStatus and set in the output for this function
-          ctx.outputs[this.id] = {
-            success: true,
-            data: res
-            //message: skip
-            //code: skip
-          }
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          //This function threw an error, so it has failed
-          ctx.outputs[this.id] = {
-            success: false,
-            message: err.message,
-            data: err.stack
-          }
-        }
-      }
+    if (this.fn instanceof GSFunction) {
+      await this.fn(ctx);
+    }
+    else {
+      ctx.outputs[this.id] = await this._executefn(ctx);
     }
     /**
      * If the call had an error, set that in events so that we can send it to the telemetry backend.
@@ -114,9 +125,71 @@ export class GSFunction {
     if (!ctx.outputs[this.id].success) {
       ctx.addLogEvent(new GSLogEvent('ERROR', ctx.outputs));
     }
-    return ctx;
   };
+}
 
+export class GSSeriesFunction extends GSFunction {
+  override async _call(ctx: GSContext) {
+    console.log('inside series executor', ctx, this.args)
+    
+    for await (const child of this.args!) {
+      if (child instanceof GSFunction) {
+        if (this.fn instanceof GSFunction) {
+          await (<GSFunction>this.fn)(ctx);
+        }
+        else if (typeof this.fn === 'function') {
+          ctx.outputs[child.id] = await this._executefn(ctx);
+        }
+      }
+    }
+  }
+}
+
+
+export class GSParallelFunction extends GSFunction {
+  override async _call(ctx: GSContext) {
+    console.log('inside parallel executor', ctx, this.args)
+    const promises = [];
+    
+    for (const child of this.args!) {
+      if (child instanceof GSFunction) {
+        promises.push(child(ctx));
+      }
+    }
+
+    let outputs = await Promise.all(promises);
+
+    for (let output in outputs) {
+      ctx.outputs[this.args![output].id] = outputs[output];
+    }
+  }
+}
+
+export class GSSwitchFunction extends GSFunction {
+  override async _call(ctx: GSContext) {
+    console.log('inside switch executor', ctx, this.args)
+    // tasks incase of series, parallel and condition, cases should be converted to args
+    const [condition, cases] = this.args!;
+    let value;
+    //evaluate the condition = 
+    if ((condition as string).includes('${')) {
+      value = (condition as string).replace('"\${(.*?)}"', '$1');
+      //TODO: pass other context variables
+      value = Function('config', 'return ' + condition)();
+    }
+
+    if (cases[value]) {
+      await cases[value](ctx);
+    } else {
+      //check for default otherwise error
+      if (cases.default) {
+        await cases.default(ctx);
+      } else{
+        //error
+        ctx.outputs[this.id] = new GSStatus(false, undefined, `case ${value} is missing and no default found in switch`)
+      }
+    }
+  }
 }
 
 /**
@@ -126,13 +199,15 @@ export class GSStatus {
   success: boolean;
   code?: number;
   message?: string;
-  data: any;
+  data?: any;
+  headers?: {[key:string]: any;};
 
-  constructor(success: boolean = true, code?: number, message?: string, data?: any) {
+  constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: {[key:string]: any;}) {
     this.message = message;
     this.code = code;
     this.data = data;
     this.success = success;
+    this.headers = headers;
   }
 }
 
@@ -290,25 +365,6 @@ if (require.main === module) {
 
 }
 
-async function seriesExecutor (ctx: GSContext, children: GSAction[]) {
-  console.log('inside series executor', ctx, children)
-  for await (const child of children) {
-    if (child instanceof GSFunction) {
-      ctx = await (<GSFunction>child).execute(ctx)
-    }
-  }
-  //return ctx;
-}
-async function parallelExecutor (ctx: GSContext, children: GSAction[]) {
-  console.log('inside parallel executor', ctx, children)
-  const promises = [];
-  for (const child of children) {
-    if (child instanceof GSFunction) {
-     promises.push((<GSFunction>child).execute(ctx));
-    }
-  }
-  return await promises;
-}
 
 
 /**

@@ -211,12 +211,12 @@ async function main() {
                     try {
                         const jsonnet = new Jsonnet();
                         let snippet = `local inputs = std.extVar('inputs');
-                                local mappings = std.extVar('mappings');
                                 local randomString = std.native('randomString');
                                 local randomInt = std.native('randomInt');
                         `;
 
                         Object.keys(appConfig.app).forEach(function(key) {
+                            snippet += `local ${key} = std.extVar('${key}');\n`;
                             jsonnet.extCode(key, JSON.stringify(appConfig.app[key]));
                         });
 
