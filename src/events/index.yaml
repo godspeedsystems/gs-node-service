@@ -11,10 +11,10 @@
             schema: 
               type: object
               properties:
-                id: 
+                Gender: 
                   type: string
-              additionalProperties: false
-              required: [id]
+              #additionalProperties: false
+              #required: [id]
             examples: # <string, ExampleObject>
               '{example_name}':
                 summary:
@@ -33,6 +33,29 @@
           examples:
   responses: 
     200:
+      examples: # <string, ExampleObject>
+      schema:
+        data: 
+          description:
+          required: # default value is false
+          content:
+            application/json: # For ex. application/json application/xml
+              schema: 
+                type: object
+                properties:
+                  application_id: 
+                    type: string
+                additionalProperties: false
+                required: [application_id]
+              examples: # <string, ExampleObject>
+                example1:
+                  summary:
+                  description:
+                  value: 
+                    application_id: PRM20478956N
+                  external_value:
+              encoding:
+    400:
       examples: # <string, ExampleObject>
       schema:
         data: 

@@ -42,7 +42,7 @@ function randomInt(min: number, max: number) {
 
 function loadFunctions() {
     const out:{[key:string]: any;} = {};
-    const workflow = YAML.parse(fs.readFileSync(__dirname + '/functions/index.yaml', 'utf8'));
+    const workflow = YAML.parse(fs.readFileSync(__dirname + '/../src/functions/index.yaml', 'utf8'));
     console.log(workflow)
     out[workflow.namespace + '.' + workflow.id] = workflow;
     return out;
@@ -211,9 +211,14 @@ async function main() {
                     try {
                         const jsonnet = new Jsonnet();
                         let snippet = `local inputs = std.extVar('inputs');
+                                local mappings = std.extVar('mappings');
                                 local randomString = std.native('randomString');
                                 local randomInt = std.native('randomInt');
                         `;
+
+                        Object.keys(appConfig.app).forEach(function(key) {
+                            jsonnet.extCode(key, JSON.stringify(appConfig.app[key]));
+                        });
 
                         jsonnet.extCode("inputs", JSON.stringify(event.data));
                         jsonnet.nativeCallback("randomString", (length, only_number) => randomString(Number(length), String(only_number)), "length", 'only_number');

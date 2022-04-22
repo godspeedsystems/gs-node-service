@@ -10,23 +10,8 @@ let config:{[key:string]:any;} = {}
 function loadSources() {
     var events:any;
     config.app = iterate_yaml_directories( __dirname + '/../../src').src;
-    console.log("config.app: ",config.app)
-    //loader['events'] = events['events']
 }
 
-/*
-function loadFunctions() {
-    var functions:any;
-    functions = iterate_yaml_directories( __dirname + '/../../src/functions');
-    loader['functions'] = functions['functions']
-}
-
-function loadDataSources() {
-    var datasources:any;
-    datasources = iterate_yaml_directories( __dirname + '/../../src/datasources');
-    loader['datasources'] = datasources['datasources']
-}
-*/
 function loadJsonValidation() {
     const eventObj:any = config.app.events
 
@@ -60,7 +45,6 @@ function loadJsonValidation() {
 
         // Add responses schema in ajv for each response per topic
         const responses = eventObj[topic]['responses'];
-
         if(responses) {
             Object.keys(responses).forEach(function(k) {
                 if(responses[k]['schema']['data']['content']['application/json']['schema']) {
@@ -76,7 +60,7 @@ function loadJsonValidation() {
 }
 
 /* Function to validate GSCloudEvent */
-function validateSchema(topic: string, event: GSCloudEvent): {[key:string]: any;} {    
+function validateSchema(topic: string, event: any): {[key:string]: any;} {    
     let status:{[key:string]: any;} = {};
     console.log("event.data['body']: ",event.data['body'])
     console.log("event.data['params']: ",event.data['params'])
@@ -154,8 +138,7 @@ function validateResponse(topic: string, gs_status: GSStatus): {[key:string]: an
             } 
         }
         else{
-            status.success = false
-            status.error = "Response Schema is not found in ajv"
+            status.success = true
         } 
     }
     else {
@@ -182,6 +165,6 @@ if (require.main === module) {
       const new_event = new GSCloudEvent("1","type",time,"source","1.0",{ "body": {"id": "Smith"}, "params": {"bank_id": "HDB01"} },"REST",actor,{})
     
       // Call validate function to validate event.data (body and params)
-      const valid = validate("/do_kyc/{bank_id}.http.post",new_event);
+      const valid = validateSchema("/do_kyc/{bank_id}.http.post",new_event);
       console.log(valid);    
 }
