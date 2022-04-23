@@ -1,21 +1,24 @@
 import { PlainObject } from "./common"
 
 import glob from 'glob'
+import path from 'path';
 
-export default function loadModules(path: string):PlainObject {
+export default function loadModules(pathString: string):PlainObject {
 
     let api: PlainObject = {}
 
     return new Promise((resolve, reject) => {
-      glob(path + '/**/*.?(ts|js)', function (err:Error|null, res: string[]) {
+      glob(pathString + '/**/*.?(ts|js)', function (err:Error|null, res: string[]) {
+        console.log('processing files', res);
         if (err) {
             reject(err)
         } else {
           Promise.all(
             res.map((file:string) => {
-              return import(file.replace(__dirname, '.').replace(/\.(ts|js)/, ''))
+              return import(path.relative(__dirname, file).replace(/\.(ts|js)/, ''))
               .then(module => {
-                const id = file.replace(path + '/', '').replace(/\//g, '.').replace(/\.(ts|js)/, '').replace(/\.index$/, '');
+                const id = file.replace(/.*?\/(functions|plugins)\//, '').replace(/\//g, '.')
+                  .replace(/\.(ts|js)/i, '').replace(/\.index$/, '');
 
                 if (id == 'index') {
                     api = {

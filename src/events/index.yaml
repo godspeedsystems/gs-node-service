@@ -1,5 +1,5 @@
 '/do_kyc/idfc.http.post': # event id. Will include path params. For ex. com.abc.do_kyc/{bank_id}/process/{user_id}
-  fn: com.pinelabs.lenders_integration.create_account_hdfc
+  fn: com.pinelabs.create_hdfc_account
   data: 
     examples: # <string, ExampleObject>
     schema:
@@ -66,16 +66,14 @@
               schema: 
                 type: object
                 properties:
-                  application_id: 
+                  lender_response_code: 
                     type: string
-                additionalProperties: false
-                required: [application_id]
               examples: # <string, ExampleObject>
                 example1:
                   summary:
                   description:
                   value: 
-                    application_id: PRM20478956N
+                    lender_response_code: E001
                   external_value:
               encoding:
 

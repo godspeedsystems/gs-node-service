@@ -46,25 +46,20 @@ import { setAtPath, getAtPath } from './utils';
 
 export class GSFunction extends Function {
   id: string; // can be dot separated fqn
-  args?: any[];
+  args?: any;
   summary?: string;
   description?: string;
-  fn: Function;
+  fn?: Function;
   onError?: Function;
   
-  constructor(id: string, _function: Function, args?: any[], summary?: string, description?: string, onError?: Function, _finally?: Function) {
-    super('...args', 'return this._bound._call(...args)')
+  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function) {
+    super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id;
     this.fn = _function;
     this.args = args;
     this.summary = summary;
     this.description = description;
     this.onError = onError;
-
-    //@ts-ignore
-    this._bound = this.bind(this);
-    //@ts-ignore
-    return this._bound;
   }
 
   async _evaluateVariables(ctx: GSContext, args: any) {
@@ -75,34 +70,41 @@ export class GSFunction extends Function {
 
     let snippet = ctx.jsonnetSnippet;
 
-    //TODO: expand datasources
-    // if (args.constructor === Object) {
-    //   if (args.datasource) {
-    //     args.datasource = ctx.datasources[args.datasource];
-    //   }
-    // }
+    snippet += `
+      local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
+    `
 
-    snippet += JSON.stringify(args).replace(/\"\${(.*?)}\"/g, "$1")
+    if (typeof(args) != 'string') {
+      args = JSON.stringify(args);
+    }
+
+    snippet += args.replace(/\"\${(.*?)}\"/g, "$1")
             .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
             .replace(/\\"/g, '"')
             .replace(/\\n/g, ' ')
 
-
     console.log(snippet);
+    //console.log('outputs', ctx.outputs);
+
     return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet))
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
-      const args = this._evaluateVariables(ctx, this.args);
+      const args = await this._evaluateVariables(ctx, this.args);
 
+      if (args.datasource) {
+        args.datasource = ctx.datasources[args.datasource];
+      }
       let res;
       
       if (Array.isArray(args)) {
-        res = await this.fn.apply(null, args)
+        res = await this.fn?.apply(null, args)
       } else {
-        res = await this.fn(args);
+        res = await this.fn!(args)
       }
+
+      console.log('result of _executeFn', res);
       
       if (res instanceof GSStatus) {
         return res; 
@@ -162,7 +164,7 @@ export class GSFunction extends Function {
 
 export class GSSeriesFunction extends GSFunction {
   override async _call(ctx: GSContext) {
-    console.log('inside series executor', ctx, this.args)
+    console.log('inside series executor', this.args)
     
     for (const child of this.args!) {
       await child(ctx);
@@ -276,7 +278,6 @@ export class GSContext { //span executions
   jsonnet: Jsonnet;
   mappings: any;
   jsonnetSnippet: string;
-  plugins: PlainObject;
 
   constructor(config: PlainObject, datasources: PlainObject, 
       shared: PlainObject = {}, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
@@ -286,25 +287,26 @@ export class GSContext { //span executions
     this.outputs = {};
     this.datasources = datasources;
     this.mappings = mappings;
-    this.plugins = plugins;
     this.jsonnetSnippet = jsonnetSnippet;
 
     const jsonnet = this.jsonnet = new Jsonnet();
     
-    for (let fn in plugins) {
-      const args = /\((.*?)\)/.exec(fn.toString());
-      if (args) {
-        let a = args[1].replace(/, */, ',').split(',')
-        let f = fn.split('.')
-        let n = f[f.length - 1];
-        jsonnet.nativeCallback(n, plugins[fn], ...a);
-      }
-    }
-
     jsonnet.extCode("inputs", JSON.stringify(event.data));
-    jsonnet.extCode("outputs", JSON.stringify(this.outputs));
     jsonnet.extCode("config", JSON.stringify(this.config));
     jsonnet.extCode("mappings", JSON.stringify(this.mappings));
+
+    for (let fn in plugins) {
+      let name = fn.split('.').pop();
+      const args = /\((.*?)\)/.exec(plugins[fn].toString());
+      
+      if (args) {
+        let argArray = args[1].split(',').map(s => s.trim())
+        console.log('plugin', name, argArray);
+        jsonnet.nativeCallback(name!, plugins[fn], ...argArray);
+      } else {
+        jsonnet.nativeCallback(name!, plugins[fn]);
+      }
+    }
   }
 
   public addLogEvent(event: GSLogEvent): void {

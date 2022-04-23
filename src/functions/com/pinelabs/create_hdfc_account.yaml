@@ -1,7 +1,5 @@
 # config, inputs, ouputs, vars
 # Environment variables will be loaded in config files via some convention
-namespace: com.pinelabs.lenders_integration
-id: create_account_hdfc
 summary: Multiplexing create loan for hdfc api calls
 tasks:
     - id: step1 # the response of this will be accessible within the parent step key, under the step1 sub key
@@ -16,7 +14,7 @@ tasks:
             mobile_number: "9823123318"
             personal_email_id: ${std.get(inputs.body, 'sambasiva', 'shane.raew3@growthsourceft.com')}
             customer_consent: true
-            gender: ${std.get(mappings.Gender,inputs.body.Gender)}
+            gender: ${std.get(mappings.Gender, inputs.body.gender)}
             date_of_birth: "21-06-1991"
             pan_number: "AZOPB8813Y"
             customer_name: "shane belgal"
@@ -58,7 +56,7 @@ tasks:
               },
               message: ''
           } else {
-              code: outputs.step1.status,
+              code: outputs.step1.code,
               success : false,
               data: {
                 lender_response_code: outputs.step1.data['response_code']

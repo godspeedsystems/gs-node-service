@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "PORT=4000 nodemon ./dist/app.js",
+    "start": "PORT=3000 nodemon ./dist/app.js",
     "build": "copyfiles -u 1 src/**/*.yaml src/**/*.jsonnet src/**/*.js dist/ && ./node_modules/typescript/bin/tsc"
   },
   "author": "",

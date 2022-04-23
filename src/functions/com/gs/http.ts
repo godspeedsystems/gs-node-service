@@ -3,6 +3,7 @@ export default async function(args:{[key:string]:any;}) {
     try {
         const ds = args.datasource;
         let res;
+        console.log('calling http client', args);
 
         if (ds.schema) {
             console.log('invoking with schema');
@@ -16,11 +17,11 @@ export default async function(args:{[key:string]:any;}) {
             })
         }
         
-        return {success: true, data: res.data, message: res.statusText, headers: res.headers};
+        return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex) {
         //console.error(ex);
         //@ts-ignore
         let res = ex.response;
-        return {success: false, data: res.data, message: (ex as Error).message, headers: res.headers};
+        return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
     }
 }

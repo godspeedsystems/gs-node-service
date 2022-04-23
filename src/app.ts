@@ -1,29 +1,30 @@
-import YAML from 'yaml';
-import fs from 'fs';
 import EventEmitter from 'events';
 import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 
 import express from 'express';
-import {GSActor, GSCloudEvent, GSContext, GSFunction, GSStatus} from './core/interfaces';
+import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeriesFunction, GSStatus, GSSwitchFunction} from './core/interfaces';
 
 import app from './http_listener'
 import { config } from 'process';
 import { config as appConfig , validateSchema, validateResponse } from './core/loader';
 import { PlainObject } from './core/common';
 
+import loadYaml from './core/yamlLoader';
+import loadModules from './core/codeLoader';
+
 console.log("loader events:",appConfig.app.events)
 console.log("loader functions:",appConfig.app.functions)
 console.log("loader datasources:",appConfig.app.datasources)
+console.log("loader mappings:",appConfig.app.mappings)
 
-let jsonnetSnippet = (function() {
+function JsonnetSnippet(plugins:any) {
     let snippet = `local inputs = std.extVar('inputs');
         local mappings = std.extVar('mappings');
-        local outputs = std.extVar('outputs');
         local config = std.extVar('config');
     `;
 
-    for (let fn in appConfig.app.plugins) {
+    for (let fn in plugins) {
         let f = fn.split('.')
         fn = f[f.length - 1];
 
@@ -33,14 +34,55 @@ let jsonnetSnippet = (function() {
     }
 
     return snippet;
-})();
+}
 
-function loadFunctions() {
-    const out:PlainObject= {};
-    const workflow = YAML.parse(fs.readFileSync(__dirname + '/../src/functions/index.yaml', 'utf8'));
-    console.log(workflow)
-    out[workflow.namespace + '.' + workflow.id] = workflow;
-    return out;
+
+function createGSFunction(workflow: PlainObject, code: PlainObject): GSFunction {
+    if (!workflow.fn) {
+        workflow.fn = 'com.gs.sequential';
+    }
+
+    let tasks;
+
+    switch(workflow.fn) {
+        case 'com.gs.sequential':
+            tasks = workflow.tasks.map((flow:PlainObject) => createGSFunction(flow, code));
+            return new GSSeriesFunction(workflow.id, undefined, tasks,
+                    workflow.summary, workflow.description);
+
+        case 'com.gs.parallel':
+            tasks = workflow.tasks.map((flow:PlainObject) => createGSFunction(flow, code));
+            return new GSParallelFunction(workflow.id, undefined, tasks,
+                    workflow.summary, workflow.description);
+
+        case 'com.gs.switch':
+            let args = [workflow.value];
+            let cases:PlainObject = {};
+            
+            for (let c in workflow.cases) {
+                cases[c] = createGSFunction(workflow.cases[c], code);
+            }
+
+            args.push(cases);
+
+            return new GSSwitchFunction(workflow.id, undefined, args,
+                    workflow.summary, workflow.description);
+    }
+
+    console.log('loading workflow', workflow.fn);
+    return new GSFunction(workflow.id, code[workflow.fn], workflow.args,
+        workflow.summary, workflow.description);
+}
+
+async function loadFunctions(datasources: PlainObject) {
+    let code = await loadModules(__dirname + '/../dist/functions');
+    let functions = await loadYaml(__dirname + '/../src/functions');
+
+    console.log('functions loaded', functions, code);
+    for (let f in functions) {
+        functions[f] = createGSFunction(functions[f], code);
+    }
+    return functions
 }
 
 function expandVariable(value: string) {
@@ -155,14 +197,13 @@ function httpListener(ee: EventEmitter, events: any) {
             app[method](route, function(req: express.Request, res: express.Response) {
                 //let type = req.path + '.http.' + req.method.toLocaleLowerCase()
                 //console.log('type', type)
-                //TODO: convert to cloudevent
                 console.log('emitting http handler', originalRoute);
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
                     params: req.params,
                     query: req.query,
                     headers: req.headers,
-                }, 'REST', new GSActor('user'),  {http: {res}} );
+                }, 'REST', new GSActor('user'),  {http: {express:{res}}});
                 ee.emit(originalRoute, event);
             })
         }
@@ -171,18 +212,20 @@ function httpListener(ee: EventEmitter, events: any) {
 
 async function main() {
     const datasources = await loadDatasources();
-    const functions = loadFunctions();
+    const functions = await loadFunctions(datasources);
+    const plugins = await loadModules(__dirname + '/../dist/plugins');
+    const jsonnetSnippet = JsonnetSnippet(plugins);
+
     const ee = new EventEmitter({ captureRejections: true });
     ee.on('error', console.log);
 
+    console.log('plugins', plugins);
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent 
         console.log(events[event.type], event)
         console.log('event.type: ',event.type)
         
         let status: GSStatus = new GSStatus();
-        let outputs: PlainObject = {}
-
         let valid_status = validateSchema(event.type,event);
         console.log("valid status: ",valid_status)
         if(valid_status.success === false)
@@ -196,110 +239,23 @@ async function main() {
         }
         
         const handler = functions[events[event.type].fn] as GSFunction;
-        console.log('calling processevent');
+        console.log('calling processevent', typeof(handler));
 
-        let output = await handler(new GSContext(
+        const ctx = new GSContext(
             {},
-            appConfig.app.datasources,
+            datasources,
             {},
             event,
             appConfig.app.mappings,
             jsonnetSnippet,
-            appConfig.app.plugins
-        ))
-        // for (let step of handler.tasks) {
-        //     let {fn, args} = step;
-        //     let success = true;
-
-        //     switch(fn) {
-        //         case 'com.gs.http':
-        //             try {
-        //                 const jsonnet = new Jsonnet();
-        //                 let snippet = `local inputs = std.extVar('inputs');
-        //                         local randomString = std.native('randomString');
-        //                         local randomInt = std.native('randomInt');
-        //                 `;
-
-        //                 Object.keys(appConfig.app).forEach(function(key) {
-        //                     snippet += `local ${key} = std.extVar('${key}');\n`;
-        //                     jsonnet.extCode(key, JSON.stringify(appConfig.app[key]));
-        //                 });
-
-        //                 jsonnet.extCode("inputs", JSON.stringify(event.data));
-        //                 jsonnet.nativeCallback("randomString", (length, only_number) => randomString(Number(length), String(only_number)), "length", 'only_number');
-        //                 jsonnet.nativeCallback("randomInt", (min, max) => randomInt(Number(min), Number(max)), "min", 'max');
-
-        //                 snippet += JSON.stringify(args).replace(/\"\${(.*?)}\"/g, "$1")
-        //                         .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
-        //                         .replace(/\\"/g, '"')
-        //                         .replace(/\\n/g, ' ')
-
-
-        //                 console.log(snippet);
-        //                 args = JSON.parse(await jsonnet.evaluateSnippet(snippet))
-        //                 console.log(args);
-
-        //                 const ds = datasources[args.datasource];
-        //                 let res;
-
-        //                 try {
-        //                     if (ds.schema) {
-        //                         console.log('invoking with schema');
-        //                         res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config)
-        //                     } else {
-        //                         console.log('invoking wihout schema');
-        //                         res = await ds.client({
-        //                             ...args.config,
-        //                             params: args.params,
-        //                             data: args.data,
-        //                         })
-        //                     }
-        //                 } catch(ex) {
-        //                     console.error(ex);
-        //                     // @ts-ignore   
-        //                     res = ex.response;
-        //                 }
-        //                 outputs[step.id] = {
-        //                     data: res.data,
-        //                     status: res.status,
-        //                     statusText: res.statusText,
-        //                     headers: res.headers,
-        //                 }
-        //             } catch(ex) {
-        //                 console.error(ex);
-        //                 success = true;
-        //                 //if (step)
-        //                 // console.error(ex);
-        //                 // ctx.message = (ex as Error).message;
-        //                 // success = ctx.success = false;
-        //                 // ctx.code = 500;
-        //             }
-        //             break;
-
-        //         case 'com.gs.transform':
-        //             console.log(outputs);
-        //             const jsonnet = new Jsonnet();
-
-        //             let snippet = "local outputs = std.extVar('outputs');\n" + args;
-
-        //             status = JSON.parse(await jsonnet.extCode("outputs", JSON.stringify(outputs))
-        //                 .evaluateSnippet(snippet))
-        //             console.log(status.data)
-        //             break
-
-        //         case 'com.gs.emit':
-        //             ee.emit(args.name, args.data)
-        //             break;
-
-        //     }
-
-        //     if (!success) {
-        //         break;
-        //     }
-        // }
-
+            plugins
+        );
+        await handler(ctx)
+        
+        //TODO: always output of the last task
+        status = ctx.outputs[handler.args[handler.args.length - 1].id];
         console.log('end', status)
-        valid_status = validateResponse(event.type,status);
+        valid_status = validateResponse(event.type, status);
         console.log("Response valid status: ",valid_status)
         
         if(valid_status.success === false)

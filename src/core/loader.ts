@@ -10,13 +10,7 @@ const ajv = new Ajv()
 let config:{[key:string]:any;} = {}
 
 async function loadSources() {
-    config.app = iterate_yaml_directories( __dirname + '/../../src').src;
-    let functions = await loadModules( __dirname + '/../../src/functions');
-    config.app.functions = {
-        ...config.app.functions,
-        ...functions
-    }
-    config.app.plugins = await( __dirname + '/../../src/plugins');
+    config.app = iterate_yaml_directories(__dirname + '/../../src').src;
 }
 
 function loadJsonValidation() {
