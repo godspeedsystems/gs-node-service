@@ -1,0 +1,26 @@
+summary: Parallel Multiplexing create loan for hdfc api calls
+tasks:
+  - id: parallel
+    fn: com.gs.parallel
+    tasks:
+      - id: 1st
+        fn: com.gs.transform
+        args: |
+          'parallel task1' 
+      
+      - id: 2nd
+        fn: com.gs.transform
+        args: |
+          'parallel task2'  
+      
+      - id: 3rd
+        fn: com.gs.transform
+        args: |
+          'parallel task3'
+
+  - id: step2
+    fn: com.gs.transform
+    args: |
+        { 
+          code: 200,
+        } + outputs['1st']

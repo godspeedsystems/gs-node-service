@@ -25,19 +25,21 @@ function iterate_yaml_directories(current_yaml_root:any) {
         fs.readFileSync(current_yaml_root + '/' + file, { encoding: 'utf-8' })
       );
 
-      const temp_obj_keys = Object.keys(temp_obj);
-      for (var key in temp_obj_keys) {
-        key = temp_obj_keys[key];
+      if (temp_obj) {
+        const temp_obj_keys = Object.keys(temp_obj);
+        for (var key in temp_obj_keys) {
+          key = temp_obj_keys[key];
 
-        if (file == 'index.yaml') {
-          recursive_object_state[current_property][key] = temp_obj[key];
-        } else {
-          const file_name = file.slice(0,-5)
-          if (!recursive_object_state[current_property].hasOwnProperty(file)){
-            recursive_object_state[current_property][file_name] = {};
+          if (file == 'index.yaml') {
+            recursive_object_state[current_property][key] = temp_obj[key];
+          } else {
+            const file_name = file.slice(0,-5)
+            if (!recursive_object_state[current_property].hasOwnProperty(file)){
+              recursive_object_state[current_property][file_name] = {};
+            }
+
+            recursive_object_state[current_property][file_name][key] = temp_obj[key];
           }
-
-          recursive_object_state[current_property][file_name][key] = temp_obj[key];
         }
       }
     } else if (!file.endsWith('.yaml')) {

@@ -10,7 +10,9 @@ const ajv = new Ajv()
 let config:{[key:string]:any;} = {}
 
 async function loadSources() {
-    config.app = iterate_yaml_directories(__dirname + '/../../src').src;
+    console.log(process.argv[2])
+    config.app = iterate_yaml_directories(process.argv[2]).src;
+    console.log("config.app: ",config.app)
 }
 
 function loadJsonValidation() {
@@ -24,18 +26,20 @@ function loadJsonValidation() {
         /* TODO: Right now, we are assuming that there is going to be one content_type only i.e. application/json
                 This needs to be enhanced in fututre when multiple content_type will be supported
         */
-        const body_content= eventObj[topic]['data']['schema']['body']['content'];
-        Object.keys(body_content).forEach(function(k) {
-            const content_schema = body_content[k]['schema'];
-            if(content_schema) {
-                ajv.addSchema(content_schema, topic)
-            }
-        });
+        const body_content= eventObj[topic]?.data?.schema?.body?.content;
+        if (body_content) {
+            Object.keys(body_content).forEach(function(k) {
+                const content_schema = body_content[k]['schema'];
+                if(content_schema) {
+                    ajv.addSchema(content_schema, topic)
+                }
+            });
+        }
 
         // Add params schema in ajv for each param per topic
-        const params = eventObj[topic]['data']['schema']['params'];
+        const params = eventObj[topic]?.data?.schema?.params;
 
-        if(params) {
+        if (params) {
             Object.keys(params).forEach(function(k) {
                 if(params[k]['schema']) {
                     const topic_param = topic + ':'+ params[k]['name']
@@ -45,13 +49,14 @@ function loadJsonValidation() {
         }
 
         // Add responses schema in ajv for each response per topic
-        const responses = eventObj[topic]['responses'];
-        if(responses) {
+        const responses = eventObj[topic]?.responses;
+        if (responses) {
             Object.keys(responses).forEach(function(k) {
-                if(responses[k]['schema']['data']['content']['application/json']['schema']) {
-                    const response_schema = responses[k]['schema']['data']['content']['application/json']['schema']
+                const response_s = responses[k]?.schema?.data?.content?.['application/json']?.schema;
+                if (response_s) {
+                    const response_schema = response_s
                     const topic_response = topic + ':responses:'+ k
-                    console.log("topic_response: ",topic_response)
+                    //console.log("topic_response: ",topic_response)
                     ajv.addSchema(response_schema, topic_response)
                 }
             });
@@ -85,8 +90,7 @@ function validateSchema(topic: string, event: any): PlainObject{
             }
         }
         else{
-            status.success = false
-            status.error = "Schema is not found in ajv"
+            status.success = true
         }
     }
     else {
@@ -151,9 +155,9 @@ function validateResponse(topic: string, gs_status: GSStatus): PlainObject{
 
 (async() => {
     await loadSources();
+    loadJsonValidation();
 })();
 
-loadJsonValidation();
 
 export { config , validateSchema , validateResponse };
 

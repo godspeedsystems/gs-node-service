@@ -191,20 +191,32 @@ export class GSSwitchFunction extends GSFunction {
     console.log('inside switch executor', ctx, this.args)
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
-    let value;
+    console.log("condition: " , condition)
+    console.log("condition after replace: " , condition.replace(/\${(.*?)}/, '$1'))
+    let value = await this._evaluateVariables(ctx, condition.replace(/\${(.*?)}/, '$1'));
     //evaluate the condition = 
+    /*
     if ((condition as string).includes('${')) {
       value = (condition as string).replace('"\${(.*?)}"', '$1');
+      console.log("******* value: ", value)
       //TODO: pass other context variables
       value = Function('config', 'return ' + condition)();
-    }
+    }*/
 
     if (cases[value]) {
       await cases[value](ctx);
+      console.log("cases: ", cases[value])
+      console.log("cases.id: ", cases[value].id)
+      console.log("Before: ", ctx.outputs)
+      ctx.outputs[this.id] = ctx.outputs[cases[value].id]   
+      console.log("After: ", ctx.outputs)
     } else {
       //check for default otherwise error
       if (cases.default) {
         await cases.default(ctx);
+        console.log("default Before: ", ctx.outputs)
+        ctx.outputs[this.id] = ctx.outputs[cases.default.id]
+        console.log("default After: ", ctx.outputs)
       } else{
         //error
         ctx.outputs[this.id] = new GSStatus(false, undefined, `case ${value} is missing and no default found in switch`)

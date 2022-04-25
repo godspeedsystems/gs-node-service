@@ -13,11 +13,6 @@ import { PlainObject } from './core/common';
 import loadYaml from './core/yamlLoader';
 import loadModules from './core/codeLoader';
 
-console.log("loader events:",appConfig.app.events)
-console.log("loader functions:",appConfig.app.functions)
-console.log("loader datasources:",appConfig.app.datasources)
-console.log("loader mappings:",appConfig.app.mappings)
-
 function JsonnetSnippet(plugins:any) {
     let snippet = `local inputs = std.extVar('inputs');
         local mappings = std.extVar('mappings');
@@ -39,11 +34,17 @@ function JsonnetSnippet(plugins:any) {
 
 function createGSFunction(workflow: PlainObject, code: PlainObject): GSFunction {
     if (!workflow.fn) {
-        workflow.fn = 'com.gs.sequential';
+        if (Array.isArray(workflow)) {
+            workflow = { tasks: workflow, fn: 'com.gs.sequential' };
+        }
+        else {
+            workflow.fn = 'com.gs.sequential';
+        }
     }
 
     let tasks;
 
+    console.log("workflow: ",workflow)
     switch(workflow.fn) {
         case 'com.gs.sequential':
             tasks = workflow.tasks.map((flow:PlainObject) => createGSFunction(flow, code));
@@ -61,6 +62,10 @@ function createGSFunction(workflow: PlainObject, code: PlainObject): GSFunction 
             
             for (let c in workflow.cases) {
                 cases[c] = createGSFunction(workflow.cases[c], code);
+            }
+
+            if (workflow.defaults) {
+                cases.default = createGSFunction(workflow.defaults, code);
             }
 
             args.push(cases);
@@ -175,8 +180,12 @@ async function loadDatasources() {
 async function loadEvents(ee: EventEmitter, processEvent: (...args: any[]) => void) {
     const events = appConfig.app.events
 
+    //TODO Handle index.yaml events and nested directories
     for (let e in events) {
-        ee.on(e, processEvent)
+        const event = Object.keys(events[e])[0]
+        events[event] = events[e][event]
+        delete events[e]
+        ee.on(event, processEvent)
     }
 
     return events

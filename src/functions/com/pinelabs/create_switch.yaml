@@ -1,0 +1,28 @@
+summary: Multiplexing create loan for hdfc api calls
+tasks:
+  - id: switch
+    fn: com.gs.switch
+    value: ${inputs.body.condition}
+    cases:
+      FIRST:
+        id: 1st
+        fn: com.gs.transform
+        args: "'case - 1'"
+      SECOND:
+        id: 2nd
+        fn: com.gs.transform
+        args: "'case - 2'"
+      THIRD:
+        id: 3rd
+        fn: com.gs.transform
+        args: "'case - 3'"
+    defaults:
+      id: default
+      fn: com.gs.transform
+      args: "'case - default'"
+  - id: step2
+    fn: com.gs.transform
+    args: |
+        { 
+          code: 200,
+        } + outputs.switch      
