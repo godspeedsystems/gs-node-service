@@ -10,8 +10,7 @@ const ajv = new Ajv()
 let config:{[key:string]:any;} = {}
 
 async function loadSources() {
-    console.log(process.argv[2])
-    config.app = iterate_yaml_directories(process.argv[2]).src;
+    config.app = iterate_yaml_directories(__dirname + '/../../src').src;
     console.log("config.app: ",config.app)
 }
 
