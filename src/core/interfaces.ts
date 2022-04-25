@@ -166,9 +166,13 @@ export class GSSeriesFunction extends GSFunction {
   override async _call(ctx: GSContext) {
     console.log('inside series executor', this.args)
     
+    let finalId;
+
     for (const child of this.args!) {
       await child(ctx);
+      finalId = child.id;
     }
+    ctx.outputs[this.id] = ctx.outputs[finalId]
   }
 }
 
@@ -205,18 +209,12 @@ export class GSSwitchFunction extends GSFunction {
 
     if (cases[value]) {
       await cases[value](ctx);
-      console.log("cases: ", cases[value])
-      console.log("cases.id: ", cases[value].id)
-      console.log("Before: ", ctx.outputs)
       ctx.outputs[this.id] = ctx.outputs[cases[value].id]   
-      console.log("After: ", ctx.outputs)
     } else {
       //check for default otherwise error
       if (cases.default) {
         await cases.default(ctx);
-        console.log("default Before: ", ctx.outputs)
         ctx.outputs[this.id] = ctx.outputs[cases.default.id]
-        console.log("default After: ", ctx.outputs)
       } else{
         //error
         ctx.outputs[this.id] = new GSStatus(false, undefined, `case ${value} is missing and no default found in switch`)
