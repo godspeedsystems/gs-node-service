@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "PORT=3000 nodemon ./dist/app.js",
-    "build": "copyfiles -u 1 src/**/*.yaml src/**/*.jsonnet src/**/*.js dist/ && ./node_modules/typescript/bin/tsc"
+    "build": "rsync -rv --delete --exclude='*.ts' src/ dist/ && npm i && ./node_modules/typescript/bin/tsc"
   },
   "author": "",
   "license": "ISC",
