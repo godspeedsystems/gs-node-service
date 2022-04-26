@@ -105,7 +105,9 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
             if (! ajv_validate(event.data['body'])) {
                 console.log("! ajv_validate: ")
                 status.success = false
-                status.error = ajv_validate.errors
+                status.code = 400
+                status.message = ajv_validate.errors![0].message;
+                status.data = ajv_validate.errors![0];
                 return status
             }
             else{
@@ -119,7 +121,9 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
     }
     else {
         status.success = false
-        status.error = "Body not present"
+        status.code = 400
+        status.message = "Body not present"
+        return status
     }
 
     const params = eventSpec?.data?.schema?.params;
@@ -151,7 +155,6 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
                 }
                 else {
                     status.success = true
-                    return status
                 }
             }
         }
