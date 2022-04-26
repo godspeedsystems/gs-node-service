@@ -7,11 +7,13 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import app from './http_listener'
 import { config } from 'process';
-import { config as appConfig , validateSchema, validateResponse } from './core/loader';
+import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 
 import loadYaml from './core/yamlLoader';
 import loadModules from './core/codeLoader';
+
+import {loadJsonSchemaForEvents, validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 
 function JsonnetSnippet(plugins:any) {
     let snippet = `local inputs = std.extVar('inputs');
@@ -80,8 +82,8 @@ function createGSFunction(workflow: PlainObject, code: PlainObject): GSFunction 
 }
 
 async function loadFunctions(datasources: PlainObject) {
-    let code = await loadModules(__dirname + '/../dist/functions');
-    let functions = await loadYaml(__dirname + '/../src/functions');
+    let code = await loadModules(__dirname + '/functions');
+    let functions = await loadYaml(__dirname + '/functions');
 
     console.log('functions loaded', functions, code);
     for (let f in functions) {
@@ -178,14 +180,14 @@ async function loadDatasources() {
 
 
 async function loadEvents(ee: EventEmitter, processEvent: (...args: any[]) => void) {
-    const events = appConfig.app.events
+    const events = await loadYaml(__dirname + '/events', true)
+    console.log('events', events);
+
+    loadJsonSchemaForEvents(events)
 
     //TODO Handle index.yaml events and nested directories
     for (let e in events) {
-        const event = Object.keys(events[e])[0]
-        events[event] = events[e][event]
-        delete events[e]
-        ee.on(event, processEvent)
+        ee.on(e, processEvent)
     }
 
     return events
@@ -222,7 +224,7 @@ function httpListener(ee: EventEmitter, events: any) {
 async function main() {
     const datasources = await loadDatasources();
     const functions = await loadFunctions(datasources);
-    const plugins = await loadModules(__dirname + '/../dist/plugins');
+    const plugins = await loadModules(__dirname + '/plugins', true);
     const jsonnetSnippet = JsonnetSnippet(plugins);
 
     const ee = new EventEmitter({ captureRejections: true });
@@ -235,7 +237,7 @@ async function main() {
         console.log('event.type: ',event.type)
         
         let status: GSStatus = new GSStatus();
-        let valid_status:PlainObject = validateSchema(event.type,event);
+        let valid_status:PlainObject = validateRequestSchema(event.type,event);
         console.log("valid status: ",valid_status)
         if(valid_status.success === false)
         {
@@ -265,7 +267,7 @@ async function main() {
         //TODO: always output of the last task
         status = ctx.outputs[handler.args[handler.args.length - 1].id];
         console.log('end', status)
-        valid_status = validateResponse(event.type, status);
+        valid_status = validateResponseSchema(event.type, status);
         console.log("Response valid status: ",valid_status)
         
         if(valid_status.success === false)

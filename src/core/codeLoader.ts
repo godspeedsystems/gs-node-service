@@ -3,9 +3,11 @@ import { PlainObject } from "./common"
 import glob from 'glob'
 import path from 'path';
 
-export default function loadModules(pathString: string):PlainObject {
+export default function loadModules(pathString: string, global: boolean = false):PlainObject {
 
     let api: PlainObject = {}
+
+    console.log('processing files', pathString);
 
     return new Promise((resolve, reject) => {
       glob(pathString + '/**/*.?(ts|js)', function (err:Error|null, res: string[]) {
@@ -20,19 +22,26 @@ export default function loadModules(pathString: string):PlainObject {
                 const id = file.replace(/.*?\/(functions|plugins)\//, '').replace(/\//g, '.')
                   .replace(/\.(ts|js)/i, '').replace(/\.index$/, '');
 
-                if (id == 'index') {
-                    api = {
-                        ...api,
-                        ...module
-                    }
+                if (global) { 
+                  api = {
+                    ...api,
+                    ...module
+                  }
                 } else {
-                    for (let f in module) {
-                        if (f == 'default') {
-                            api[id] = module[f]
-                        } else {
-                            api[id + '.' + f] = module[f]
-                        }
-                    }
+                  if (id == 'index') {
+                      api = {
+                          ...api,
+                          ...module
+                      }
+                  } else {
+                      for (let f in module) {
+                          if (f == 'default') {
+                              api[id] = module[f]
+                          } else {
+                              api[id + '.' + f] = module[f]
+                          }
+                      }
+                  }
                 }
               })
             })
