@@ -61,7 +61,7 @@ function createGSFunction(workflow: PlainObject, code: PlainObject): GSFunction 
         case 'com.gs.switch':
             let args = [workflow.value];
             let cases:PlainObject = {};
-            
+
             for (let c in workflow.cases) {
                 cases[c] = createGSFunction(workflow.cases[c], code);
             }
@@ -204,11 +204,11 @@ function httpListener(ee: EventEmitter, events: any) {
             route = route.replace(/{(.*?)}/g, ":$1");
 
             console.log('registering handler', route, method);
-            // @ts-ignore   
+            // @ts-ignore
             app[method](route, function(req: express.Request, res: express.Response) {
                 //let type = req.path + '.http.' + req.method.toLocaleLowerCase()
                 //console.log('type', type)
-                console.log('emitting http handler', originalRoute);
+                console.log('emitting http handler', originalRoute, req.params);
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
                     params: req.params,
@@ -232,24 +232,18 @@ async function main() {
 
     console.log('plugins', plugins);
 
-    async function processEvent(event: GSCloudEvent) { //GSCLoudEvent 
+    async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
         console.log(events[event.type], event)
         console.log('event.type: ',event.type)
-        
-        let status: GSStatus = new GSStatus();
-        let valid_status:PlainObject = validateRequestSchema(event.type,event);
-        console.log("valid status: ",valid_status)
+
+        let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
+        console.log("valid status: ", valid_status)
+
         if(valid_status.success === false)
         {
-            status.success = false
-            status.code = 400
-            //status.message = "Schema is not valid";
-            status.message = valid_status.error[0].message;
-            status.data = valid_status.error[0];
-            (event.metadata?.http?.express.res as express.Response).status(400).send(status);
-            return
+            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(valid_status);
         }
-        
+
         const handler = functions[events[event.type].fn] as GSFunction;
         console.log('calling processevent', typeof(handler));
 
@@ -263,13 +257,13 @@ async function main() {
             plugins
         );
         await handler(ctx)
-        
+
         //TODO: always output of the last task
-        status = ctx.outputs[handler.args[handler.args.length - 1].id];
+        let status = ctx.outputs[handler.args[handler.args.length - 1].id];
         console.log('end', status)
         valid_status = validateResponseSchema(event.type, status);
         console.log("Response valid status: ",valid_status)
-        
+
         // if(valid_status.success === false)
         // {
         //     status.success = false
