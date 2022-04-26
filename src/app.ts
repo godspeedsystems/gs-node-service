@@ -270,15 +270,15 @@ async function main() {
         valid_status = validateResponseSchema(event.type, status);
         console.log("Response valid status: ",valid_status)
         
-        if(valid_status.success === false)
-        {
-            status.success = false
-            status.code = 500
-            status.message = 'Internal Server Error - Error in validating the response schema'
-            status.data = valid_status.error
-            (event.metadata?.http?.express.res as express.Response).status(500).send(status);
-            return
-        }
+        // if(valid_status.success === false)
+        // {
+        //     status.success = false
+        //     status.code = 500
+        //     status.message = 'Internal Server Error - Error in validating the response schema'
+        //     //status.data = valid_status.error
+        //     (event.metadata?.http?.express.res as express.Response).status(500).send(status);
+        //     return
+        // }
 
         if (status.success) {
             (event.metadata?.http?.express.res as express.Response).status(200).send(status);
