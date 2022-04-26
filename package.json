@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "PORT=3000 nodemon ./dist/app.js",
     "clean": "rm -rf project build dist",
-    "build": "mkdir -p build project && cp -r project/* src/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && npm install && ./node_modules/typescript/bin/tsc"
+    "build": "mkdir -p build && cp -r project/* src/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && npm install && ./node_modules/typescript/bin/tsc"
   },
   "author": "",
   "license": "ISC",
