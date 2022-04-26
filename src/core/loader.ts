@@ -16,7 +16,6 @@ async function loadSources() {
 
 function loadJsonValidation() {
     const eventObj:any = config.app.events
-    console.log("++++++++ loadJsonValidation ++++++++");
     console.log("eventObj: ", eventObj)
     // Add formats to ajv instance
     addFormats(ajv);
@@ -28,17 +27,14 @@ function loadJsonValidation() {
         */
        const eventObjTopic = eventObj[topic1]
        console.log("topic1: ",topic1)
-       console.log("eventObj: ",eventObj)
        console.log("eventObjTopic: ",eventObjTopic)
        
        Object.keys(eventObjTopic).forEach(function(topic) {
            console.log("topic: ",topic)
             const body_content= eventObjTopic[topic]?.data?.schema?.body?.content;
             if (body_content) {
-                console.log("body_content: ",body_content)
                 Object.keys(body_content).forEach(function(k) {
                     const content_schema = body_content[k]['schema'];
-                    console.log("content_schema: ",content_schema)
                     if(content_schema) {
                         ajv.addSchema(content_schema, topic)
                     }

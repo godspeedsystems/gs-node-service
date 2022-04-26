@@ -237,14 +237,13 @@ async function main() {
         let status: GSStatus = new GSStatus();
         let valid_status:PlainObject = validateSchema(event.type,event);
         console.log("valid status: ",valid_status)
-        console.log("valid_status.error[0]: ",valid_status.error[0])
         if(valid_status.success === false)
         {
             status.success = false
             status.code = 400
-            status.message = "Schema is not valid";
-            //status.message = valid_status.error[0].message
-            //status.data = <Object>valid_status.error[0]
+            //status.message = "Schema is not valid";
+            status.message = valid_status.error[0].message;
+            status.data = valid_status.error[0];
             (event.metadata?.http?.express.res as express.Response).status(400).send(status);
             return
         }
