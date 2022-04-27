@@ -74,11 +74,18 @@ export class GSFunction extends Function {
       local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
     `
 
+    if (args.config?.url) {
+      args.config.url =  args.config.url.replace(/:([^\/]+)/g, '${inputs.params.$1}')
+    }
+
     if (typeof(args) != 'string') {
       args = JSON.stringify(args);
     }
 
+    console.log('args', args);
+
     snippet += args.replace(/\"\${(.*?)}\"/g, "$1")
+            .replace(/\${(.*?)}/g, '" + $1 + "')
             .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
             .replace(/\\"/g, '"')
             .replace(/\\n/g, ' ')
@@ -93,6 +100,7 @@ export class GSFunction extends Function {
     try {
       const args = await this._evaluateVariables(ctx, this.args);
 
+      console.log('args', args);
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
