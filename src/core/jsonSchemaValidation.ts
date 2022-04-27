@@ -19,11 +19,8 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
                 This needs to be enhanced in fututre when multiple content_type will be supported
         */
        const eventObjTopic = eventObj[topic]
-       console.log("topic1: ", topic)
-       console.log("eventObjTopic: ", eventObjTopic)
 
        //Object.keys(eventObjTopic).forEach(function(topic) {
-           console.log("topic: ",topic)
             const body_content= eventObjTopic?.data?.schema?.body?.content;
             if (body_content) {
 
@@ -92,38 +89,36 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
 export function validateRequestSchema(topic: string, event: any, eventSpec: PlainObject): PlainObject{
     let status:PlainObject= {};
 
-
-    // Validate event.data['body']
-    if(event.data['body'])
+    // Validate event.data.body
+    if(event.data.body && eventSpec?.data?.schema?.body)
     {
         //console.log("ajvschemas: ",ajv.schemas[topic])
-        console.log("event.data['body']: ", event.data['body'], " topic: ", topic)
+        console.log("event.data.body: ", event.data.body, " topic: ", topic)
         const ajv_validate = ajv.getSchema(topic)
         if(ajv_validate !== undefined)
         {
             console.log("ajv_validate: ", ajv_validate)
-            if (! ajv_validate(event.data['body'])) {
+            if (! ajv_validate(event.data.body)) {
                 console.log("! ajv_validate: ")
-                status.success = false
-                status.code = 400
-                status.message = ajv_validate.errors![0].message;
-                status.data = ajv_validate.errors![0];
+                status = { success: false, code: 400, message: ajv_validate.errors![0].message, error_data: ajv_validate.errors![0] }
                 return status
             }
             else{
                 console.log("ajv validated")
-                status.success = true
+                status = { success: true }
             }
         }
         else{
-            status.success = true
+            status = { success: true }
         }
-    }
-    else {
-        status.success = false
-        status.code = 400
-        status.message = "Body not present"
+    } else if ( !event.data.body && eventSpec?.data?.schema?.body ) { 
+        status = { success: false, code: 400, message: "Body not found in request but specified in the event schema"}
         return status
+    } else if ( event.data.body && !eventSpec?.data?.schema?.body ) { 
+        status = { success: false, code: 400, message: "Body found in request but not specified in the event schema"}
+        return status
+    } else { //Body is not present in request and not specified in the event schema
+        status = { success: true }
     }
 
     const params = eventSpec?.data?.schema?.params;
@@ -146,15 +141,11 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
             if(ajv_validate)
             {
                 if (!ajv_validate(event.data[MAP[param]])) {
-                    status.success = false
-                    status.code = 400
                     ajv_validate.errors![0].message += ' in ' + param;
-                    status.message = ajv_validate.errors![0].message;
-                    status.data = ajv_validate.errors![0];
+                    status = { success: false, code: 400, message: ajv_validate.errors![0].message, error_data: ajv_validate.errors![0] }
                     return status
-                }
-                else {
-                    status.success = true
+                } else {
+                    status = { success: true }
                 }
             }
         }

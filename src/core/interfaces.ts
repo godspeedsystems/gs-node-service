@@ -232,13 +232,18 @@ export class GSStatus {
   message?: string;
   data?: any;
   headers?: {[key:string]: any;};
+  error_data?: any;
 
   constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: {[key:string]: any;}) {
     this.message = message;
     this.code = code;
-    this.data = data;
     this.success = success;
     this.headers = headers;
+    if (success) {
+      this.data = data;
+    } else {
+      this.error_data = data;
+    }
   }
 }
 
