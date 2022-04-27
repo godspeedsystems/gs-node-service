@@ -106,9 +106,11 @@ function expandVariable(value: string) {
 }
 
 async function loadDatasources() {
-    const datasources = appConfig.app.datasources;
+    const datasources = await loadYaml(__dirname + '/datasources', false);
 
-    const ds:any = {}
+    console.log('datasources', datasources);
+
+    const ds:PlainObject = {}
 
     for (let s in datasources) {
         const security = datasources[s].security;

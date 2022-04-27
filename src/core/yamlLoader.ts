@@ -1,18 +1,21 @@
 import glob from 'glob'
 import yaml from 'yaml';
+import path from 'path';
 
 import {readFileSync} from 'fs';
 
 import { PlainObject } from "./common"
 
-export default function loadYaml(path: string, global: boolean = false):PlainObject {
+export default function loadYaml(pathString: string, global: boolean = false):PlainObject {
+
+    let basePath = path.basename(pathString);
 
     let api: PlainObject = {}
 
-    console.log('parsing files', path);
+    console.log('parsing files', pathString);
 
     return new Promise((resolve, reject) => {
-      glob(path + '/**/*.?(yaml|yml)', function (err:Error|null, res: string[]) {
+      glob(pathString + '/**/*.?(yaml|yml)', function (err:Error|null, res: string[]) {
         console.log('parsing files', res);
         if (err) {
             reject(err)
@@ -20,7 +23,7 @@ export default function loadYaml(path: string, global: boolean = false):PlainObj
           Promise.all(
             res.map((file:string) => {
                 module = yaml.parse(readFileSync(file, { encoding: 'utf-8' }));
-                const id = file.replace(/.*?\/functions\//, '').replace(/\//g, '.').replace(/\.(yaml|yml)/i, '').replace(/\.index$/, '');
+                const id = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.').replace(/\.(yaml|yml)/i, '').replace(/\.index$/, '');
 
                 if (global) {
                   api = {
