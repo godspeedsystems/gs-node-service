@@ -34,60 +34,76 @@ function JsonnetSnippet(plugins:any) {
 }
 
 
-function createGSFunction(workflow: PlainObject, code: PlainObject): GSFunction {
-    if (!workflow.fn) {
-        if (Array.isArray(workflow)) {
-            workflow = { tasks: workflow, fn: 'com.gs.sequential' };
+function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
+    console.log('+++++++++++++++++++++++++++++++++++++++++')
+    if (!workflowJson.fn) {
+        if (Array.isArray(workflowJson)) {
+            workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential' };
         }
         else {
-            workflow.fn = 'com.gs.sequential';
+            workflowJson.fn = 'com.gs.sequential';
         }
     }
 
     let tasks;
 
-    console.log("workflow: ",workflow)
-    switch(workflow.fn) {
+    console.log("+++ workflow: ",workflowJson, " +++ nativeFunctions: ", nativeFunctions)
+    switch(workflowJson.fn) {
         case 'com.gs.sequential':
-            tasks = workflow.tasks.map((flow:PlainObject) => createGSFunction(flow, code));
-            return new GSSeriesFunction(workflow.id, undefined, tasks,
-                    workflow.summary, workflow.description);
+            tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
+            return new GSSeriesFunction(workflowJson.id, undefined, tasks,
+                    workflowJson.summary, workflowJson.description);
 
         case 'com.gs.parallel':
-            tasks = workflow.tasks.map((flow:PlainObject) => createGSFunction(flow, code));
-            return new GSParallelFunction(workflow.id, undefined, tasks,
-                    workflow.summary, workflow.description);
+            tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
+            return new GSParallelFunction(workflowJson.id, undefined, tasks,
+                    workflowJson.summary, workflowJson.description);
 
         case 'com.gs.switch':
-            let args = [workflow.value];
+            let args = [workflowJson.value];
             let cases:PlainObject = {};
 
-            for (let c in workflow.cases) {
-                cases[c] = createGSFunction(workflow.cases[c], code);
+            for (let c in workflowJson.cases) {
+                cases[c] = createGSFunction(workflowJson.cases[c], workflows, nativeFunctions);
             }
 
-            if (workflow.defaults) {
-                cases.default = createGSFunction(workflow.defaults, code);
+            if (workflowJson.defaults) {
+                cases.default = createGSFunction(workflowJson.defaults, workflows, nativeFunctions);
             }
 
             args.push(cases);
 
-            return new GSSwitchFunction(workflow.id, undefined, args,
-                    workflow.summary, workflow.description);
+            return new GSSwitchFunction(workflowJson.id, undefined, args,
+                    workflowJson.summary, workflowJson.description);
     }
 
-    console.log('loading workflow', workflow.fn);
-    return new GSFunction(workflow.id, code[workflow.fn], workflow.args,
-        workflow.summary, workflow.description);
+    console.log('loading workflow', workflowJson.fn);
+
+    //Load the fn for this GSFunction
+    let fn = nativeFunctions[workflowJson.fn] //First check if it's a native function
+    if (!fn) { //If not a native function, it should be a GSFunction/Json
+        const existingWorkflowData = workflows[workflowJson.fn]
+        if (!(existingWorkflowData instanceof GSFunction) ) { //Is still a Json data, not converted to GSFunction
+            fn = workflows[workflowJson.fn] = createGSFunction(existingWorkflowData, workflows, nativeFunctions);
+        } else { //Is a GSFunction already
+            fn = existingWorkflowData
+        }
+    }
+
+    return new GSFunction(workflowJson.id, fn, workflowJson.args,
+        workflowJson.summary, workflowJson.description);
 }
 
 async function loadFunctions(datasources: PlainObject) {
     let code = await loadModules(__dirname + '/functions');
     let functions = await loadYaml(__dirname + '/functions');
 
+    console.log('++++++++++++++++++++++++++++++++++++++++')
     console.log('functions loaded', functions, code);
     for (let f in functions) {
-        functions[f] = createGSFunction(functions[f], code);
+        if (!(functions[f] instanceof GSFunction)) {
+            functions[f] = createGSFunction(functions[f], functions, code);
+        }
     }
     return functions
 }
