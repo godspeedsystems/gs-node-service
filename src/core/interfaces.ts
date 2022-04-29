@@ -156,11 +156,12 @@ export class GSFunction extends Function {
     
     if (this.fn instanceof GSFunction) {
       const newCtx = ctx.cloneWithNewData(this.args)
-      await this.fn({
-        newCtx
-      });
+      console.log('created new ctx for invoking subworkflow', JSON.stringify(newCtx.outputs))
+      await this.fn(newCtx);
     }
     else {
+      console.log('invoking inner function', Object.keys(ctx))
+
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
     /**
@@ -345,8 +346,8 @@ export class GSContext { //span executions
       }
     }
   }
-  public cloneWithNewData(data: PlainObject) {
-    return {
+  public cloneWithNewData(data: PlainObject): GSContext {
+    return <GSContext>{
       shared: this.shared,
       inputs: this.inputs?.cloneWithNewData(data),
       outputs: this.outputs,
