@@ -226,12 +226,16 @@ function httpListener(ee: EventEmitter, events: any) {
             app[method](route, function(req: express.Request, res: express.Response) {
                 //let type = req.path + '.http.' + req.method.toLocaleLowerCase()
                 //console.log('type', type)
-                console.log('emitting http handler', originalRoute, req.params);
+
+                //@ts-ignore
+                console.log('emitting http handler', originalRoute, req.params, req.files);
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
                     params: req.params,
                     query: req.query,
                     headers: req.headers,
+                    //@ts-ignore
+                    files: Object.values(req.files),
                 }, 'REST', new GSActor('user'),  {http: {express:{res}}});
                 ee.emit(originalRoute, event);
             })

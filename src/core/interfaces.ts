@@ -78,6 +78,7 @@ export class GSFunction extends Function {
       args.config.url =  args.config.url.replace(/:([^\/]+)/g, '${inputs.params.$1}')
     }
 
+
     if (typeof(args) != 'string') {
       args = JSON.stringify(args);
     }
@@ -93,7 +94,7 @@ export class GSFunction extends Function {
     console.log(snippet);
     //console.log('outputs', ctx.outputs);
 
-    return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet))
+    return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
@@ -240,18 +241,13 @@ export class GSStatus {
   message?: string;
   data?: any;
   headers?: {[key:string]: any;};
-  error_data?: any;
 
   constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: {[key:string]: any;}) {
     this.message = message;
     this.code = code;
     this.success = success;
     this.headers = headers;
-    if (success) {
-      this.data = data;
-    } else {
-      this.error_data = data;
-    }
+    this.data = data;
   }
 }
 
