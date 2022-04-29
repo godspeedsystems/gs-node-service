@@ -154,9 +154,11 @@ export class GSFunction extends Function {
    */
   async _call(ctx: GSContext) {
     
-    //TODO: Later. Low priority: Execute all hooks one by one, in a reusable code manner
     if (this.fn instanceof GSFunction) {
-      await this.fn(ctx);
+      const newCtx = ctx.cloneWithNewData(this.args)
+      await this.fn({
+        newCtx
+      });
     }
     else {
       ctx.outputs[this.id] = await this._executefn(ctx);
@@ -265,7 +267,7 @@ export class GSCloudEvent {
   channel: CHANNEL_TYPE;
   actor: GSActor;
   //JSON schema: This data will be validated in the function definition in YAML. In __args.schema
-  data: {[key:string]:any;}; //{body, params, query, headers}, flattened and merged into a single object
+  data: PlainObject; //{body, params, query, headers}, flattened and merged into a single object
   metadata?: {
     http?: {
       express: {
@@ -286,7 +288,19 @@ export class GSCloudEvent {
     this.data = data;
     this.specversion = specversion;
   }
-
+  cloneWithNewData(data:PlainObject): GSCloudEvent {
+    return <GSCloudEvent>{
+      id: this.id,
+      type: this.type,
+      time: this.time,
+      source: this.source,
+      specversion: this.specversion,
+      data: data,
+      channel: this.channel,
+      actor: this.actor,
+      metadata: this.metadata
+    };
+  }
 }
 /**
  * __actor (alias to __event.actor), __vars, __config, __src, __modules, __env, __event, __res (starting from the first parent span), __args (of the running GS instruction)
@@ -331,7 +345,19 @@ export class GSContext { //span executions
       }
     }
   }
-
+  public cloneWithNewData(data: PlainObject) {
+    return {
+      shared: this.shared,
+      inputs: this.inputs?.cloneWithNewData(data),
+      outputs: this.outputs,
+      log_events: this.log_events,
+      config: this.config,
+      datasources: this.datasources,
+      jsonnet: this.jsonnet,
+      mappings: this.mappings,
+      jsonnetSnippet: this.jsonnetSnippet
+    }
+  }
   public addLogEvent(event: GSLogEvent): void {
     this.log_events?.push(event);
     //also push to the logging backend

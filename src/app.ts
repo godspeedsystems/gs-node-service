@@ -94,7 +94,7 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
         workflowJson.summary, workflowJson.description);
 }
 
-async function loadFunctions(datasources: PlainObject) {
+async function loadFunctions() {
     let code = await loadModules(__dirname + '/functions');
     let functions = await loadYaml(__dirname + '/functions');
 
@@ -241,7 +241,7 @@ function httpListener(ee: EventEmitter, events: any) {
 
 async function main() {
     const datasources = await loadDatasources();
-    const functions = await loadFunctions(datasources);
+    const functions = await loadFunctions();
     const plugins = await loadModules(__dirname + '/plugins', true);
     const jsonnetSnippet = JsonnetSnippet(plugins);
 
