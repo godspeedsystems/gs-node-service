@@ -5,8 +5,9 @@ import axios from 'axios';
 import express from 'express';
 import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeriesFunction, GSStatus, GSSwitchFunction} from './core/interfaces';
 
+import config from 'config';
+
 import app from './http_listener'
-import { config } from 'process';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 
@@ -111,9 +112,12 @@ async function loadFunctions(datasources: PlainObject) {
 function expandVariable(value: string) {
     try {
         if ((value as string).includes('${')) {
-            value = (value as string).replace('"\${(.*?)}"', '$1');
+            console.log('value before', value)
+
+            value = (value as string).replace(/"?\${(.*?)}"?/, '$1');
             //TODO: pass other context variables
             value = Function('config', 'return ' + value)(config);
+            console.log('value after', value)
         }
     } catch(ex) {
         console.error(ex);
@@ -270,7 +274,7 @@ async function main() {
         console.log('calling processevent', typeof(handler));
 
         const ctx = new GSContext(
-            {},
+            config,
             datasources,
             {},
             event,
