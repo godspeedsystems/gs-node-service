@@ -3,7 +3,7 @@ import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 
 import express from 'express';
-import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeriesFunction, GSStatus, GSSwitchFunction} from './core/interfaces';
+import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeriesFunction, GSStatus, GSSwitchFunction, GSResponse} from './core/interfaces';
 
 import config from 'config';
 
@@ -239,7 +239,7 @@ function httpListener(ee: EventEmitter, events: any) {
                     query: req.query,
                     headers: req.headers,
                     //@ts-ignore
-                    files: Object.values(req.files),
+                    files: Object.values(req.files || {}),
                 }, 'REST', new GSActor('user'),  {http: {express:{res}}});
                 ee.emit(originalRoute, event);
             })
@@ -259,6 +259,7 @@ async function main() {
     console.log('plugins', plugins);
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
+        const responseStructure:GSResponse = { apiVersion: "1.0" };
         console.log(events[event.type], event)
         console.log('event.type: ',event.type)
 
@@ -267,7 +268,12 @@ async function main() {
 
         if(valid_status.success === false)
         {
-            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(valid_status);
+            responseStructure.error = { 
+                code: valid_status.code,
+                message: valid_status.message,
+                errors: [ { message: valid_status.message, location: valid_status.data.schemaPath}]
+            }
+            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(responseStructure);
         }
 
         const handler = functions[events[event.type].fn] as GSFunction;
@@ -289,19 +295,15 @@ async function main() {
         console.log('end', status)
         valid_status = validateResponseSchema(event.type, status);
         console.log("Response valid status: ",valid_status)
+        
+        if (status.data) {
+            responseStructure.data = { 
+                items: [ status.data ]
+            };
+        }
 
-        // if(valid_status.success === false)
-        // {
-        //     status.success = false
-        //     status.code = 500
-        //     status.message = 'Internal Server Error - Error in validating the response schema'
-        //     //status.data = valid_status.error
-        //     (event.metadata?.http?.express.res as express.Response).status(500).send(status);
-        //     return
-        // }
-
-        if (status.success) {
-            (event.metadata?.http?.express.res as express.Response).status(200).send(status);
+        if (status.success) {            
+            (event.metadata?.http?.express.res as express.Response).status(200).send(responseStructure);
         } else {
             (event.metadata?.http?.express.res as express.Response).status(status.code ?? 200).send(status);
         }

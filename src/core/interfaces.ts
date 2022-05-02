@@ -401,6 +401,51 @@ export class GSActor {
   }
 }
 
+/**
+ *
+ * Final ResponseStructure
+ */
+ export interface GSResponse {
+  apiVersion?: string;
+  data?: {
+    kind?: string;
+    fields?: string;
+    etag?: string;
+    id?: string;
+    lang?: string;
+    updated?: string;
+    deleted?: boolean;
+    currentItemCount?: number;
+    itemsPerPage?: number;
+    startIndex?: number;
+    totalItems?: number;
+    pageIndex?: number;
+    totalPages?: number;
+    pageLinkTemplate?: number;
+    next?: PlainObject;
+    nextLink?: string;
+    previous?: PlainObject;
+    previousLink?: string;
+    self?: PlainObject;
+    selfLink?: string;
+    edit?: PlainObject;
+    editLink?: string;
+    items?: PlainObject[];
+  };
+  error?: {
+    code?: number;
+    message?: string;
+    errors?: {
+      domain?: string;
+      reason?: string;
+      message?: string;
+      location?: string;
+      locationType?: string;
+      extendedHelp?: string;
+      sendReport?:string;
+    }[];
+  };
+}
 
 if (require.main === module) {
   let sum = (a: number, b: number):  number => {
