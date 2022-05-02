@@ -82,7 +82,7 @@ export class GSFunction extends Function {
       args = JSON.stringify(args);
     }
 
-    console.log('args', args);
+    console.log('args:', args);
 
     snippet += args.replace(/\"\${(.*?)}\"/g, "$1")
             .replace(/\${(.*?)}/g, '" + $1 + "')
@@ -90,7 +90,7 @@ export class GSFunction extends Function {
             .replace(/\\"/g, '"')
             .replace(/\\n/g, ' ')
 
-    console.log(snippet);
+    console.log("snippet: ",snippet);
     //console.log('outputs', ctx.outputs);
 
     return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet))
@@ -100,7 +100,7 @@ export class GSFunction extends Function {
     try {
       const args = await this._evaluateVariables(ctx, this.args);
 
-      console.log('args', args);
+      console.log('args : ', args);
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
@@ -156,11 +156,11 @@ export class GSFunction extends Function {
     
     if (this.fn instanceof GSFunction) {
       const newCtx = ctx.cloneWithNewData(this.args)
-      console.log('created new ctx for invoking subworkflow', JSON.stringify(newCtx.outputs))
       await this.fn(newCtx);
+      ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
     }
     else {
-      console.log('invoking inner function', JSON.stringify(ctx.outputs))
+      console.log('invoking inner function, inputs: ', ctx.inputs)
 
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
@@ -180,12 +180,9 @@ export class GSSeriesFunction extends GSFunction {
     let finalId;
 
     for (const child of this.args!) {
-      console.log("child: ",child)
       await child(ctx);
       finalId = child.id;
-      console.log("finalId: ",finalId)
     }
-    console.log("this.id: ",this.id)
     ctx.outputs[this.id] = ctx.outputs[finalId]
   }
 }
@@ -209,8 +206,6 @@ export class GSSwitchFunction extends GSFunction {
     console.log('inside switch executor', ctx, this.args)
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
-    console.log("condition: " , condition)
-    console.log("condition after replace: " , condition.replace(/\${(.*?)}/, '$1'))
     let value = await this._evaluateVariables(ctx, condition.replace(/\${(.*?)}/, '$1'));
     //evaluate the condition = 
     /*
@@ -293,7 +288,7 @@ export class GSCloudEvent {
     this.specversion = specversion;
   }
   cloneWithNewData(data:PlainObject): GSCloudEvent {
-    return <GSCloudEvent>{
+    return {
       id: this.id,
       type: this.type,
       time: this.time,
@@ -303,7 +298,7 @@ export class GSCloudEvent {
       channel: this.channel,
       actor: this.actor,
       metadata: this.metadata
-    };
+    } as GSCloudEvent;
   }
 }
 /**
@@ -319,6 +314,7 @@ export class GSContext { //span executions
   jsonnet: Jsonnet;
   mappings: any;
   jsonnetSnippet: string;
+  plugins: PlainObject;
 
   constructor(config: PlainObject, datasources: PlainObject, 
       shared: PlainObject = {}, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
@@ -329,6 +325,7 @@ export class GSContext { //span executions
     this.datasources = datasources;
     this.mappings = mappings;
     this.jsonnetSnippet = jsonnetSnippet;
+    this.plugins = plugins;
 
     const jsonnet = this.jsonnet = new Jsonnet();
     
@@ -349,20 +346,7 @@ export class GSContext { //span executions
       }
     }
   }
-  public cloneWithNewData(data: PlainObject): GSContext {
-    /*
-    return <GSContext>{
-      shared: this.shared,
-      inputs: this.inputs?.cloneWithNewData(data),
-      outputs: this.outputs,
-      log_events: this.log_events,
-      config: this.config,
-      datasources: this.datasources,
-      jsonnet: this.jsonnet,
-      mappings: this.mappings,
-      jsonnetSnippet: this.jsonnetSnippet
-    }
-    */
+  public cloneWithNewData(data: PlainObject): GSContext {   
     return new GSContext(
         this.config,
         this.datasources,
@@ -370,7 +354,7 @@ export class GSContext { //span executions
         this.inputs?.cloneWithNewData(data),
         this.mappings,
         this.jsonnetSnippet,
-        {}
+        this.plugins
     );
   }
   public addLogEvent(event: GSLogEvent): void {
