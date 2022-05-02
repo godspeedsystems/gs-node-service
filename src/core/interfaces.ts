@@ -160,7 +160,7 @@ export class GSFunction extends Function {
       await this.fn(newCtx);
     }
     else {
-      console.log('invoking inner function', Object.keys(ctx))
+      console.log('invoking inner function', JSON.stringify(ctx.outputs))
 
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
@@ -180,9 +180,12 @@ export class GSSeriesFunction extends GSFunction {
     let finalId;
 
     for (const child of this.args!) {
+      console.log("child: ",child)
       await child(ctx);
       finalId = child.id;
+      console.log("finalId: ",finalId)
     }
+    console.log("this.id: ",this.id)
     ctx.outputs[this.id] = ctx.outputs[finalId]
   }
 }
@@ -347,6 +350,7 @@ export class GSContext { //span executions
     }
   }
   public cloneWithNewData(data: PlainObject): GSContext {
+    /*
     return <GSContext>{
       shared: this.shared,
       inputs: this.inputs?.cloneWithNewData(data),
@@ -358,6 +362,16 @@ export class GSContext { //span executions
       mappings: this.mappings,
       jsonnetSnippet: this.jsonnetSnippet
     }
+    */
+    return new GSContext(
+        this.config,
+        this.datasources,
+        this.shared,
+        this.inputs?.cloneWithNewData(data),
+        this.mappings,
+        this.jsonnetSnippet,
+        {}
+    );
   }
   public addLogEvent(event: GSLogEvent): void {
     this.log_events?.push(event);
