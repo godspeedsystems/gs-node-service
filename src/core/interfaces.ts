@@ -51,8 +51,9 @@ export class GSFunction extends Function {
   description?: string;
   fn?: Function;
   onError?: Function;
+  isSubWorkflow?: boolean;
   
-  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function) {
+  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id;
     this.fn = _function;
@@ -60,6 +61,7 @@ export class GSFunction extends Function {
     this.summary = summary;
     this.description = description;
     this.onError = onError;
+    this.isSubWorkflow = isSubWorkflow;
   }
 
   async _evaluateVariables(ctx: GSContext, args: any) {
@@ -155,13 +157,18 @@ export class GSFunction extends Function {
   async _call(ctx: GSContext) {
     
     if (this.fn instanceof GSFunction) {
-      const newCtx = ctx.cloneWithNewData(this.args)
-      await this.fn(newCtx);
-      ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
+      if (this.isSubWorkflow) {
+        console.log("isSubWorkflow, creating new ctx")
+        const newCtx = ctx.cloneWithNewData(this.args)
+        await this.fn(newCtx);
+        ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
+      } else {
+        console.log("No isSubWorkflow, continnuing in the same ctx")
+        await this.fn(ctx);
+      }
     }
     else {
       console.log('invoking inner function, inputs: ', ctx.inputs)
-
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
     /**
@@ -176,17 +183,18 @@ export class GSFunction extends Function {
 export class GSSeriesFunction extends GSFunction {
   override async _call(ctx: GSContext) {
     console.log('inside series executor', this.args)
-    
     let finalId;
 
     for (const child of this.args!) {
+      console.log("child: ",child, " GSSeries _call child.isSubWorkflow :",child.isSubWorkflow)
       await child(ctx);
       finalId = child.id;
+      console.log("finalID: ",finalId)
     }
+    console.log("this.id: ",this.id ," finalId: ",finalId)
     ctx.outputs[this.id] = ctx.outputs[finalId]
   }
 }
-
 
 export class GSParallelFunction extends GSFunction {
   override async _call(ctx: GSContext) {
@@ -195,6 +203,7 @@ export class GSParallelFunction extends GSFunction {
     
     for (const child of this.args!) {
       promises.push(child(ctx));
+      console.log("GSParallel _call child.isSubWorkflow : ",child.isSubWorkflow)
     }
 
     await Promise.all(promises);
@@ -204,6 +213,7 @@ export class GSParallelFunction extends GSFunction {
 export class GSSwitchFunction extends GSFunction {
   override async _call(ctx: GSContext) {
     console.log('inside switch executor', ctx, this.args)
+    console.log("GSSwitchFunction _call this.isSubWorkflow : ",this.isSubWorkflow)
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
     let value = await this._evaluateVariables(ctx, condition.replace(/\${(.*?)}/, '$1'));

@@ -39,8 +39,7 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
             workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential' };
-        }
-        else {
+        } else {
             workflowJson.fn = 'com.gs.sequential';
         }
     }
@@ -81,17 +80,19 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 
     //Load the fn for this GSFunction
     let fn = nativeFunctions[workflowJson.fn] //First check if it's a native function
+    let subwf = false
     if (!fn) { //If not a native function, it should be a GSFunction/Json
         const existingWorkflowData = workflows[workflowJson.fn]
         if (!(existingWorkflowData instanceof GSFunction) ) { //Is still a Json data, not converted to GSFunction
+            subwf = true
             fn = workflows[workflowJson.fn] = createGSFunction(existingWorkflowData, workflows, nativeFunctions);
         } else { //Is a GSFunction already
-            fn = existingWorkflowData
+            fn = existingWorkflowData        
         }
     }
 
     return new GSFunction(workflowJson.id, fn, workflowJson.args,
-        workflowJson.summary, workflowJson.description);
+        workflowJson.summary, workflowJson.description, undefined, subwf);
 }
 
 async function loadFunctions() {
