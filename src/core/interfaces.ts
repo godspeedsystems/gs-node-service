@@ -1,5 +1,6 @@
 import { Jsonnet } from '@hanazuki/node-jsonnet';
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
+import { logger } from './logger';
 import { setAtPath, getAtPath } from './utils';
 //import R from 'ramda';
 /**
@@ -65,7 +66,7 @@ export class GSFunction extends Function {
   }
 
   async _evaluateVariables(ctx: GSContext, args: any) {
-
+    logger.info('_evaluateVariables')
     if (!args) {
       return;
     }
@@ -84,7 +85,7 @@ export class GSFunction extends Function {
       args = JSON.stringify(args);
     }
 
-    console.log('args:', args);
+    logger.debug(args, 'args')
 
     snippet += args.replace(/\"\${(.*?)}\"/g, "$1")
             .replace(/\${(.*?)}/g, '" + $1 + "')
@@ -92,17 +93,17 @@ export class GSFunction extends Function {
             .replace(/\\"/g, '"')
             .replace(/\\n/g, ' ')
 
-    console.log("snippet: ",snippet);
-    //console.log('outputs', ctx.outputs);
+    logger.debug(snippet,'snippet')
 
     return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet))
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
+      logger.info('_executefn')
       const args = await this._evaluateVariables(ctx, this.args);
 
-      console.log('args : ', args);
+      logger.debug(args, 'args')
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
@@ -114,7 +115,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args)
       }
 
-      console.log('result of _executeFn', res);
+      logger.info(res,'result of _executeFn')
       
       if (res instanceof GSStatus) {
         return res; 
@@ -158,17 +159,18 @@ export class GSFunction extends Function {
     
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
-        console.log("isSubWorkflow, creating new ctx")
+        logger.info('isSubWorkflow, creating new ctx')
         const newCtx = ctx.cloneWithNewData(this.args)
         await this.fn(newCtx);
         ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
       } else {
-        console.log("No isSubWorkflow, continnuing in the same ctx")
+        logger.info('No isSubWorkflow, continuing in the same ctx')
         await this.fn(ctx);
       }
     }
     else {
-      console.log('invoking inner function, inputs: ', ctx.inputs)
+      logger.info('invoking inner function')
+      logger.debug(ctx.inputs, 'inputs')
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
     /**
@@ -182,28 +184,31 @@ export class GSFunction extends Function {
 
 export class GSSeriesFunction extends GSFunction {
   override async _call(ctx: GSContext) {
-    console.log('inside series executor', this.args)
+    logger.info('GSSeriesFunction')
+    logger.debug(this.args,'inside series executor')
     let finalId;
 
     for (const child of this.args!) {
-      console.log("child: ",child, " GSSeries _call child.isSubWorkflow :",child.isSubWorkflow)
+      logger.debug(child)  //Not displaying the object --> Need to check
       await child(ctx);
       finalId = child.id;
-      console.log("finalID: ",finalId)
+      logger.debug('finalID: %s',finalId)
     }
-    console.log("this.id: ",this.id ," finalId: ",finalId)
+    logger.debug('this.id: %s, finalId: %s', this.id, finalId)
     ctx.outputs[this.id] = ctx.outputs[finalId]
   }
 }
 
 export class GSParallelFunction extends GSFunction {
   override async _call(ctx: GSContext) {
-    console.log('inside parallel executor', ctx, this.args)
+    logger.info('GSParallelFunction')
+    logger.debug(this.args,'inside parallel executor')
+    logger.debug(ctx,'ctx')
+
     const promises = [];
     
     for (const child of this.args!) {
       promises.push(child(ctx));
-      console.log("GSParallel _call child.isSubWorkflow : ",child.isSubWorkflow)
     }
 
     await Promise.all(promises);
@@ -212,8 +217,9 @@ export class GSParallelFunction extends GSFunction {
 
 export class GSSwitchFunction extends GSFunction {
   override async _call(ctx: GSContext) {
-    console.log('inside switch executor', ctx, this.args)
-    console.log("GSSwitchFunction _call this.isSubWorkflow : ",this.isSubWorkflow)
+    logger.info('GSSwitchFunction')
+    logger.debug(this.args,'inside switch executor')
+    logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
     let value = await this._evaluateVariables(ctx, condition.replace(/\${(.*?)}/, '$1'));
@@ -349,7 +355,7 @@ export class GSContext { //span executions
       
       if (args) {
         let argArray = args[1].split(',').map(s => s.trim())
-        console.log('plugin', name, argArray);
+        logger.info('plugin: %s, %o',name,argArray)
         jsonnet.nativeCallback(name!, plugins[fn], ...argArray);
       } else {
         jsonnet.nativeCallback(name!, plugins[fn]);

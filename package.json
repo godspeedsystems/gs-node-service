@@ -23,6 +23,7 @@
     "js-yaml": "^4.1.0",
     "morgan": "^1.10.0",
     "openapi-client-axios": "^5.1.2",
+    "pino": "^7.11.0",
     "rambda": "^7.0.3",
     "yaml": "^2.0.0",
     "yarn": "^1.22.18"

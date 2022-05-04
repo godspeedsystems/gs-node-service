@@ -5,11 +5,13 @@ import Ajv from "ajv"
 import addFormats from "ajv-formats";
 
 import { PlainObject } from "./common";
+import { logger } from "./logger";
 
 const ajv = new Ajv()
 
 export function loadJsonSchemaForEvents(eventObj: PlainObject) {
-    console.log("eventObj: ", eventObj)
+    logger.info('Loading JSON Schema for events %s',Object.keys(eventObj))
+    logger.debug(eventObj,'eventObj')
     // Add formats to ajv instance
     addFormats(ajv);
 
@@ -27,7 +29,8 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
                 Object.keys(body_content).forEach(function(k) {
                     const content_schema = body_content[k].schema;
                     if(content_schema) {
-                        console.log('adding body schema', topic, content_schema);
+                        logger.info('adding body schema for %s', topic)
+                        logger.debug(content_schema)
                         ajv.addSchema(content_schema, topic)
                     }
                 });
@@ -63,7 +66,9 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
             }
 
             for (let schema in paramSchema) {
-                console.log('adding param schema', schema, paramSchema[schema],);
+                logger.info('adding param schema for %s',topic)
+                logger.debug(paramSchema[schema])
+
                 const topic_param = topic + ':'+ schema;
                 ajv.addSchema( paramSchema[schema], topic_param)
             }
@@ -87,28 +92,26 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
 
 /* Function to validate GSCloudEvent */
 export function validateRequestSchema(topic: string, event: any, eventSpec: PlainObject): PlainObject{
+    logger.info('validateRequestSchema')
     let status:PlainObject= {};
 
     // Validate event.data.body
-    if(event.data.body && eventSpec?.data?.schema?.body)
-    {
-        //console.log("ajvschemas: ",ajv.schemas[topic])
-        console.log("event.data.body: ", event.data.body, " topic: ", topic)
+    if (event.data.body && eventSpec?.data?.schema?.body) {
+        logger.info('event body and eventSpec exist')
+        logger.info('event.data.body: %o',event.data.body)
         const ajv_validate = ajv.getSchema(topic)
-        if(ajv_validate !== undefined)
-        {
-            console.log("ajv_validate: ", ajv_validate)
+        if (ajv_validate) {
+            logger.info('ajv_validate for body')
             if (! ajv_validate(event.data.body)) {
-                console.log("! ajv_validate: ")
+                logger.error('ajv_validate failed')
                 status = { success: false, code: 400, message: ajv_validate.errors![0].message, error_data: ajv_validate.errors![0] }
                 return status
             }
             else{
-                console.log("ajv validated")
+                logger.info('ajv_validate success')
                 status = { success: true }
             }
-        }
-        else{
+        } else{
             status = { success: true }
         }
     } else if ( !event.data.body && eventSpec?.data?.schema?.body ) { 
@@ -131,13 +134,15 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
         'cookie': 'cookie',
     };
 
+    logger.info('ajv_validate for params')
+
     if(params) {
         for (let param in MAP) {
 
             const topic_param = topic + ':'+ param;
             const ajv_validate = ajv.getSchema(topic_param)
 
-            console.log('validating the schema for', topic_param, ajv_validate);
+            logger.debug('topic_param: %s',topic_param)
             if(ajv_validate)
             {
                 if (!ajv_validate(event.data[MAP[param]])) {
@@ -162,16 +167,14 @@ export function validateResponseSchema(topic: string, gs_status: GSStatus): Plai
     {
         const topic_response = topic + ':responses:' + gs_status.code
         const ajv_validate = ajv.getSchema(topic_response)
-        if(ajv_validate !== undefined)
-        {
-            //console.log("ajv_validate: ",ajv_validate)
+        if (ajv_validate) {
             if (! ajv_validate(gs_status.data)) {
-                console.log("! ajv_validate: ")
+                logger.error('ajv_validate failed')
                 status.success = false
                 status.error = ajv_validate.errors
             }
             else{
-                console.log("ajv validated")
+                logger.info('ajv_validate success')
                 status.success = true
             }
         }

@@ -5,6 +5,7 @@ import path from 'path';
 import {readFileSync} from 'fs';
 
 import { PlainObject } from "./common"
+import { logger } from "./logger";
 
 export default function loadYaml(pathString: string, global: boolean = false):PlainObject {
 
@@ -12,11 +13,11 @@ export default function loadYaml(pathString: string, global: boolean = false):Pl
 
     let api: PlainObject = {}
 
-    console.log('parsing files', pathString);
+    logger.info('Parsing files in directory %s',pathString)
 
     return new Promise((resolve, reject) => {
       glob(pathString + '/**/*.?(yaml|yml)', function (err:Error|null, res: string[]) {
-        console.log('parsing files', res);
+        logger.info('parsing files: %s',res)
         if (err) {
             reject(err)
         } else {
@@ -52,7 +53,7 @@ if (require.main === module) {
     try {
         await loadYaml('../../dist/events', true).then(console.log);
     } catch(ex) {
-        console.error(ex);
+      logger.error(ex);
     }
    })();
 }

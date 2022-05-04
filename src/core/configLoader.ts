@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as process from 'process';
 import * as yaml from 'js-yaml';
 
+import { logger } from "./logger";
+
 function iterate_yaml_directories(current_yaml_root:any) {
   var recursive_object_state:any = {};
 
@@ -69,6 +71,6 @@ export default iterate_yaml_directories;
 if (require.main === module) {
     var relative_config_root = process.argv.slice(2)[0];
     var nested_yaml_result = iterate_yaml_directories(relative_config_root);
-    console.log(nested_yaml_result);
-    console.log(JSON.stringify(nested_yaml_result, null, 2));
+    logger.info(nested_yaml_result);
+    logger.info(JSON.stringify(nested_yaml_result, null, 2));
 }

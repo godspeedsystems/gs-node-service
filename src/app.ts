@@ -9,6 +9,7 @@ import app from './http_listener'
 import { config } from 'process';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
+import { logger } from './core/logger';
 
 import loadYaml from './core/yamlLoader';
 import loadModules from './core/codeLoader';
@@ -35,7 +36,7 @@ function JsonnetSnippet(plugins:any) {
 
 
 function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
-    console.log('+++++++++++++++++++++++++++++++++++++++++')
+    logger.info('Creating GSFunction %s',workflowJson.id)
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
             workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential' };
@@ -46,7 +47,8 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 
     let tasks;
 
-    console.log("+++ workflow: ",workflowJson, " +++ nativeFunctions: ", nativeFunctions)
+    logger.debug(workflowJson, 'workflow')
+    logger.debug(nativeFunctions) // Not displaying the object --> Need to check
     switch(workflowJson.fn) {
         case 'com.gs.sequential':
             tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
@@ -76,7 +78,7 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
                     workflowJson.summary, workflowJson.description);
     }
 
-    console.log('loading workflow', workflowJson.fn);
+    logger.info('loading workflow %s',workflowJson.fn)
 
     //Load the fn for this GSFunction
     let fn = nativeFunctions[workflowJson.fn] //First check if it's a native function
@@ -96,11 +98,12 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 }
 
 async function loadFunctions() {
+    logger.info('Loading functions')
     let code = await loadModules(__dirname + '/functions');
     let functions = await loadYaml(__dirname + '/functions');
 
-    console.log('++++++++++++++++++++++++++++++++++++++++')
-    console.log('functions loaded', functions, code);
+    logger.info('Loaded functions: %s',Object.keys(functions))
+    logger.info('Loaded native functions: %s',Object.keys(code))
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
             functions[f] = createGSFunction(functions[f], functions, code);
@@ -117,15 +120,18 @@ function expandVariable(value: string) {
             value = Function('config', 'return ' + value)(config);
         }
     } catch(ex) {
-        console.error(ex);
+        //console.error(ex);
+        logger.error(ex);
     }
     return value;
 }
 
 async function loadDatasources() {
+    logger.info('Loading datasources')
     const datasources = await loadYaml(__dirname + '/datasources', false);
 
-    console.log('datasources', datasources);
+    logger.debug('Loaded datasources %o',datasources)
+    logger.info('Loaded datasources: %s',Object.keys(datasources))
 
     const ds:PlainObject = {}
 
@@ -148,7 +154,7 @@ async function loadDatasources() {
                 schema: false
             };
 
-            console.log('security', security);
+            logger.debug('security %o',security)
 
             if (security && security.length) {
                 for (let values of security) {
@@ -161,9 +167,10 @@ async function loadDatasources() {
                             try {
                                 value = expandVariable(value as string);
                                 ds[s].client.defaults.headers.common[securityScheme.name] = value;
-                                console.log('Adding header', securityScheme.name, value);
+                                logger.debug('Adding header %s: %s',securityScheme.name,value)
                             } catch(ex) {
-                                console.error(ex);
+                                //console.error(ex);
+                                logger.error(ex);
                             }
                         }
                     }
@@ -199,8 +206,10 @@ async function loadDatasources() {
 
 
 async function loadEvents(ee: EventEmitter, processEvent: (...args: any[]) => void) {
+    logger.info('Loading events')
     const events = await loadYaml(__dirname + '/events', true)
-    console.log('events', events);
+    logger.debug(events,'events')
+    logger.info('Loaded events: %s',Object.keys(events))
 
     loadJsonSchemaForEvents(events)
 
@@ -222,12 +231,11 @@ function httpListener(ee: EventEmitter, events: any) {
             [route, method] = route.split('.http.')
             route = route.replace(/{(.*?)}/g, ":$1");
 
-            console.log('registering handler', route, method);
+            logger.info('registering handler %s %s', route, method)
             // @ts-ignore
             app[method](route, function(req: express.Request, res: express.Response) {
                 //let type = req.path + '.http.' + req.method.toLocaleLowerCase()
-                //console.log('type', type)
-                console.log('emitting http handler', originalRoute, req.params);
+                logger.info('emitting http handler %s %s', originalRoute, req.params)
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
                     params: req.params,
@@ -241,6 +249,7 @@ function httpListener(ee: EventEmitter, events: any) {
 }
 
 async function main() {
+    logger.info('Main execution')
     const datasources = await loadDatasources();
     const functions = await loadFunctions();
     const plugins = await loadModules(__dirname + '/plugins', true);
@@ -249,22 +258,23 @@ async function main() {
     const ee = new EventEmitter({ captureRejections: true });
     ee.on('error', console.log);
 
-    console.log('plugins', plugins);
+    logger.debug(plugins,'plugins');
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
-        console.log(events[event.type], event)
-        console.log('event.type: ',event.type)
+        logger.debug(events[event.type], event)
+        logger.info('Processing event %s',event.type)
 
         let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
-        console.log("valid status: ", valid_status)
 
         if(valid_status.success === false)
         {
+            logger.error(valid_status, 'Failed to validate Request JSON Schema')
             return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(valid_status);
         }
+        logger.info(valid_status, 'Request JSON Schema validated successfully')
 
         const handler = functions[events[event.type].fn] as GSFunction;
-        console.log('calling processevent', typeof(handler));
+        logger.info('calling processevent, type of handler is %s',typeof(handler))
 
         const ctx = new GSContext(
             {},
@@ -279,9 +289,13 @@ async function main() {
 
         //TODO: always output of the last task
         let status = ctx.outputs[handler.args[handler.args.length - 1].id];
-        console.log('end', status)
         valid_status = validateResponseSchema(event.type, status);
-        console.log("Response valid status: ",valid_status)
+        
+        if (valid_status.success) {
+            logger.info(valid_status, 'Validate Response JSON Schema')
+        } else {
+            logger.error(valid_status, 'Validate Response JSON Schema')
+        }
 
         // if(valid_status.success === false)
         // {
@@ -294,8 +308,10 @@ async function main() {
         // }
 
         if (status.success) {
+            logger.info(status, 'end');
             (event.metadata?.http?.express.res as express.Response).status(200).send(status);
         } else {
+            logger.error(status, 'end');
             (event.metadata?.http?.express.res as express.Response).status(status.code ?? 200).send(status);
         }
     }

@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import morgan from 'morgan';
+import { logger } from './core/logger';
 
 
 const app:express.Express = express();
@@ -14,6 +15,6 @@ app.use(morgan('dev'));
 
 const port = process.env.PORT
 app.listen(port);
-console.log('Node + Express REST API skeleton server started on port: ' + port);
+logger.info('Node + Express REST API skeleton server started on port: %s', port)
 
 export default app;

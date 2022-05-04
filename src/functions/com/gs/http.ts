@@ -1,15 +1,17 @@
+import { logger } from "../../../core/logger";
 
 export default async function(args:{[key:string]:any;}) {
     try {
         const ds = args.datasource;
         let res;
-        console.log('calling http client', args);
+        logger.info('calling http client')
+        logger.info(args,'http client args')
 
         if (ds.schema) {
-            console.log('invoking with schema');
+            logger.info('invoking with schema');
             res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config)
         } else {
-            console.log('invoking wihout schema');
+            logger.info('invoking wihout schema');
             res = await ds.client({
                 ...args.config,
                 params: args.params,
