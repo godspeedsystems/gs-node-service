@@ -296,17 +296,20 @@ async function main() {
         valid_status = validateResponseSchema(event.type, status);
         console.log("Response valid status: ",valid_status)
         
-        if (status.data) {
+        if (status.success) {            
             responseStructure.data = { 
                 items: [ status.data ]
-            };
-        }
-
-        if (status.success) {            
+            };    
             (event.metadata?.http?.express.res as express.Response).status(200).send(responseStructure);
         } else {
-            (event.metadata?.http?.express.res as express.Response).status(status.code ?? 200).send(status);
+            responseStructure.error = { 
+                code: status.code ?? 200,
+                message: status.message,
+                errors: [ { message: status.message}]
+            };
+            (event.metadata?.http?.express.res as express.Response).status(status.code ?? 200).send(responseStructure);
         }
+
     }
 
     const events = await loadEvents(ee, processEvent);
