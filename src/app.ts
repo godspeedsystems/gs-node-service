@@ -127,10 +127,10 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
 
 function expandVariable(value: string) {
     try {
-        if ((value as string).includes('${')) {
-            logger.debug('value before %s', value)
+        if ((value as string).includes('<%')) {
+            console.log('value before', value)
 
-            value = (value as string).replace(/"?\${(.*?)}"?/, '$1');
+            value = (value as string).replace(/"?<%\s*(.*?)\s*%>"?/, '$1');
             //TODO: pass other context variables
             value = Function('config', 'return ' + value)(config);
             logger.debug('value after %s', value)
@@ -155,6 +155,7 @@ async function loadDatasources() {
         const security = datasources[s].security;
         const securitySchemes = datasources[s].securitySchemes;
 
+        //TODO: Expand all the variables in a datasource
         if (datasources[s].schema) {
             const api = new OpenAPIClientAxios({definition: datasources[s].schema});
             api.init();
@@ -165,7 +166,7 @@ async function loadDatasources() {
         } else {
             ds[s] =  {
                 client: axios.create({
-                    baseURL: datasources[s].base_url
+                    baseURL: expandVariable(datasources[s].base_url)
                 }),
                 schema: false
             };

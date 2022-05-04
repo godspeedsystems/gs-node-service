@@ -49,25 +49,25 @@ export default async function(args:{[key:string]:any;}) {
                 }
             }
 
-            if (args.retry) {
-                axiosRetry(ds.client, {
-                    retries: args.retry.max_attempts,
-                    retryDelay: function(retryNumber: number, error: AxiosError<any, any>) {
-                        switch (args.retry.type) {
-                            case 'constant':
-                                return args.retry.interval * 1000;
+            // if (args.retry) {
+            //     axiosRetry(ds.client, {
+            //         retries: args.retry.max_attempts,
+            //         retryDelay: function(retryNumber: number, error: AxiosError<any, any>) {
+            //             switch (args.retry.type) {
+            //                 case 'constant':
+            //                     return args.retry.interval * 1000;
 
-                            case 'random':
-                                return getRandomInt(args.retry.min_interval, args.retry.max_interval) * 1000;
+            //                 case 'random':
+            //                     return getRandomInt(args.retry.min_interval, args.retry.max_interval) * 1000;
 
-                            case 'exponential':
-                                return axiosRetry.exponentialDelay(retryNumber);
-                        }
+            //                 case 'exponential':
+            //                     return axiosRetry.exponentialDelay(retryNumber);
+            //             }
 
-                        return 0;
-                    }
-                })
-            }
+            //             return 0;
+            //         }
+            //     })
+            // }
 
             res = await ds.client({
                 ...args.config,
@@ -76,9 +76,10 @@ export default async function(args:{[key:string]:any;}) {
             })
         }
 
+        console.log('res', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex) {
-        //console.error(ex);
+        console.error(ex);
         //@ts-ignore
         let res = ex.response;
         return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
