@@ -1,6 +1,14 @@
 
 import FormData from 'form-data'; // npm install --save form-data
 import fs from 'fs';
+import axiosRetry from 'axios-retry';
+import { AxiosError } from 'axios';
+
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max + 1 - min) + min);
+  }
 
 export default async function(args:{[key:string]:any;}) {
     try {
@@ -36,6 +44,26 @@ export default async function(args:{[key:string]:any;}) {
                         form.append(k, args.data[k]);
                     }
                 }
+            }
+
+            if (args.retry) {
+                axiosRetry(ds.client, {
+                    retries: args.retry.max_attempts,
+                    retryDelay: function(retryNumber: number, error: AxiosError<any, any>) {
+                        switch (args.retry.type) {
+                            case 'constant':
+                                return args.retry.interval * 1000;
+
+                            case 'random':
+                                return getRandomInt(args.retry.min_interval, args.retry.max_interval) * 1000;
+
+                            case 'exponential':
+                                return axiosRetry.exponentialDelay(retryNumber);
+                        }
+
+                        return 0;
+                    }
+                })
             }
 
             res = await ds.client({

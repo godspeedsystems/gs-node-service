@@ -16,6 +16,7 @@
     "ajv": "^8.11.0",
     "ajv-formats": "^2.1.1",
     "axios": "^0.25.0",
+    "axios-retry": "^3.2.5",
     "body-parser": "^1.20.0",
     "cmake-js": "^6.3.0",
     "config": "^3.3.7",
@@ -26,6 +27,7 @@
     "js-yaml": "^4.1.0",
     "morgan": "^1.10.0",
     "openapi-client-axios": "^5.1.2",
+    "parse-duration": "^1.0.2",
     "rambda": "^7.0.3",
     "yaml": "^2.0.0",
     "yarn": "^1.22.18"

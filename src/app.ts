@@ -92,7 +92,7 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
     }
 
     return new GSFunction(workflowJson.id, fn, workflowJson.args,
-        workflowJson.summary, workflowJson.description);
+        workflowJson.summary, workflowJson.description, workflowJson.on_error, workflowJson.retry);
 }
 
 async function loadFunctions(datasources: PlainObject) {

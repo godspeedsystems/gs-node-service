@@ -1,4 +1,6 @@
 import { Jsonnet } from '@hanazuki/node-jsonnet';
+import parseDuration from 'parse-duration'
+
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { setAtPath, getAtPath } from './utils';
 //import R from 'ramda';
@@ -51,8 +53,9 @@ export class GSFunction extends Function {
   description?: string;
   fn?: Function;
   onError?: Function;
+  retry?: PlainObject
   
-  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function) {
+  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id;
     this.fn = _function;
@@ -60,6 +63,7 @@ export class GSFunction extends Function {
     this.summary = summary;
     this.description = description;
     this.onError = onError;
+    this.retry = retry;
   }
 
   async _evaluateVariables(ctx: GSContext, args: any) {
@@ -75,7 +79,7 @@ export class GSFunction extends Function {
     `
 
     if (args.config?.url) {
-      args.config.url =  args.config.url.replace(/:([^\/]+)/g, '${inputs.params.$1}')
+      args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>')
     }
 
 
@@ -85,9 +89,9 @@ export class GSFunction extends Function {
 
     console.log('args', args);
 
-    snippet += args.replace(/\"\${(.*?)}\"/g, "$1")
-            .replace(/\${(.*?)}/g, '" + $1 + "')
-            .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
+    snippet += args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+            .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
+            .replace(/"\s*<%([\s\S]*?)%>[\s\S]*?"/g, '$1')
             .replace(/\\"/g, '"')
             .replace(/\\n/g, ' ')
 
@@ -102,9 +106,26 @@ export class GSFunction extends Function {
       const args = await this._evaluateVariables(ctx, this.args);
 
       console.log('args', args);
+      
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
+
+      if (this.retry) {
+        if (this.retry.interval) {
+          this.retry.interval = parseDuration(this.retry.interval.replace(/^PT/i, ''));
+        }
+
+        if (this.retry.min_interval) {
+          this.retry.min_interval = parseDuration(this.retry.min_interval.replace(/^PT/i, ''));
+        }
+
+        if (this.retry.max_interval) {
+          this.retry.max_interval = parseDuration(this.retry.max_interval.replace(/^PT/i, ''));
+        }
+        args.retry = this.retry;
+      }
+
       let res;
       
       if (Array.isArray(args)) {
@@ -205,17 +226,9 @@ export class GSSwitchFunction extends GSFunction {
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
     console.log("condition: " , condition)
-    console.log("condition after replace: " , condition.replace(/\${(.*?)}/, '$1'))
-    let value = await this._evaluateVariables(ctx, condition.replace(/\${(.*?)}/, '$1'));
-    //evaluate the condition = 
-    /*
-    if ((condition as string).includes('${')) {
-      value = (condition as string).replace('"\${(.*?)}"', '$1');
-      console.log("******* value: ", value)
-      //TODO: pass other context variables
-      value = Function('config', 'return ' + condition)();
-    }*/
-
+    console.log("condition after replace: " , condition.replace(/<%{(.*?)%>/, '$1'))
+    let value = await this._evaluateVariables(ctx, condition.replace(/<%{(.*?)%>/, '$1'));
+   
     if (cases[value]) {
       await cases[value](ctx);
       ctx.outputs[this.id] = ctx.outputs[cases[value].id]   
@@ -407,6 +420,9 @@ export class GSActor {
  */
  export interface GSResponse {
   apiVersion?: string;
+  context?: string;
+  id?: string;
+  method?: string;
   data?: {
     kind?: string;
     fields?: string;
