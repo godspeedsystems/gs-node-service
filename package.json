@@ -19,11 +19,13 @@
     "body-parser": "^1.20.0",
     "cmake-js": "^6.3.0",
     "express": "^4.17.3",
+    "express-pino-logger": "^7.0.0",
     "glob": "^8.0.1",
     "js-yaml": "^4.1.0",
     "morgan": "^1.10.0",
     "openapi-client-axios": "^5.1.2",
     "pino": "^7.11.0",
+    "pino-debug": "^2.0.0",
     "rambda": "^7.0.3",
     "yaml": "^2.0.0",
     "yarn": "^1.22.18"
