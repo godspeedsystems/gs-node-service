@@ -1,4 +1,6 @@
 import { Jsonnet } from '@hanazuki/node-jsonnet';
+import parseDuration from 'parse-duration'
+
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
 import { setAtPath, getAtPath } from './utils';
@@ -52,9 +54,10 @@ export class GSFunction extends Function {
   description?: string;
   fn?: Function;
   onError?: Function;
+  retry?: PlainObject;
   isSubWorkflow?: boolean;
   
-  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, isSubWorkflow?: boolean) {
+  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id;
     this.fn = _function;
@@ -62,6 +65,7 @@ export class GSFunction extends Function {
     this.summary = summary;
     this.description = description;
     this.onError = onError;
+    this.retry = retry;
     this.isSubWorkflow = isSubWorkflow;
   }
 
@@ -78,8 +82,9 @@ export class GSFunction extends Function {
     `
 
     if (args.config?.url) {
-      args.config.url =  args.config.url.replace(/:([^\/]+)/g, '${inputs.params.$1}')
+      args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>')
     }
+
 
     if (typeof(args) != 'string') {
       args = JSON.stringify(args);
@@ -87,15 +92,15 @@ export class GSFunction extends Function {
 
     logger.debug(args, 'args')
 
-    snippet += args.replace(/\"\${(.*?)}\"/g, "$1")
-            .replace(/\${(.*?)}/g, '" + $1 + "')
-            .replace(/"\s*<transform>([\s\S]*?)<\/transform>[\s\S]*?"/g, '$1')
+    snippet += args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+            .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
+            .replace(/"\s*<%([\s\S]*?)%>[\s\S]*?"/g, '$1')
             .replace(/\\"/g, '"')
             .replace(/\\n/g, ' ')
 
     logger.debug(snippet,'snippet')
 
-    return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet))
+    return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
@@ -107,6 +112,22 @@ export class GSFunction extends Function {
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
+
+      if (this.retry) {
+        if (this.retry.interval) {
+          this.retry.interval = parseDuration(this.retry.interval.replace(/^PT/i, ''));
+        }
+
+        if (this.retry.min_interval) {
+          this.retry.min_interval = parseDuration(this.retry.min_interval.replace(/^PT/i, ''));
+        }
+
+        if (this.retry.max_interval) {
+          this.retry.max_interval = parseDuration(this.retry.max_interval.replace(/^PT/i, ''));
+        }
+        args.retry = this.retry;
+      }
+
       let res;
       
       if (Array.isArray(args)) {
@@ -222,16 +243,10 @@ export class GSSwitchFunction extends GSFunction {
     logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
-    let value = await this._evaluateVariables(ctx, condition.replace(/\${(.*?)}/, '$1'));
-    //evaluate the condition = 
-    /*
-    if ((condition as string).includes('${')) {
-      value = (condition as string).replace('"\${(.*?)}"', '$1');
-      console.log("******* value: ", value)
-      //TODO: pass other context variables
-      value = Function('config', 'return ' + condition)();
-    }*/
-
+    logger.debug('condition: %s' , condition)
+    logger.debug('condition after replace: %s' , condition.replace(/<%{(.*?)%>/, '$1'))
+    let value = await this._evaluateVariables(ctx, condition.replace(/<%{(.*?)%>/, '$1'));
+   
     if (cases[value]) {
       await cases[value](ctx);
       ctx.outputs[this.id] = ctx.outputs[cases[value].id]   
@@ -257,18 +272,13 @@ export class GSStatus {
   message?: string;
   data?: any;
   headers?: {[key:string]: any;};
-  error_data?: any;
 
   constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: {[key:string]: any;}) {
     this.message = message;
     this.code = code;
     this.success = success;
     this.headers = headers;
-    if (success) {
-      this.data = data;
-    } else {
-      this.error_data = data;
-    }
+    this.data = data;
   }
 }
 
@@ -446,6 +456,54 @@ export class GSActor {
   }
 }
 
+/**
+ *
+ * Final ResponseStructure
+ */
+ export interface GSResponse {
+  apiVersion?: string;
+  context?: string;
+  id?: string;
+  method?: string;
+  data?: {
+    kind?: string;
+    fields?: string;
+    etag?: string;
+    id?: string;
+    lang?: string;
+    updated?: string;
+    deleted?: boolean;
+    currentItemCount?: number;
+    itemsPerPage?: number;
+    startIndex?: number;
+    totalItems?: number;
+    pageIndex?: number;
+    totalPages?: number;
+    pageLinkTemplate?: number;
+    next?: PlainObject;
+    nextLink?: string;
+    previous?: PlainObject;
+    previousLink?: string;
+    self?: PlainObject;
+    selfLink?: string;
+    edit?: PlainObject;
+    editLink?: string;
+    items?: PlainObject[];
+  };
+  error?: {
+    code?: number;
+    message?: string;
+    errors?: {
+      domain?: string;
+      reason?: string;
+      message?: string;
+      location?: string;
+      locationType?: string;
+      extendedHelp?: string;
+      sendReport?:string;
+    }[];
+  };
+}
 
 if (require.main === module) {
   let sum = (a: number, b: number):  number => {

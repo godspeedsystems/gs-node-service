@@ -91,9 +91,8 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
 }
 
 /* Function to validate GSCloudEvent */
-export function validateRequestSchema(topic: string, event: any, eventSpec: PlainObject): PlainObject{
-    logger.info('validateRequestSchema')
-    let status:PlainObject= {};
+export function validateRequestSchema(topic: string, event: any, eventSpec: PlainObject): GSStatus{
+    let status:GSStatus;
 
     // Validate event.data.body
     if (event.data.body && eventSpec?.data?.schema?.body) {
@@ -104,7 +103,7 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
             logger.info('ajv_validate for body')
             if (! ajv_validate(event.data.body)) {
                 logger.error('ajv_validate failed')
-                status = { success: false, code: 400, message: ajv_validate.errors![0].message, error_data: ajv_validate.errors![0] }
+                status = { success: false, code: 400, message: ajv_validate.errors![0].message, data: ajv_validate.errors![0] }
                 return status
             }
             else{
@@ -117,7 +116,7 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
     } else if ( !event.data.body && eventSpec?.data?.schema?.body ) { 
         status = { success: false, code: 400, message: "Body not found in request but specified in the event schema"}
         return status
-    } else if ( event.data.body && !eventSpec?.data?.schema?.body ) { 
+    } else if ( Object.keys(event.data.body).length && !eventSpec?.data?.schema?.body ) { 
         status = { success: false, code: 400, message: "Body found in request but not specified in the event schema"}
         return status
     } else { //Body is not present in request and not specified in the event schema
@@ -147,7 +146,7 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
             {
                 if (!ajv_validate(event.data[MAP[param]])) {
                     ajv_validate.errors![0].message += ' in ' + param;
-                    status = { success: false, code: 400, message: ajv_validate.errors![0].message, error_data: ajv_validate.errors![0] }
+                    status = { success: false, code: 400, message: ajv_validate.errors![0].message, data: ajv_validate.errors![0] }
                     return status
                 } else {
                     status = { success: true }
@@ -159,32 +158,32 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
 }
 
 /* Function to validate GSStatus */
-export function validateResponseSchema(topic: string, gs_status: GSStatus): PlainObject{
-    let status:PlainObject= {};
+export function validateResponseSchema(topic: string, gs_status: GSStatus): GSStatus{
+    let status:GSStatus;
     //console.log("gs_status: ",gs_status)
 
     if(gs_status.data)
     {
         const topic_response = topic + ':responses:' + gs_status.code
         const ajv_validate = ajv.getSchema(topic_response)
-        if (ajv_validate) {
+        if(ajv_validate)
+        {
             if (! ajv_validate(gs_status.data)) {
                 logger.error('ajv_validate failed')
-                status.success = false
-                status.error = ajv_validate.errors
+                status = { success: false, code: 400, message: ajv_validate.errors![0].message, data: ajv_validate.errors![0] }
+                return status
             }
             else{
                 logger.info('ajv_validate success')
-                status.success = true
+                status = { success: true }
             }
         }
         else{
-            status.success = true
+            status = { success: true }
         }
     }
     else {
-        status.success = false
-        status.error = "Response data is not present"
+        status = { success: true }
     }
     return status
 }

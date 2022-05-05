@@ -3,10 +3,11 @@ import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 
 import express from 'express';
-import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeriesFunction, GSStatus, GSSwitchFunction} from './core/interfaces';
+import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeriesFunction, GSStatus, GSSwitchFunction, GSResponse} from './core/interfaces';
+
+import config from 'config';
 
 import app from './http_listener'
-import { config } from 'process';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
@@ -95,7 +96,7 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
     }
 
     return new GSFunction(workflowJson.id, fn, workflowJson.args,
-        workflowJson.summary, workflowJson.description, undefined, subwf);
+        workflowJson.summary, workflowJson.description, workflowJson.on_error, workflowJson.retry, subwf);
 }
 
 async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
@@ -127,9 +128,12 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
 function expandVariable(value: string) {
     try {
         if ((value as string).includes('${')) {
-            value = (value as string).replace('"\${(.*?)}"', '$1');
+            console.log('value before', value)
+
+            value = (value as string).replace(/"?\${(.*?)}"?/, '$1');
             //TODO: pass other context variables
             value = Function('config', 'return ' + value)(config);
+            console.log('value after', value)
         }
     } catch(ex) {
         //console.error(ex);
@@ -246,13 +250,16 @@ function httpListener(ee: EventEmitter, events: any) {
             logger.info('registering handler %s %s', route, method)
             // @ts-ignore
             app[method](route, function(req: express.Request, res: express.Response) {
-                //let type = req.path + '.http.' + req.method.toLocaleLowerCase()
                 logger.info('emitting http handler %s %s', originalRoute, req.params)
+
+                console.log('emitting http handler', originalRoute, req.params, req.files);
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
                     params: req.params,
                     query: req.query,
                     headers: req.headers,
+                    //@ts-ignore
+                    files: Object.values(req.files || {}),
                 }, 'REST', new GSActor('user'),  {http: {express:{res}}});
                 ee.emit(originalRoute, event);
             })
@@ -283,13 +290,19 @@ async function main() {
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
         logger.debug(events[event.type], event)
         logger.info('Processing event %s',event.type)
+        const responseStructure:GSResponse = { apiVersion: "1.0" };
 
         let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
 
         if(valid_status.success === false)
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema')
-            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(valid_status);
+            responseStructure.error = { 
+                code: valid_status.code,
+                message: valid_status.message,
+                errors: [ { message: valid_status.message, location: valid_status.data.schemaPath}]
+            }
+            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(responseStructure);
         }
         logger.info(valid_status, 'Request JSON Schema validated successfully')
 
@@ -297,7 +310,7 @@ async function main() {
         logger.info('calling processevent, type of handler is %s',typeof(handler))
 
         const ctx = new GSContext(
-            {},
+            config,
             datasources,
             {},
             event,
@@ -316,24 +329,23 @@ async function main() {
         } else {
             logger.error(valid_status, 'Validate Response JSON Schema')
         }
-
-        // if(valid_status.success === false)
-        // {
-        //     status.success = false
-        //     status.code = 500
-        //     status.message = 'Internal Server Error - Error in validating the response schema'
-        //     //status.data = valid_status.error
-        //     (event.metadata?.http?.express.res as express.Response).status(500).send(status);
-        //     return
-        // }
-
-        if (status.success) {
-            logger.info(status, 'end');
-            (event.metadata?.http?.express.res as express.Response).status(200).send(status);
+        
+        if (status.success) {            
+            logger.debug(status, 'end');
+            responseStructure.data = { 
+                items: [ status.data ]
+            };    
+            (event.metadata?.http?.express.res as express.Response).status(200).send(responseStructure);
         } else {
             logger.error(status, 'end');
-            (event.metadata?.http?.express.res as express.Response).status(status.code ?? 200).send(status);
+            responseStructure.error = { 
+                code: status.code ?? 200,
+                message: status.message,
+                errors: [ { message: status.message}]
+            };
+            (event.metadata?.http?.express.res as express.Response).status(status.code ?? 200).send(responseStructure);
         }
+
     }
 
     const events = await loadEvents(ee, processEvent);
