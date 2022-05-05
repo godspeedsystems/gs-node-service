@@ -15,6 +15,7 @@ import loadYaml from './core/yamlLoader';
 import loadModules from './core/codeLoader';
 
 import {loadJsonSchemaForEvents, validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
+import { checkDatasource } from './core/utils';
 
 function JsonnetSnippet(plugins:any) {
     let snippet = `local inputs = std.extVar('inputs');
@@ -97,19 +98,30 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
         workflowJson.summary, workflowJson.description, undefined, subwf);
 }
 
-async function loadFunctions() {
+async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
     logger.info('Loading functions')
     let code = await loadModules(__dirname + '/functions');
     let functions = await loadYaml(__dirname + '/functions');
+    let loadFnStatus:PlainObject;
 
     logger.info('Loaded functions: %s',Object.keys(functions))
     logger.info('Loaded native functions: %s',Object.keys(code))
+
+    for (let f in functions) {
+        const checkDS = checkDatasource(functions[f], datasources);
+        if (!checkDS.success) {
+            loadFnStatus = { success: false , message: checkDS.message }
+            return loadFnStatus;
+        }
+    }
+
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
             functions[f] = createGSFunction(functions[f], functions, code);
         }
     }
-    return functions
+    loadFnStatus = { success: true, functions: functions}
+    return loadFnStatus
 }
 
 function expandVariable(value: string) {
@@ -249,14 +261,22 @@ function httpListener(ee: EventEmitter, events: any) {
 }
 
 async function main() {
-    logger.info('Main execution')
-    const datasources = await loadDatasources();
-    const functions = await loadFunctions();
-    const plugins = await loadModules(__dirname + '/plugins', true);
-    const jsonnetSnippet = JsonnetSnippet(plugins);
+    logger.info('Main execution');
+    let functions:PlainObject;
 
     const ee = new EventEmitter({ captureRejections: true });
     ee.on('error', console.log);
+
+    const datasources = await loadDatasources();
+    const loadFnStatus = await loadFunctions(datasources);
+    if (loadFnStatus.success) {
+        functions = loadFnStatus.functions
+    } else {
+        ee.emit('error', new Error(JSON.stringify(loadFnStatus)));
+    }
+
+    const plugins = await loadModules(__dirname + '/plugins', true);
+    const jsonnetSnippet = JsonnetSnippet(plugins);
 
     logger.debug(plugins,'plugins');
 

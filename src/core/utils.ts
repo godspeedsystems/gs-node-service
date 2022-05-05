@@ -1,4 +1,7 @@
 import { PlainObject } from "./common";
+import { logger } from './logger';
+import { GSStatus } from './interfaces';
+
 
 export function getAtPath(obj: PlainObject, path: string) {
   const keys = path.split('.');
@@ -26,4 +29,25 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
   }
   const lastKey = keys[keys.length - 1];
   obj[lastKey] = value;
+}
+
+export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
+  logger.debug('checkDatasource')
+  logger.debug('workflowJson: %o',workflowJson)
+  
+  for (let task of workflowJson.tasks) {
+      if (task.tasks) {
+          logger.debug('checking nested tasks')
+          const status:GSStatus = checkDatasource(task,datasources);
+      } else {
+          if (task.args?.datasource) {
+              if (!(task.args.datasource in datasources)) {                  
+                  logger.error('datasource %s is not present in datasources', task.args.datasource)
+                  const msg = `datasource ${task.args.datasource} is not present in datasources`
+                  return new GSStatus(false,500,msg);
+              }
+          }
+      }
+  }
+  return new GSStatus(true,undefined);
 }
