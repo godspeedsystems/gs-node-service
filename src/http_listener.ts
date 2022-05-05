@@ -1,6 +1,5 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import morgan from 'morgan';
 import expressPinoLogger from 'express-pino-logger';
 import { logger } from './core/logger';
 
@@ -13,7 +12,6 @@ const app:express.Express = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(morgan('dev'));
 app.use(loggerExpress);
 // app.get('/', function(req, res) {
 //     console.log('called endpoint')

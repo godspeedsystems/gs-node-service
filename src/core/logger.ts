@@ -1,10 +1,11 @@
-import pinoDebug from  'pino-debug'
-import Pino from 'pino'
+import Pino from 'pino';
+// import pinoDebug from 'pino-debug';
 
 const logger: Pino.Logger = Pino({
   name: 'GS-logger'
 });
 
+/*
 pinoDebug(logger, {
   auto: true, // default
   map: {
@@ -13,5 +14,6 @@ pinoDebug(logger, {
     '*': 'trace' // everything else - trace
   }
 })
+*/
 
 export { logger };
