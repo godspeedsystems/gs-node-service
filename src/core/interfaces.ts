@@ -2,6 +2,7 @@ import { Jsonnet } from '@hanazuki/node-jsonnet';
 import parseDuration from 'parse-duration'
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
+import { logger } from './logger';
 import { setAtPath, getAtPath } from './utils';
 //import R from 'ramda';
 /**
@@ -53,9 +54,10 @@ export class GSFunction extends Function {
   description?: string;
   fn?: Function;
   onError?: Function;
-  retry?: PlainObject
+  retry?: PlainObject;
+  isSubWorkflow?: boolean;
   
-  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject) {
+  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id;
     this.fn = _function;
@@ -64,10 +66,11 @@ export class GSFunction extends Function {
     this.description = description;
     this.onError = onError;
     this.retry = retry;
+    this.isSubWorkflow = isSubWorkflow;
   }
 
   async _evaluateVariables(ctx: GSContext, args: any) {
-
+    logger.info('_evaluateVariables')
     if (!args) {
       return;
     }
@@ -87,7 +90,7 @@ export class GSFunction extends Function {
       args = JSON.stringify(args);
     }
 
-    console.log('args', args);
+    logger.debug('args: %s',args)
 
     snippet += args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
             .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
@@ -95,18 +98,17 @@ export class GSFunction extends Function {
             .replace(/\\"/g, '"')
             .replace(/\\n/g, ' ')
 
-    console.log(snippet);
-    //console.log('outputs', ctx.outputs);
+    logger.debug('snippet: %s',snippet)
 
     return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
+      logger.info('_executefn')
       const args = await this._evaluateVariables(ctx, this.args);
 
-      console.log('args', args);
-      
+      logger.debug('args : %s',args)
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
@@ -134,7 +136,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args)
       }
 
-      console.log('result of _executeFn', res);
+      logger.info(res,'result of _executeFn')
       
       if (res instanceof GSStatus) {
         return res; 
@@ -176,11 +178,20 @@ export class GSFunction extends Function {
    */
   async _call(ctx: GSContext) {
     
-    //TODO: Later. Low priority: Execute all hooks one by one, in a reusable code manner
     if (this.fn instanceof GSFunction) {
-      await this.fn(ctx);
+      if (this.isSubWorkflow) {
+        logger.info('isSubWorkflow, creating new ctx')
+        const newCtx = ctx.cloneWithNewData(this.args)
+        await this.fn(newCtx);
+        ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
+      } else {
+        logger.info('No isSubWorkflow, continuing in the same ctx')
+        await this.fn(ctx);
+      }
     }
     else {
+      logger.info('invoking inner function')
+      logger.debug(ctx.inputs, 'inputs')
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
     /**
@@ -194,22 +205,27 @@ export class GSFunction extends Function {
 
 export class GSSeriesFunction extends GSFunction {
   override async _call(ctx: GSContext) {
-    console.log('inside series executor', this.args)
-    
+    logger.info('GSSeriesFunction')
+    logger.debug(this.args,'inside series executor')
     let finalId;
 
     for (const child of this.args!) {
+      logger.debug(child)  //Not displaying the object --> Need to check
       await child(ctx);
       finalId = child.id;
+      logger.debug('finalID: %s',finalId)
     }
+    logger.debug('this.id: %s, finalId: %s', this.id, finalId)
     ctx.outputs[this.id] = ctx.outputs[finalId]
   }
 }
 
-
 export class GSParallelFunction extends GSFunction {
   override async _call(ctx: GSContext) {
-    console.log('inside parallel executor', ctx, this.args)
+    logger.info('GSParallelFunction')
+    logger.debug(this.args,'inside parallel executor')
+    logger.debug(ctx,'ctx')
+
     const promises = [];
     
     for (const child of this.args!) {
@@ -222,11 +238,13 @@ export class GSParallelFunction extends GSFunction {
 
 export class GSSwitchFunction extends GSFunction {
   override async _call(ctx: GSContext) {
-    console.log('inside switch executor', ctx, this.args)
+    logger.info('GSSwitchFunction')
+    logger.debug(this.args,'inside switch executor')
+    logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
-    console.log("condition: " , condition)
-    console.log("condition after replace: " , condition.replace(/<%{(.*?)%>/, '$1'))
+    logger.debug('condition: %s' , condition)
+    logger.debug('condition after replace: %s' , condition.replace(/<%{(.*?)%>/, '$1'))
     let value = await this._evaluateVariables(ctx, condition.replace(/<%{(.*?)%>/, '$1'));
    
     if (cases[value]) {
@@ -274,7 +292,7 @@ export class GSCloudEvent {
   channel: CHANNEL_TYPE;
   actor: GSActor;
   //JSON schema: This data will be validated in the function definition in YAML. In __args.schema
-  data: {[key:string]:any;}; //{body, params, query, headers}, flattened and merged into a single object
+  data: PlainObject; //{body, params, query, headers}, flattened and merged into a single object
   metadata?: {
     http?: {
       express: {
@@ -295,7 +313,19 @@ export class GSCloudEvent {
     this.data = data;
     this.specversion = specversion;
   }
-
+  cloneWithNewData(data:PlainObject): GSCloudEvent {
+    return {
+      id: this.id,
+      type: this.type,
+      time: this.time,
+      source: this.source,
+      specversion: this.specversion,
+      data: data,
+      channel: this.channel,
+      actor: this.actor,
+      metadata: this.metadata
+    } as GSCloudEvent;
+  }
 }
 /**
  * __actor (alias to __event.actor), __vars, __config, __src, __modules, __env, __event, __res (starting from the first parent span), __args (of the running GS instruction)
@@ -310,6 +340,7 @@ export class GSContext { //span executions
   jsonnet: Jsonnet;
   mappings: any;
   jsonnetSnippet: string;
+  plugins: PlainObject;
 
   constructor(config: PlainObject, datasources: PlainObject, 
       shared: PlainObject = {}, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
@@ -320,6 +351,7 @@ export class GSContext { //span executions
     this.datasources = datasources;
     this.mappings = mappings;
     this.jsonnetSnippet = jsonnetSnippet;
+    this.plugins = plugins;
 
     const jsonnet = this.jsonnet = new Jsonnet();
     
@@ -333,14 +365,24 @@ export class GSContext { //span executions
       
       if (args) {
         let argArray = args[1].split(',').map(s => s.trim())
-        console.log('plugin', name, argArray);
+        logger.info('plugin: %s, %o',name,argArray)
         jsonnet.nativeCallback(name!, plugins[fn], ...argArray);
       } else {
         jsonnet.nativeCallback(name!, plugins[fn]);
       }
     }
   }
-
+  public cloneWithNewData(data: PlainObject): GSContext {   
+    return new GSContext(
+        this.config,
+        this.datasources,
+        this.shared,
+        this.inputs?.cloneWithNewData(data),
+        this.mappings,
+        this.jsonnetSnippet,
+        this.plugins
+    );
+  }
   public addLogEvent(event: GSLogEvent): void {
     this.log_events?.push(event);
     //also push to the logging backend

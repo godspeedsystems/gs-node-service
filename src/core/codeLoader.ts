@@ -2,16 +2,17 @@ import { PlainObject } from "./common"
 
 import glob from 'glob'
 import path from 'path';
+import { logger } from "./logger";
 
 export default function loadModules(pathString: string, global: boolean = false):PlainObject {
 
     let api: PlainObject = {}
 
-    console.log('processing files', pathString);
+    logger.info('Processing files in directory %s',pathString)
 
     return new Promise((resolve, reject) => {
       glob(pathString + '/**/*.?(ts|js)', function (err:Error|null, res: string[]) {
-        console.log('processing files', res);
+        logger.info('processing files: %s',res)
         if (err) {
             reject(err)
         } else {
@@ -59,7 +60,7 @@ if (require.main === module) {
     try {
         await loadModules('../plugins').then(console.log);
     } catch(ex) {
-        console.error(ex);
+        logger.error(ex);
     }
    })();
 }

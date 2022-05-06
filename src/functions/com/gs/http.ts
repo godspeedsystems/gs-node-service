@@ -1,10 +1,11 @@
+import { logger } from "../../../core/logger";
 
 import FormData from 'form-data'; // npm install --save form-data
 import fs from 'fs';
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
 
-function getRandomInt(min, max) {
+function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max + 1 - min) + min);
@@ -14,13 +15,15 @@ export default async function(args:{[key:string]:any;}) {
     try {
         const ds = args.datasource;
         let res;
-        console.log('calling http client', ds.client.baseURL);
+        logger.info('calling http client')
+        logger.debug('http client baseURL %s',ds.client.baseURL)
 
         if (ds.schema) {
-            console.log('invoking with schema');
+            logger.info('invoking with schema');
             res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config)
         } else {
-            console.log('invoking wihout schema', args);
+            logger.info('invoking wihout schema');
+            logger.debug('invoking wihout schema args: %o', args);
             let form;
 
             if (args.files) {
