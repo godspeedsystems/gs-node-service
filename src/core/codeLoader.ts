@@ -8,11 +8,11 @@ export default function loadModules(pathString: string, global: boolean = false)
 
     let api: PlainObject = {}
 
-    logger.info('Processing files in directory %s',pathString)
+    logger.info('Loading %s from %s', path.basename(pathString), pathString)
 
     return new Promise((resolve, reject) => {
       glob(pathString + '/**/*.?(ts|js)', function (err:Error|null, res: string[]) {
-        logger.info('processing files: %s',res)
+        logger.debug('processing files: %s',res)
         if (err) {
             reject(err)
         } else {

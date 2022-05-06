@@ -38,7 +38,11 @@ function JsonnetSnippet(plugins:any) {
 
 
 function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
+<<<<<<< HEAD
     logger.info('Creating GSFunction %s',workflowJson.id)
+=======
+    logger.debug('Creating GSFunction %s',workflowJson.id)
+>>>>>>> fixing http fn error response
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
             workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential' };
@@ -80,7 +84,11 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
                     workflowJson.summary, workflowJson.description);
     }
 
+<<<<<<< HEAD
     logger.info('loading workflow %s',workflowJson.fn)
+=======
+    logger.debug('loading workflow %s',workflowJson.fn)
+>>>>>>> fixing http fn error response
 
     //Load the fn for this GSFunction
     let fn = nativeFunctions[workflowJson.fn] //First check if it's a native function
@@ -100,13 +108,20 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 }
 
 async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
+<<<<<<< HEAD
     logger.info('Loading functions')
+=======
+>>>>>>> fixing http fn error response
     let code = await loadModules(__dirname + '/functions');
     let functions = await loadYaml(__dirname + '/functions');
     let loadFnStatus:PlainObject;
 
+<<<<<<< HEAD
     logger.info('Loaded functions: %s',Object.keys(functions))
     logger.info('Loaded native functions: %s',Object.keys(code))
+=======
+    logger.info('Loaded native functions: %s', Object.keys(code))
+>>>>>>> fixing http fn error response
 
     for (let f in functions) {
         const checkDS = checkDatasource(functions[f], datasources);
@@ -115,6 +130,11 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
             return loadFnStatus;
         }
     }
+<<<<<<< HEAD
+=======
+
+    logger.info('Creating workflows: %s', Object.keys(functions))
+>>>>>>> fixing http fn error response
 
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
@@ -122,13 +142,17 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
         }
     }
     loadFnStatus = { success: true, functions: functions}
+<<<<<<< HEAD
+=======
+    logger.info('Loaded workflows: %s', Object.keys(functions))
+>>>>>>> fixing http fn error response
     return loadFnStatus
 }
 
 function expandVariable(value: string) {
     try {
         if ((value as string).includes('<%')) {
-            console.log('value before', value)
+            logger.debug('value before %s', value)
 
             value = (value as string).replace(/"?<%\s*(.*?)\s*%>"?/, '$1');
             //TODO: pass other context variables
@@ -285,6 +309,7 @@ function httpListener(ee: EventEmitter, events: any) {
 async function main() {
     logger.info('Main execution');
     let functions:PlainObject;
+<<<<<<< HEAD
 
     const ee = new EventEmitter({ captureRejections: true });
     ee.on('error', console.log);
@@ -300,6 +325,23 @@ async function main() {
     const plugins = await loadModules(__dirname + '/plugins', true);
     const jsonnetSnippet = JsonnetSnippet(plugins);
 
+=======
+
+    const ee = new EventEmitter({ captureRejections: true });
+    ee.on('error', logger.error.bind(logger));
+
+    const datasources = await loadDatasources();
+    const loadFnStatus = await loadFunctions(datasources);
+    if (loadFnStatus.success) {
+        functions = loadFnStatus.functions
+    } else {
+        ee.emit('error', new Error(JSON.stringify(loadFnStatus)));
+    }
+
+    const plugins = await loadModules(__dirname + '/plugins', true);
+    const jsonnetSnippet = JsonnetSnippet(plugins);
+
+>>>>>>> fixing http fn error response
     logger.debug(plugins,'plugins');
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
@@ -354,9 +396,9 @@ async function main() {
         } else {
             logger.error(status, 'end');
             responseStructure.error = { 
-                code: status.code ?? 200,
+                code: status.code ?? 500,
                 message: status.message,
-                errors: [ { message: status.message}]
+                errors: [ status.data ]
             };
             (event.metadata?.http?.express.res as express.Response).status(status.code ?? 200).send(responseStructure);
         }

@@ -2,8 +2,10 @@ import { logger } from "../../../core/logger";
 
 import FormData from 'form-data'; // npm install --save form-data
 import fs from 'fs';
+
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
+import { execArgv } from "process";
 
 function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
@@ -15,11 +17,11 @@ export default async function(args:{[key:string]:any;}) {
     try {
         const ds = args.datasource;
         let res;
-        logger.info('calling http client')
+        logger.debug('calling http client')
         logger.debug('http client baseURL %s',ds.client.baseURL)
 
         if (ds.schema) {
-            logger.info('invoking with schema');
+            logger.debug('invoking with schema');
             res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config)
         } else {
             logger.info('invoking wihout schema');
@@ -49,25 +51,34 @@ export default async function(args:{[key:string]:any;}) {
                 }
             }
 
-            // if (args.retry) {
-            //     axiosRetry(ds.client, {
-            //         retries: args.retry.max_attempts,
-            //         retryDelay: function(retryNumber: number, error: AxiosError<any, any>) {
-            //             switch (args.retry.type) {
-            //                 case 'constant':
-            //                     return args.retry.interval * 1000;
+            logger.debug('args.retry %s', JSON.stringify(args.retry));
 
-            //                 case 'random':
-            //                     return getRandomInt(args.retry.min_interval, args.retry.max_interval) * 1000;
+            if (args.retry) {
+                axiosRetry(ds.client, {
+                    retries: args.retry.max_attempts,
+                    retryDelay: function(retryNumber: number, error: AxiosError<any, any>) {
+                        logger.debug('called retryDelay function %s', args.retry.type)
+                        switch (args.retry.type) {
+                            case 'constant':
+                                logger.debug('called retryDelay return %s', args.retry.interval)
 
-            //                 case 'exponential':
-            //                     return axiosRetry.exponentialDelay(retryNumber);
-            //             }
+                                return args.retry.interval;
 
-            //             return 0;
-            //         }
-            //     })
-            // }
+                            case 'random':
+                                return getRandomInt(args.retry.min_interval, args.retry.max_interval);
+
+                            case 'exponential':
+                                const delay = Math.pow(2, retryNumber) * args.retry.interval;
+                                const randomSum = delay * 0.2 * Math.random(); // 0-20% of the delay
+                                return delay + randomSum;
+                        }
+
+                        logger.debug('returning retryDelay function with 0')
+
+                        return 0;
+                    }
+                })
+            }
 
             res = await ds.client({
                 ...args.config,
@@ -76,12 +87,22 @@ export default async function(args:{[key:string]:any;}) {
             })
         }
 
-        console.log('res', res);
+        logger.debug('res', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex) {
-        console.error(ex);
+        logger.error(ex);
         //@ts-ignore
         let res = ex.response;
+        
+        if (!res) {
+            res = {
+                code: 500,
+                data: {
+                    code: ex.name,
+                    message: ex.message,
+                }
+            }
+        }
         return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
     }
 }
