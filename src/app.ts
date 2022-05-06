@@ -128,12 +128,12 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
 function expandVariable(value: string) {
     try {
         if ((value as string).includes('${')) {
-            console.log('value before', value)
+            logger.debug('value before %s', value)
 
             value = (value as string).replace(/"?\${(.*?)}"?/, '$1');
             //TODO: pass other context variables
             value = Function('config', 'return ' + value)(config);
-            console.log('value after', value)
+            logger.debug('value after %s', value)
         }
     } catch(ex) {
         //console.error(ex);
@@ -250,9 +250,10 @@ function httpListener(ee: EventEmitter, events: any) {
             logger.info('registering handler %s %s', route, method)
             // @ts-ignore
             app[method](route, function(req: express.Request, res: express.Response) {
-                logger.info('emitting http handler %s %s', originalRoute, req.params)
+                logger.debug('originalRoute: %s', originalRoute, req.params, req.files)
+                logger.debug('req.params: %s', req.params)
+                logger.debug('req.files: %s', req.files)
 
-                console.log('emitting http handler', originalRoute, req.params, req.files);
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
                     params: req.params,
@@ -264,6 +265,19 @@ function httpListener(ee: EventEmitter, events: any) {
                 ee.emit(originalRoute, event);
             })
         }
+    }
+
+    for (let method of ['get', 'put', 'post', 'patch', 'delete']) {
+        app[method]('*', function(req: express.Request, res: express.Response) {
+            const resStructure: GSResponse = { apiVersion: config.apiVersion || "1.0" };
+            logger.error('%s not found',req.url)
+            resStructure.error = { 
+                code: 404,
+                message: `${req.url} not found`,
+                errors: [ { message: `${req.url} not found`, location: `${req.url}`}]
+            }
+            res.status(404).send(resStructure);
+        });
     }
 }
 
@@ -290,7 +304,7 @@ async function main() {
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
         logger.debug(events[event.type], event)
         logger.info('Processing event %s',event.type)
-        const responseStructure:GSResponse = { apiVersion: "1.0" };
+        const responseStructure:GSResponse = { apiVersion: config.apiVersion || "1.0" };
 
         let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
 

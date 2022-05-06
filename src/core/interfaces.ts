@@ -90,7 +90,7 @@ export class GSFunction extends Function {
       args = JSON.stringify(args);
     }
 
-    logger.debug(args, 'args')
+    logger.debug('args: %s',args)
 
     snippet += args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
             .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
@@ -98,7 +98,7 @@ export class GSFunction extends Function {
             .replace(/\\"/g, '"')
             .replace(/\\n/g, ' ')
 
-    logger.debug(snippet,'snippet')
+    logger.debug('snippet: %s',snippet)
 
     return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
   }
@@ -108,7 +108,7 @@ export class GSFunction extends Function {
       logger.info('_executefn')
       const args = await this._evaluateVariables(ctx, this.args);
 
-      logger.debug(args, 'args')
+      logger.debug('args : %s',args)
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }

@@ -1,9 +1,10 @@
 import Pino from 'pino';
 import pinoDebug from 'pino-debug';
+import config from 'config';
 
 const logger: Pino.Logger = Pino({
   name: 'GS-logger',
-  level: 'debug'
+  level: config.pino.level || 'debug'
 });
 
 pinoDebug(logger, {

@@ -5,7 +5,7 @@ import fs from 'fs';
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
 
-function getRandomInt(min, max) {
+function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max + 1 - min) + min);
