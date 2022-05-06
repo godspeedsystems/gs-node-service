@@ -4,7 +4,7 @@ import config from 'config';
 
 const logger: Pino.Logger = Pino({
   name: 'GS-logger',
-  level: config.pino.level || 'debug'
+  level: config.log_level || 'debug'
 });
 
 pinoDebug(logger, {
