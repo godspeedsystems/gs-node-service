@@ -89,7 +89,7 @@ export default async function(args:{[key:string]:any;}) {
 
         logger.debug('res', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
-    } catch(ex) {
+    } catch(ex: any) {
         logger.error(ex);
         //@ts-ignore
         let res = ex.response;

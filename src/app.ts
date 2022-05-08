@@ -38,11 +38,7 @@ function JsonnetSnippet(plugins:any) {
 
 
 function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
-<<<<<<< HEAD
-    logger.info('Creating GSFunction %s',workflowJson.id)
-=======
     logger.debug('Creating GSFunction %s',workflowJson.id)
->>>>>>> fixing http fn error response
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
             workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential' };
@@ -84,11 +80,7 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
                     workflowJson.summary, workflowJson.description);
     }
 
-<<<<<<< HEAD
-    logger.info('loading workflow %s',workflowJson.fn)
-=======
     logger.debug('loading workflow %s',workflowJson.fn)
->>>>>>> fixing http fn error response
 
     //Load the fn for this GSFunction
     let fn = nativeFunctions[workflowJson.fn] //First check if it's a native function
@@ -108,20 +100,13 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 }
 
 async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
-<<<<<<< HEAD
     logger.info('Loading functions')
-=======
->>>>>>> fixing http fn error response
     let code = await loadModules(__dirname + '/functions');
     let functions = await loadYaml(__dirname + '/functions');
     let loadFnStatus:PlainObject;
 
-<<<<<<< HEAD
-    logger.info('Loaded functions: %s',Object.keys(functions))
-    logger.info('Loaded native functions: %s',Object.keys(code))
-=======
-    logger.info('Loaded native functions: %s', Object.keys(code))
->>>>>>> fixing http fn error response
+    logger.debug('Loaded functions: %s',Object.keys(functions))
+    logger.debug('Loaded native functions: %s',Object.keys(code))
 
     for (let f in functions) {
         const checkDS = checkDatasource(functions[f], datasources);
@@ -130,11 +115,8 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
             return loadFnStatus;
         }
     }
-<<<<<<< HEAD
-=======
 
-    logger.info('Creating workflows: %s', Object.keys(functions))
->>>>>>> fixing http fn error response
+    logger.debug('Creating workflows: %s', Object.keys(functions))
 
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
@@ -142,10 +124,7 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
         }
     }
     loadFnStatus = { success: true, functions: functions}
-<<<<<<< HEAD
-=======
-    logger.info('Loaded workflows: %s', Object.keys(functions))
->>>>>>> fixing http fn error response
+    logger.debug('Loaded workflows: %s', Object.keys(functions))
     return loadFnStatus
 }
 
@@ -292,9 +271,16 @@ function httpListener(ee: EventEmitter, events: any) {
         }
     }
 
+    let apiVersion: string;
+    if (config.has('apiVersion')) {
+        apiVersion = config.get('apiVersion');
+    } else {
+        apiVersion = '1.0';
+    }
+    const resStructure:GSResponse = { apiVersion: apiVersion };
+
     for (let method of ['get', 'put', 'post', 'patch', 'delete']) {
-        app[method]('*', function(req: express.Request, res: express.Response) {
-            const resStructure: GSResponse = { apiVersion: config.apiVersion || "1.0" };
+        app[method as keyof typeof app]('*', function(req: express.Request, res: express.Response) {
             logger.error('%s not found',req.url)
             resStructure.error = { 
                 code: 404,
@@ -309,23 +295,6 @@ function httpListener(ee: EventEmitter, events: any) {
 async function main() {
     logger.info('Main execution');
     let functions:PlainObject;
-<<<<<<< HEAD
-
-    const ee = new EventEmitter({ captureRejections: true });
-    ee.on('error', console.log);
-
-    const datasources = await loadDatasources();
-    const loadFnStatus = await loadFunctions(datasources);
-    if (loadFnStatus.success) {
-        functions = loadFnStatus.functions
-    } else {
-        ee.emit('error', new Error(JSON.stringify(loadFnStatus)));
-    }
-
-    const plugins = await loadModules(__dirname + '/plugins', true);
-    const jsonnetSnippet = JsonnetSnippet(plugins);
-
-=======
 
     const ee = new EventEmitter({ captureRejections: true });
     ee.on('error', logger.error.bind(logger));
@@ -341,13 +310,18 @@ async function main() {
     const plugins = await loadModules(__dirname + '/plugins', true);
     const jsonnetSnippet = JsonnetSnippet(plugins);
 
->>>>>>> fixing http fn error response
     logger.debug(plugins,'plugins');
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
         logger.debug(events[event.type], event)
         logger.info('Processing event %s',event.type)
-        const responseStructure:GSResponse = { apiVersion: config.apiVersion || "1.0" };
+        let apiVersion: string;
+        if (config.has('apiVersion')) {
+            apiVersion = config.get('apiVersion');
+        } else {
+            apiVersion = '1.0';
+        }
+        const responseStructure:GSResponse = { apiVersion: apiVersion };
 
         let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
 
