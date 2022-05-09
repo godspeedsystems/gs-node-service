@@ -63,11 +63,47 @@ export class GSFunction extends Function {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id || randomUUID();
     this.fn = _function;
-    this.args = args;
+
+    if (args) {
+      this.args = args;
+
+      if (typeof(args) != 'string') {
+        if (args.config?.url) {
+          args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>')
+        }
+        args = JSON.stringify(args);
+      }
+
+      if (/<%\s*(.*?)\s*%>/.test(args)) {
+        this.args = args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
+              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
+              .replace(/"\s*<%([\s\S]*?)%>[\s\S]*?"/g, '$1')
+              .replace(/\\"/g, '"')
+              .replace(/\\n/g, ' ')
+      }
+
+    }
     this.summary = summary;
     this.description = description;
     this.onError = onError;
-    this.retry = retry;
+
+    if (retry) {
+      this.retry = retry;
+
+      if (retry.interval) {
+        this.retry.interval = parseDuration(retry.interval.replace(/^PT/i, ''));
+      }
+
+      if (retry.min_interval) {
+        this.retry.min_interval = parseDuration(retry.min_interval.replace(/^PT/i, ''));
+      }
+
+      if (retry.max_interval) {
+        this.retry.max_interval = parseDuration(retry.max_interval.replace(/^PT/i, ''));
+      }
+    }
+
     this.isSubWorkflow = isSubWorkflow;
   }
 
@@ -81,28 +117,8 @@ export class GSFunction extends Function {
 
     snippet += `
       local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
+      ${args}
     `
-
-    if (typeof(args) != 'string') {
-      if (args.config?.url) {
-        args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>')
-      }
-      args = JSON.stringify(args);
-    } else {
-      if (!/<%\s*(.*?)\s*%>/.test(args)) {
-        return args;
-      }
-    }
-
-    logger.debug('args: %s',args)
-
-    snippet += args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
-            .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
-            .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
-            .replace(/"\s*<%([\s\S]*?)%>[\s\S]*?"/g, '$1')
-            .replace(/\\"/g, '"')
-            .replace(/\\n/g, ' ')
-
     logger.debug('snippet: %s',snippet)
     return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
   }
@@ -112,23 +128,12 @@ export class GSFunction extends Function {
       logger.info('executing handler %s', this.id)
       const args = await this._evaluateVariables(ctx, this.args);
 
-      logger.debug('args : %s',args)
+      logger.debug('args : %s', JSON.stringify(args), this.retry)
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
 
       if (this.retry) {
-        if (this.retry.interval) {
-          this.retry.interval = parseDuration(this.retry.interval.replace(/^PT/i, ''));
-        }
-
-        if (this.retry.min_interval) {
-          this.retry.min_interval = parseDuration(this.retry.min_interval.replace(/^PT/i, ''));
-        }
-
-        if (this.retry.max_interval) {
-          this.retry.max_interval = parseDuration(this.retry.max_interval.replace(/^PT/i, ''));
-        }
         args.retry = this.retry;
       }
 
@@ -337,7 +342,6 @@ export class GSCloudEvent {
  * __actor (alias to __event.actor), __vars, __config, __src, __modules, __env, __event, __res (starting from the first parent span), __args (of the running GS instruction)
  */
 export class GSContext { //span executions
-  shared: PlainObject; //This data, which can be having query promises, results, entities etc, when updated will get reflected across everyone using same instance of GSContext
   inputs: GSCloudEvent; //The very original event for which this workflow context was created
   outputs:{[key: string]: GSStatus; }; //DAG result. This context has a trace history and responses of all instructions in the DAG are stored in this object
   log_events: GSLogEvent[] = [];
@@ -348,9 +352,7 @@ export class GSContext { //span executions
   jsonnetSnippet: string;
   plugins: PlainObject;
 
-  constructor(config: PlainObject, datasources: PlainObject,
-      shared: PlainObject = {}, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
-    this.shared = shared;
+  constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
     this.inputs = event;
     this.config = config;
     this.outputs = {};
@@ -384,7 +386,6 @@ export class GSContext { //span executions
     return new GSContext(
         this.config,
         this.datasources,
-        this.shared,
         this.inputs?.cloneWithNewData(data),
         this.mappings,
         this.jsonnetSnippet,
@@ -405,29 +406,6 @@ export class GSContext { //span executions
     }
     const value = getAtPath(this.shared, <string>key);
     return value;
-  }
-
-  /**
-   * Looks for data stored for particular key in this.shared object
-   * @param key
-   */
-  public getShared(key: string | object) {
-    if (typeof key === 'object' && !Array.isArray(key)) {
-      key = JSON.stringify(key)
-    }
-    return getAtPath(this.shared, <string>key);
-  }
-
-  /**
-  * @param {any} key - If an object, it is strigified as JSON. Else used as it is.
-  * @param {any} value - The value to be stored against the key
-  **/
-  public setShared(key: object | string, value: any) {
-    if (typeof key === 'object' && !Array.isArray(key)) {
-      key = JSON.stringify(key)
-    }
-    this.shared[<string>key] = value;
-    setAtPath(this.shared, <string>key, value);
   }
 }
 

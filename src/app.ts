@@ -38,9 +38,9 @@ function JsonnetSnippet(plugins:any) {
 
 
 function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
-  
+
     logger.debug('Creating GSFunction %s', workflowJson.id)
-    
+
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
             workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential' };
@@ -95,7 +95,7 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
             subwf = true
             fn = workflows[workflowJson.fn] = createGSFunction(existingWorkflowData, workflows, nativeFunctions);
         } else { //Is a GSFunction already
-            fn = existingWorkflowData        
+            fn = existingWorkflowData
         }
     }
 
@@ -304,7 +304,7 @@ async function main() {
         if(valid_status.success === false)
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema')
-            responseStructure.error = { 
+            responseStructure.error = {
                 code: valid_status.code,
                 message: valid_status.message,
                 errors: [ { message: valid_status.message, location: valid_status.data.schemaPath}]
@@ -319,7 +319,6 @@ async function main() {
         const ctx = new GSContext(
             config,
             datasources,
-            {},
             event,
             appConfig.app.mappings,
             jsonnetSnippet,
@@ -330,22 +329,22 @@ async function main() {
         //TODO: always output of the last task
         let status = ctx.outputs[handler.args[handler.args.length - 1].id];
         valid_status = validateResponseSchema(event.type, status);
-        
+
         if (valid_status.success) {
             logger.info(valid_status, 'Validate Response JSON Schema Success')
         } else {
             logger.error(valid_status, 'Validate Response JSON Schema Error')
         }
-        
-        if (status.success) {            
+
+        if (status.success) {
             logger.debug(status, 'Request Successful End');
-            responseStructure.data = { 
+            responseStructure.data = {
                 items: [ status.data ]
-            };    
+            };
             (event.metadata?.http?.express.res as express.Response).status(200).send(responseStructure);
         } else {
             logger.error(status, 'Response Error End');
-            responseStructure.error = { 
+            responseStructure.error = {
                 code: status.code ?? 500,
                 message: status.message,
                 errors: [ status.data ]
