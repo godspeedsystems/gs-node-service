@@ -1,5 +1,6 @@
 import { Jsonnet } from '@hanazuki/node-jsonnet';
 import { randomUUID } from 'crypto';
+import _ from 'lodash';
 import parseDuration from 'parse-duration'
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
@@ -13,14 +14,14 @@ import { setAtPath, getAtPath } from './utils';
   * project scaffolding
   * API schema spec (includes channel integration)
   * runtime interfaces
-  * 
+  *
   * DEV:
   * dev: runtime engine (execute workflow and includes adapters for different channels)
   * dev: telemetry
-  * dev: special functions: 
+  * dev: special functions:
   *  http
   *  transformation
-  * 
+  *
   * Parallel:
   *   GS_data
   */
@@ -57,7 +58,7 @@ export class GSFunction extends Function {
   onError?: Function;
   retry?: PlainObject;
   isSubWorkflow?: boolean;
-  
+
   constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id || randomUUID();
@@ -82,13 +83,15 @@ export class GSFunction extends Function {
       local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
     `
 
-    if (args.config?.url) {
-      args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>')
-    }
-
-
     if (typeof(args) != 'string') {
+      if (args.config?.url) {
+        args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>')
+      }
       args = JSON.stringify(args);
+    } else {
+      if (!/<%\s*(.*?)\s*%>/.test(args)) {
+        return args;
+      }
     }
 
     logger.debug('args: %s',args)
@@ -101,13 +104,12 @@ export class GSFunction extends Function {
             .replace(/\\n/g, ' ')
 
     logger.debug('snippet: %s',snippet)
-
     return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
-      logger.info('_executefn')
+      logger.info('executing handler %s', this.id)
       const args = await this._evaluateVariables(ctx, this.args);
 
       logger.debug('args : %s',args)
@@ -131,7 +133,7 @@ export class GSFunction extends Function {
       }
 
       let res;
-      
+
       if (Array.isArray(args)) {
         res = await this.fn?.apply(null, args)
       } else {
@@ -139,9 +141,9 @@ export class GSFunction extends Function {
       }
 
       logger.info(res,'result of _executeFn')
-      
+
       if (res instanceof GSStatus) {
-        return res; 
+        return res;
       } else {
         if (typeof(res) == 'object') {
           let {success, code, data, message, headers} = res;
@@ -174,16 +176,17 @@ export class GSFunction extends Function {
   }
 
   /**
-   * 
+   *
    * @param instruction
    * @param ctx
    */
   async _call(ctx: GSContext) {
-    
+
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
         logger.info('isSubWorkflow, creating new ctx')
-        const newCtx = ctx.cloneWithNewData(this.args)
+        const args = await this._evaluateVariables(ctx, this.args);
+        const newCtx = ctx.cloneWithNewData(args);
         await this.fn(newCtx);
         ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
       } else {
@@ -229,7 +232,7 @@ export class GSParallelFunction extends GSFunction {
     logger.debug(ctx,'ctx')
 
     const promises = [];
-    
+
     for (const child of this.args!) {
       promises.push(child(ctx));
     }
@@ -248,10 +251,10 @@ export class GSSwitchFunction extends GSFunction {
     //logger.debug('condition: %s' , condition)
     //logger.debug('condition after replace: %s' , condition.replace(/<%\s*{(.*?)\s*%>/, '$1'))
     let value = await this._evaluateVariables(ctx, condition);
-   
+
     if (cases[value]) {
       await cases[value](ctx);
-      ctx.outputs[this.id] = ctx.outputs[cases[value].id]   
+      ctx.outputs[this.id] = ctx.outputs[cases[value].id]
     } else {
       //check for default otherwise error
       if (cases.default) {
@@ -266,7 +269,7 @@ export class GSSwitchFunction extends GSFunction {
 }
 
 /**
- * Final outcome of GSFunction execution. 
+ * Final outcome of GSFunction execution.
  */
 export class GSStatus {
   success: boolean;
@@ -304,7 +307,7 @@ export class GSCloudEvent {
     telemetry?: object //all the otel info captured in the incoming event headers/metadata
   };
 
-  constructor(id: string, type: string, time: Date, source: string, specversion: string, data: object, channel: CHANNEL_TYPE, actor: GSActor, metadata: object) {
+  constructor(id: string, type: string, time: Date, source: string, specversion: string, data: object, channel: CHANNEL_TYPE, actor: GSActor, metadata: any) {
     this.id = id;
     this.type = type;
     this.channel = channel;
@@ -315,18 +318,19 @@ export class GSCloudEvent {
     this.data = data;
     this.specversion = specversion;
   }
-  cloneWithNewData(data:PlainObject): GSCloudEvent {
-    return {
-      id: this.id,
-      type: this.type,
-      time: this.time,
-      source: this.source,
-      specversion: this.specversion,
-      data: data,
-      channel: this.channel,
-      actor: this.actor,
-      metadata: this.metadata
-    } as GSCloudEvent;
+
+  public cloneWithNewData(data:PlainObject): GSCloudEvent {
+    return new GSCloudEvent(
+      this.id,
+      this.type,
+      this.time,
+      this.source,
+      this.specversion,
+      _.cloneDeep(data),
+      this.channel,
+      this.actor,
+      this.metadata
+    );
   }
 }
 /**
@@ -344,7 +348,7 @@ export class GSContext { //span executions
   jsonnetSnippet: string;
   plugins: PlainObject;
 
-  constructor(config: PlainObject, datasources: PlainObject, 
+  constructor(config: PlainObject, datasources: PlainObject,
       shared: PlainObject = {}, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
     this.shared = shared;
     this.inputs = event;
@@ -355,8 +359,10 @@ export class GSContext { //span executions
     this.jsonnetSnippet = jsonnetSnippet;
     this.plugins = plugins;
 
+    logger.debug('inputs for context %s', JSON.stringify(event.data));
+
     const jsonnet = this.jsonnet = new Jsonnet();
-    
+
     jsonnet.extCode("inputs", JSON.stringify(event.data));
     jsonnet.extCode("config", JSON.stringify(this.config));
     jsonnet.extCode("mappings", JSON.stringify(this.mappings));
@@ -364,7 +370,7 @@ export class GSContext { //span executions
     for (let fn in plugins) {
       let name = fn.split('.').pop();
       const args = /\((.*?)\)/.exec(plugins[fn].toString());
-      
+
       if (args) {
         let argArray = args[1].split(',').map(s => s.trim())
         logger.info('plugin: %s, %o',name,argArray)
@@ -374,7 +380,7 @@ export class GSContext { //span executions
       }
     }
   }
-  public cloneWithNewData(data: PlainObject): GSContext {   
+  public cloneWithNewData(data: PlainObject): GSContext {
     return new GSContext(
         this.config,
         this.datasources,
@@ -400,10 +406,10 @@ export class GSContext { //span executions
     const value = getAtPath(this.shared, <string>key);
     return value;
   }
-  
+
   /**
    * Looks for data stored for particular key in this.shared object
-   * @param key 
+   * @param key
    */
   public getShared(key: string | object) {
     if (typeof key === 'object' && !Array.isArray(key)) {
@@ -411,7 +417,7 @@ export class GSContext { //span executions
     }
     return getAtPath(this.shared, <string>key);
   }
- 
+
   /**
   * @param {any} key - If an object, it is strigified as JSON. Else used as it is.
   * @param {any} value - The value to be stored against the key
@@ -532,7 +538,7 @@ if (require.main === module) {
   const sumGSFunction = new GSFunction('sum', sum, [1,2],);
   const sumOtherGSFunction = new GSFunction('sumOther', sum, [3,2],);
   //const i = new GSFunction('seriesExample', seriesExecutor, [{children: [sumGSFunction, sumOtherGSFunction]}], null, null, 'series' );
-   
+
 
   // //Set pre auths
   // i.preAuthHooks.push(createSpan);
