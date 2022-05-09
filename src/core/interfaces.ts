@@ -74,7 +74,7 @@ export class GSFunction extends Function {
         args = JSON.stringify(args);
       }
 
-      if (/<%\s*(.*?)\s*%>/.test(args)) {
+      if (args.includes('<%') && args.includes('%>')) {
         this.args = args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
