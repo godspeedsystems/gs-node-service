@@ -1,4 +1,5 @@
 import { Jsonnet } from '@hanazuki/node-jsonnet';
+import { randomUUID } from 'crypto';
 import parseDuration from 'parse-duration'
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
@@ -59,7 +60,7 @@ export class GSFunction extends Function {
   
   constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
-    this.id = id;
+    this.id = id || randomUUID();
     this.fn = _function;
     this.args = args;
     this.summary = summary;
@@ -93,6 +94,7 @@ export class GSFunction extends Function {
     logger.debug('args: %s',args)
 
     snippet += args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+            .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
             .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
             .replace(/"\s*<%([\s\S]*?)%>[\s\S]*?"/g, '$1')
             .replace(/\\"/g, '"')
@@ -243,9 +245,9 @@ export class GSSwitchFunction extends GSFunction {
     logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
-    logger.debug('condition: %s' , condition)
-    logger.debug('condition after replace: %s' , condition.replace(/<%{(.*?)%>/, '$1'))
-    let value = await this._evaluateVariables(ctx, condition.replace(/<%{(.*?)%>/, '$1'));
+    //logger.debug('condition: %s' , condition)
+    //logger.debug('condition after replace: %s' , condition.replace(/<%\s*{(.*?)\s*%>/, '$1'))
+    let value = await this._evaluateVariables(ctx, condition);
    
     if (cases[value]) {
       await cases[value](ctx);

@@ -1,0 +1,90 @@
+import { AxiosInstance } from 'axios';
+import oauth from 'axios-oauth-client';
+import tokenProvider from 'axios-token-interceptor';
+
+import { PlainObject } from './common';
+
+function getAuthorizationCode (instance: AxiosInstance, config: PlainObject, code: string) { 
+    return oauth.client(instance, {
+        url: config.tokenUrl,
+        grant_type: 'authorization_code',
+        client_id: config.client_id,
+        client_secret: config.client_secret,
+        redirect_uri: config.redirect_uri,
+        code: code,
+        scope: config.scopes,
+    });
+}
+
+
+function getOwnerCredentials(instance: AxiosInstance, config: PlainObject) {
+    return  oauth.client(instance, {
+        url: config.tokenUrl,
+        grant_type: 'password',
+        client_id: config.client_id,
+        client_secret: config.client_secret,
+        username: config.username,
+        password: config.password,
+        scope: config.scopes
+    });
+}  
+
+function getClientCredentials(instance: AxiosInstance, config: PlainObject) {
+    return oauth.client(instance, {
+        url: config.tokenUrl,
+        grant_type: 'client_credentials',
+        client_id: config.client_id,
+        client_secret: config.client_secret,
+        scope: config.scopes
+    });
+}
+
+function getRefreshToken(instance: AxiosInstance, config: PlainObject) {
+    return oauth.client(instance, {
+        url: config.tokenUrl,
+        grant_type: 'client_credentials',
+        client_id: config.client_id,
+        client_secret: config.client_secret,
+        scope: config.scopes,
+        refresh_token: '...',
+    });
+}
+
+
+function createAxiosResponseInterceptor(instance) {
+    const interceptor = instance.interceptors.response.use(
+        response => response,
+        error => {
+            // Reject promise if usual error
+            if (error.response.status !== 401) {
+                return Promise.reject(error);
+            }
+            
+            /* 
+             * When response code is 401, try to refresh the token.
+             * Eject the interceptor so it doesn't loop in case
+             * token refresh causes the 401 response
+             */
+            instance.interceptors.response.eject(interceptor);
+
+            return instance.post('/api/refresh_token', {
+                'refresh_token': this._getToken('refresh_token')
+            }).then(response => {
+                saveToken();
+                error.response.config.headers['Authorization'] = 'Bearer ' + response.data.access_token;
+                return instance(error.response.config);
+            }).catch(error => {
+                destroyToken();
+                return Promise.reject(error);
+            }).finally( () => createAxiosResponseInterceptor(instance));
+        }
+    );
+}
+
+export default function(instance: AxiosInstance, config: PlainObject) {
+    instance.interceptors.request.use(
+        oauth.interceptor(tokenProvider, getOwnerCredentials(instance, config))
+    );
+
+    createAxiosResponseInterceptor(instance);
+}

@@ -5,7 +5,6 @@ import fs from 'fs';
 
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
-import { execArgv } from "process";
 
 function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
@@ -89,17 +88,18 @@ export default async function(args:{[key:string]:any;}) {
 
         logger.debug('res', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
-    } catch(ex: any) {
-        logger.error(ex);
+    } catch(ex) {
+        //logger.error(ex);
         //@ts-ignore
+        
         let res = ex.response;
         
         if (!res) {
             res = {
                 code: 500,
                 data: {
-                    code: ex.name,
-                    message: ex.message,
+                    code: (ex as Error).name,
+                    message: (ex as Error).message,
                 }
             }
         }

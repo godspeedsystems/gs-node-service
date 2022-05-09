@@ -38,7 +38,9 @@ function JsonnetSnippet(plugins:any) {
 
 
 function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
-    logger.debug('Creating GSFunction %s',workflowJson.id)
+  
+    logger.debug('Creating GSFunction %s', workflowJson.id)
+    
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
             workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential' };
@@ -49,8 +51,8 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 
     let tasks;
 
-    logger.debug(workflowJson, 'workflow')
-    logger.debug(nativeFunctions) // Not displaying the object --> Need to check
+    //logger.debug(workflowJson, 'workflow')
+    //logger.debug(nativeFunctions) // Not displaying the object --> Need to check
     switch(workflowJson.fn) {
         case 'com.gs.sequential':
             tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
@@ -76,11 +78,13 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 
             args.push(cases);
 
+            logger.debug('loading switch workflow %s', JSON.stringify(workflowJson.cases))
+
             return new GSSwitchFunction(workflowJson.id, undefined, args,
                     workflowJson.summary, workflowJson.description);
     }
 
-    logger.debug('loading workflow %s',workflowJson.fn)
+    //logger.debug('loading workflow %s',workflowJson.fn)
 
     //Load the fn for this GSFunction
     let fn = nativeFunctions[workflowJson.fn] //First check if it's a native function
@@ -100,13 +104,11 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 }
 
 async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
-    logger.info('Loading functions')
     let code = await loadModules(__dirname + '/functions');
     let functions = await loadYaml(__dirname + '/functions');
     let loadFnStatus:PlainObject;
 
-    logger.debug('Loaded functions: %s',Object.keys(functions))
-    logger.debug('Loaded native functions: %s',Object.keys(code))
+    logger.info('Loaded native functions: %s', Object.keys(code))
 
     for (let f in functions) {
         const checkDS = checkDatasource(functions[f], datasources);
@@ -116,7 +118,7 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
         }
     }
 
-    logger.debug('Creating workflows: %s', Object.keys(functions))
+    logger.info('Creating workflows: %s', Object.keys(functions))
 
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
@@ -124,7 +126,7 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
         }
     }
     loadFnStatus = { success: true, functions: functions}
-    logger.debug('Loaded workflows: %s', Object.keys(functions))
+    logger.info('Loaded workflows: %s', Object.keys(functions))
     return loadFnStatus
 }
 
@@ -270,26 +272,6 @@ function httpListener(ee: EventEmitter, events: any) {
             })
         }
     }
-
-    let apiVersion: string;
-    if (config.has('apiVersion')) {
-        apiVersion = config.get('apiVersion');
-    } else {
-        apiVersion = '1.0';
-    }
-    const resStructure:GSResponse = { apiVersion: apiVersion };
-
-    for (let method of ['get', 'put', 'post', 'patch', 'delete']) {
-        app[method as keyof typeof app]('*', function(req: express.Request, res: express.Response) {
-            logger.error('%s not found',req.url)
-            resStructure.error = { 
-                code: 404,
-                message: `${req.url} not found`,
-                errors: [ { message: `${req.url} not found`, location: `${req.url}`}]
-            }
-            res.status(404).send(resStructure);
-        });
-    }
 }
 
 async function main() {
@@ -315,13 +297,7 @@ async function main() {
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
         logger.debug(events[event.type], event)
         logger.info('Processing event %s',event.type)
-        let apiVersion: string;
-        if (config.has('apiVersion')) {
-            apiVersion = config.get('apiVersion');
-        } else {
-            apiVersion = '1.0';
-        }
-        const responseStructure:GSResponse = { apiVersion: apiVersion };
+        const responseStructure:GSResponse = { apiVersion: (config as any).api_version || "1.0" };
 
         let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
 
@@ -356,19 +332,19 @@ async function main() {
         valid_status = validateResponseSchema(event.type, status);
         
         if (valid_status.success) {
-            logger.info(valid_status, 'Validate Response JSON Schema')
+            logger.info(valid_status, 'Validate Response JSON Schema Success')
         } else {
-            logger.error(valid_status, 'Validate Response JSON Schema')
+            logger.error(valid_status, 'Validate Response JSON Schema Error')
         }
         
         if (status.success) {            
-            logger.debug(status, 'end');
+            logger.debug(status, 'Request Successful End');
             responseStructure.data = { 
                 items: [ status.data ]
             };    
             (event.metadata?.http?.express.res as express.Response).status(200).send(responseStructure);
         } else {
-            logger.error(status, 'end');
+            logger.error(status, 'Response Error End');
             responseStructure.error = { 
                 code: status.code ?? 500,
                 message: status.message,
