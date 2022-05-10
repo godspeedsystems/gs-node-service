@@ -59,10 +59,10 @@ export class GSFunction extends Function {
   retry?: PlainObject;
   isSubWorkflow?: boolean;
 
-  constructor(id: string, _function?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id || randomUUID();
-    this.fn = _function;
+    this.fn = _fn;
 
     if (args) {
       this.args = args;
@@ -74,7 +74,7 @@ export class GSFunction extends Function {
         args = JSON.stringify(args);
       }
 
-      if (args.includes('<%') && args.includes('%>')) {
+      if (_fn && args.includes('<%') && args.includes('%>')) {
         this.args = args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
@@ -249,13 +249,13 @@ export class GSParallelFunction extends GSFunction {
 export class GSSwitchFunction extends GSFunction {
   override async _call(ctx: GSContext) {
     logger.info('GSSwitchFunction')
-    logger.debug(this.args,'inside switch executor')
-    logger.debug(ctx,'ctx')
+    logger.debug(this.args, 'inside switch executor')
+    //logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
-    //logger.debug('condition: %s' , condition)
-    //logger.debug('condition after replace: %s' , condition.replace(/<%\s*{(.*?)\s*%>/, '$1'))
-    let value = await this._evaluateVariables(ctx, condition);
+    logger.debug('condition: %s' , condition)
+    logger.debug('condition after replace: %s' , condition.replace(/<%\s*(.*?)\s*%>/g, '$1'))
+    let value = await this._evaluateVariables(ctx, condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
 
     if (cases[value]) {
       await cases[value](ctx);
