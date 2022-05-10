@@ -1,0 +1,179 @@
+{
+  "growthsource": {
+    "base_url": "https://partner-uat.growthsourceft.com",
+    "security": [
+      {
+        "ApiKey": "239731bc3a784dcda31918891b183f32"
+      },
+      {
+        "ApiToken": "679e36a018524e6dbfd3f184059b29f0"
+      }
+    ],
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "api-key"
+      },
+      "ApiToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "api-token"
+      }
+    }
+  },
+  "/sample.http.post": {
+    "fn": "com.pinelabs.sample",
+    "data": {
+      "examples": null,
+      "schema": {
+        "body": {
+          "description": null,
+          "required": null,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Gender": {
+                    "type": "string"
+                  }
+                }
+              },
+              "examples": {
+                "{example_name}": {
+                  "summary": null,
+                  "description": null,
+                  "value": null,
+                  "external_value": null
+                }
+              },
+              "encoding": null
+            }
+          }
+        }
+      }
+    }
+  },
+  "/parallel_test.http.post": {
+    "fn": "com.pinelabs.create_parallel",
+    "data": {
+      "examples": null,
+      "schema": {
+        "body": {
+          "description": null,
+          "required": null,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Gender": {
+                    "type": "string"
+                  }
+                }
+              },
+              "examples": {
+                "{example_name}": {
+                  "summary": null,
+                  "description": null,
+                  "value": null,
+                  "external_value": null
+                }
+              },
+              "encoding": null
+            }
+          }
+        },
+        "params": [
+          {
+            "name": "bank_id",
+            "in": "path",
+            "required": false,
+            "allow_empty_value": false,
+            "description": null,
+            "schema": {
+              "type": "string"
+            },
+            "examples": null
+          }
+        ]
+      }
+    }
+  },
+  "summary": "Parallel Multiplexing create loan for hdfc api calls",
+  "tasks": [
+    {
+      "id": "parallel",
+      "fn": "com.gs.parallel",
+      "tasks": [
+        {
+          "id": "1st",
+          "fn": "com.gs.return",
+          "args": "'parallel task1' \n"
+        },
+        {
+          "id": "2nd",
+          "fn": "com.gs.return",
+          "args": "'parallel task2'  \n"
+        },
+        {
+          "id": "3rd",
+          "fn": "com.gs.return",
+          "args": "'parallel task3'\n"
+        }
+      ]
+    },
+    {
+      "id": "step2",
+      "fn": "com.gs.transform",
+      "args": "{ \n  code: 200,\n} + outputs['1st']\n"
+    }
+  ],
+  "/switch_test.http.post": {
+    "fn": "com.pinelabs.create_switch",
+    "data": {
+      "examples": null,
+      "schema": {
+        "body": {
+          "description": null,
+          "required": null,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Gender": {
+                    "type": "string"
+                  }
+                }
+              },
+              "examples": {
+                "{example_name}": {
+                  "summary": null,
+                  "description": null,
+                  "value": null,
+                  "external_value": null
+                }
+              },
+              "encoding": null
+            }
+          }
+        },
+        "params": [
+          {
+            "name": "bank_id",
+            "in": "path",
+            "required": false,
+            "allow_empty_value": false,
+            "description": null,
+            "schema": {
+              "type": "string"
+            },
+            "examples": null
+          }
+        ]
+      }
+    }
+  }
+}
