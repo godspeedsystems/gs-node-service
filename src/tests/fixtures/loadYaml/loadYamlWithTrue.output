@@ -129,51 +129,5 @@
       "fn": "com.gs.transform",
       "args": "{ \n  code: 200,\n} + outputs['1st']\n"
     }
-  ],
-  "/switch_test.http.post": {
-    "fn": "com.pinelabs.create_switch",
-    "data": {
-      "examples": null,
-      "schema": {
-        "body": {
-          "description": null,
-          "required": null,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "Gender": {
-                    "type": "string"
-                  }
-                }
-              },
-              "examples": {
-                "{example_name}": {
-                  "summary": null,
-                  "description": null,
-                  "value": null,
-                  "external_value": null
-                }
-              },
-              "encoding": null
-            }
-          }
-        },
-        "params": [
-          {
-            "name": "bank_id",
-            "in": "path",
-            "required": false,
-            "allow_empty_value": false,
-            "description": null,
-            "schema": {
-              "type": "string"
-            },
-            "examples": null
-          }
-        ]
-      }
-    }
-  }
+  ]
 }

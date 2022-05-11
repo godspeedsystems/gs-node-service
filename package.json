@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha ./dist/tests/fixtures/loadTime/loadYaml/tests/testSpec.test.js",
+    "test": "mocha './dist/tests/*.test.js'",
     "dev": "PORT=3000 nodemon ./dist/app.js",
     "clean": "rm -rf project build dist",
     "build": "mkdir -p build && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc"

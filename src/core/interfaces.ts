@@ -404,8 +404,8 @@ export class GSContext { //span executions
     if (typeof key === 'object' && !Array.isArray(key)) {
       key = JSON.stringify(key);
     }
-    const value = getAtPath(this.shared, <string>key);
-    return value;
+    //const value = getAtPath(this.shared, <string>key);
+    //return value;
   }
 }
 
