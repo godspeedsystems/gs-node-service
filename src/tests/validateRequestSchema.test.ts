@@ -13,6 +13,7 @@ describe(testName, () => {
                 try {
                   const { topic, event, eventSpec } = require(`${fixDir}/${testId}`);
                   const result = await validateRequestSchema(topic, event, eventSpec);
+                  console.log('--------------- result: ',result)
                   expect(result).to.eql(expectObj[testName][testId]);
                 } catch(error) {
                   fail(<Error>error);
