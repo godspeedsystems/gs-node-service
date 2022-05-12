@@ -1,29 +1,20 @@
-import { describe, it, expect, glob, path, fs, PlainObject } from './common';
+import { describe, it, expect, glob, path, fs, PlainObject, expectObj } from './common';
 import loadYaml from '../core/yamlLoader';
 import { fail } from 'assert';
-let expectObj:PlainObject = {};
+//let expectObj:PlainObject = {};
 
-describe('loadYaml', () => {
-    const fixDir = __dirname + '/fixtures/' + path.basename(__filename).split('.')[0] + '/';
-    glob( fixDir + '/*.?(js|ts)', function (err:Error|null, res: string[]) {
+const testName = path.basename(__filename).split('.')[0]
+const fixDir = path.join(__dirname, 'fixtures', testName);
+
+describe(testName, () => {
+    glob(fixDir + '/*.?(js|ts)', function (err:Error|null, res: string[]) {
         res.map((file:string) => {
             const testId = path.basename(file).replace(/\.(js|ts)/i, '');
-
-            before(function() {
-                try {
-                    const expectedPath = fixDir + '/' + testId + '.output';
-                    expectObj[testId] = JSON.parse(fs.readFileSync(expectedPath, 'utf-8'));
-                } catch(error) {
-                    console.log('before caught error: ',error)
-                }
-            });            
-
             it(testId, async () => {
                 try {
                   const { pathString, globalFlag } = require(`${fixDir}/${testId}`);
-                  console.log('pathString: ',pathString)
                   const result = await loadYaml(pathString, globalFlag);
-                  expect(result).to.eql(expectObj[testId]);
+                  expect(result).to.eql(expectObj[testName][testId]);
                 } catch(error) {
                   fail(<Error>error);
                 }

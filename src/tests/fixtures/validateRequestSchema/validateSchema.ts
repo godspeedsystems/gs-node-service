@@ -1,11 +1,9 @@
 import path from 'path';
 import { loadJsonSchemaForEvents } from '../../../core/jsonSchemaValidation';
 import { GSCloudEvent, GSActor } from '../../../core/interfaces';
+import { PlainObject } from '../../../core/common';
 
-const pathString = path.resolve(__dirname, '../../testData/events')
-const globalFlag = true
-
-const sampleEvents = {
+const sampleEvents:PlainObject = {
     "/v1/loan-application.http.post": {
       "fn": "com.biz.loan_application.create_loan_application",
       "id": "/createLoanApplication",
