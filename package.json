@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "PORT=3000 nodemon ./dist/app.js",
     "clean": "rm -rf project build dist",
-    "build": "mkdir -p build && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc"
+    "build": "mkdir -p build project/src && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc"
   },
   "author": "",
   "license": "ISC",
@@ -28,6 +28,7 @@
     "form-data": "^4.0.0",
     "glob": "^8.0.1",
     "js-yaml": "^4.1.0",
+    "kafkajs": "^2.0.0",
     "openapi-client-axios": "^5.1.2",
     "parse-duration": "^1.0.2",
     "pino": "^7.11.0",

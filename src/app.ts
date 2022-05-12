@@ -243,7 +243,7 @@ async function loadEvents(ee: EventEmitter, processEvent: (...args: any[]) => vo
     return events
 }
 
-function httpListener(ee: EventEmitter, events: any) {
+function subscribeToEvents(ee: EventEmitter, events: any) {
 
     for (let route in events) {
         if (route.includes('.http.')) {
@@ -253,7 +253,7 @@ function httpListener(ee: EventEmitter, events: any) {
             [route, method] = route.split('.http.')
             route = route.replace(/{(.*?)}/g, ":$1");
 
-            logger.info('registering handler %s %s', route, method)
+            logger.info('registering http handler %s %s', route, method)
             // @ts-ignore
             app[method](route, function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s', originalRoute, req.params, req.files)
@@ -270,6 +270,9 @@ function httpListener(ee: EventEmitter, events: any) {
                 }, 'REST', new GSActor('user'),  {http: {express:{res}}});
                 ee.emit(originalRoute, event);
             })
+        } else  if (route.includes('.kafka.')) {
+            let [topic, groupId] = route.split('.kafka.')
+            logger.info('registering kafka handler %s %s', topic, groupId)
         }
     }
 }
@@ -355,7 +358,7 @@ async function main() {
     }
 
     const events = await loadEvents(ee, processEvent);
-    httpListener(ee, events);
+    subscribeToEvents(ee, events);
 }
 
 main();
