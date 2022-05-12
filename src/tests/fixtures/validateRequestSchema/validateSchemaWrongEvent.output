@@ -1,0 +1,5 @@
+    {
+        "code": 400,
+        "message": "Body found in request but not specified in the event schema",
+        "success": false
+     }

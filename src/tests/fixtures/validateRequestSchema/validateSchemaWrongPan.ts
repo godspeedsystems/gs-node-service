@@ -1,3 +1,4 @@
+import path from 'path';
 import { loadJsonSchemaForEvents } from '../../../core/jsonSchemaValidation';
 import { GSCloudEvent, GSActor } from '../../../core/interfaces';
 import { PlainObject } from '../../../core/common';
@@ -75,17 +76,6 @@ const sampleEvents:PlainObject = {
                 "type": "string",
                 "nullable": true
               }
-            },
-            {
-              "name":"bank_id",
-              "in":"query",
-              "required":true,
-              "allow_empty_value": false,
-              "schema": {
-                "type": "string",
-                "nullable": true
-              }
-              
             }
           ]
         }
@@ -111,17 +101,11 @@ const event = new GSCloudEvent(
             "name": "Applicant1",
             "consent": true,
             "dob": "2000-01-01",
-            "pan_number": "XXXXX5675X",
+            "pan_number": "XXX235675X",
             "permanent_address": {
                 "address_line1": "#123, First floor",
                 "pincode": 99999                
             }
-        },
-        "path":{
-          "lender_loan_application_id":"1234"
-        },
-        "query":{
-          "bank_id":"ABC"
         }
    },
    'REST',
