@@ -7,7 +7,7 @@
     "test": "mocha './dist/tests/*.test.js'",
     "test-cov": "nyc --reporter=html --reporter=text npm test",
     "dev": "PORT=3000 nodemon ./dist/app.js",
-    "clean": "rm -rf project build dist",
+    "clean": "rm -rf project build dist coverage",
     "build": "mkdir -p build && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc"
   },
   "author": "",
