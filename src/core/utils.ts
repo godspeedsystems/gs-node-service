@@ -1,7 +1,7 @@
 import { PlainObject } from "./common";
 import { logger } from './logger';
 import { GSStatus } from './interfaces';
-
+import config from 'config';
 
 export function getAtPath(obj: PlainObject, path: string) {
   const keys = path.split('.');
@@ -14,6 +14,7 @@ export function getAtPath(obj: PlainObject, path: string) {
   }
   return obj;
 }
+
 export function setAtPath(o: PlainObject, path: string, value: any) {
   const keys = path.split('.');
   let obj = o;
@@ -50,4 +51,21 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
       }
   }
   return new GSStatus(true,undefined);
+}
+
+export function expandVariable(value: string) {
+  try {
+      if ((value as string).includes('<%')) {
+          logger.debug('value before %s', value)
+
+          value = (value as string).replace(/"?<%\s*(.*?)\s*%>"?/, '$1');
+          //TODO: pass other context variables
+          value = Function('config', 'return ' + value)(config);
+          logger.debug('value after %s', value)
+      }
+  } catch(ex) {
+      //console.error(ex);
+      logger.error(ex);
+  }
+  return value;
 }
