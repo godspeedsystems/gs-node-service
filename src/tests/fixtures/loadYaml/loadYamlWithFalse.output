@@ -1,30 +1,29 @@
 {
-  "datasources.growthsource": {
-    "growthsource": {
-      "base_url": "https://partner-uat.growthsourceft.com",
-      "security": [
-        {
-          "ApiKey": "239731bc3a784dcda31918891b183f32"
-        },
-        {
-          "ApiToken": "679e36a018524e6dbfd3f184059b29f0"
-        }
-      ],
-      "securitySchemes": {
-        "ApiKey": {
-          "type": "apiKey",
-          "in": "header",
-          "name": "api-key"
-        },
-        "ApiToken": {
-          "type": "apiKey",
-          "in": "header",
-          "name": "api-token"
-        }
+  "openAPI": {
+    "base_url": "https://swagger.io/specification/#version-3.0.3",
+    "schema": "https://raw.githubusercontent.com/Kong/swagger-ui-kong-theme/main/demo/public/specs/httpbin.yaml",
+    "security": [
+      {
+        "ApiKey": "239731bc3a784dcda31918891b183f32"
+      },
+      {
+        "ApiToken": "679e36a018524e6dbfd3f184059b29f0"
+      }
+    ],
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "api-key"
+      },
+      "ApiToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "api-token"
       }
     }
   },
-  "events.nested.sample": {
+  "nested.sample": {
     "/sample.http.post": {
       "fn": "com.pinelabs.sample",
       "data": {
@@ -59,7 +58,32 @@
       }
     }
   },
-  "events.parallel": {
+  "nested.sub.growthsource": {
+    "growthsource": {
+      "base_url": "https://partner-uat.growthsourceft.com",
+      "security": [
+        {
+          "ApiKey": "239731bc3a784dcda31918891b183f32"
+        },
+        {
+          "ApiToken": "679e36a018524e6dbfd3f184059b29f0"
+        }
+      ],
+      "securitySchemes": {
+        "ApiKey": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "api-key"
+        },
+        "ApiToken": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "api-token"
+        }
+      }
+    }
+  },
+  "parallel": {
     "/parallel_test.http.post": {
       "fn": "com.pinelabs.create_parallel",
       "data": {
@@ -106,36 +130,5 @@
         }
       }
     }
-  },
-  "functions.create_parallel": {
-    "summary": "Parallel Multiplexing create loan for hdfc api calls",
-    "tasks": [
-      {
-        "id": "parallel",
-        "fn": "com.gs.parallel",
-        "tasks": [
-          {
-            "id": "1st",
-            "fn": "com.gs.return",
-            "args": "'parallel task1' \n"
-          },
-          {
-            "id": "2nd",
-            "fn": "com.gs.return",
-            "args": "'parallel task2'  \n"
-          },
-          {
-            "id": "3rd",
-            "fn": "com.gs.return",
-            "args": "'parallel task3'\n"
-          }
-        ]
-      },
-      {
-        "id": "step2",
-        "fn": "com.gs.transform",
-        "args": "{ \n  code: 200,\n} + outputs['1st']\n"
-      }
-    ]
   }
 }
