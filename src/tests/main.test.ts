@@ -1,10 +1,10 @@
-import { describe, it, expect, glob, path, fs, PlainObject, expectObj } from './common';
+import { describe, it, expect, glob, path, fs, expectObj } from './common';
 import { fail } from 'assert';
 
 const filenames = fs.readdirSync(__dirname);
 filenames.forEach(file => {
     if (file.endsWith('.js') || file.endsWith('.ts') ) {
-        if (!( file.includes('common.js') || file.includes(path.basename(__filename))) ) {
+        if (!( file.includes('common.js') || file.includes(path.basename(__filename)) || file.endsWith('test.js') || file.endsWith('test.ts') ) ) {
             const fileAbsPath = path.join(__dirname,file)
             const { testName, testCode } = require(`${fileAbsPath}`);
             const fixDir = path.join(__dirname, 'fixtures', testName);

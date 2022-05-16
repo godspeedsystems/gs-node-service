@@ -1,4 +1,3 @@
-import path from 'path';
 import { loadJsonSchemaForEvents } from '../../../core/jsonSchemaValidation';
 import { GSCloudEvent, GSActor } from '../../../core/interfaces';
 import { PlainObject } from '../../../core/common';

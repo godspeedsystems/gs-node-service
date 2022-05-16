@@ -1,0 +1,21 @@
+{
+  "check-coverage": false,
+  "include": [
+    "**/*.js",
+    "**/*.ts"
+  ],
+  "exclude": [
+    "**/tests/**/*.js",
+    "**/tests/**/*.ts",
+    "coverage/**/*.js",
+    "coverage/**/*.ts"
+  ],
+  "sourceMap": true,
+  "reporter": [
+    "html",
+    "text",
+    "text-summary"
+  ],
+  "all": true,
+  "instrument": true
+}

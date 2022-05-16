@@ -5,7 +5,6 @@ import parseDuration from 'parse-duration'
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
-import { setAtPath, getAtPath } from './utils';
 //import R from 'ramda';
 /**
   * SPEC:
@@ -396,17 +395,6 @@ export class GSContext { //span executions
     this.log_events?.push(event);
     //also push to the logging backend
   }
-  /**
-  * @param {string} key - The key to get data for
-  * @return data for given key as found in this.shared or this.vars
-  **/
-  public get(key: string | object) {
-    if (typeof key === 'object' && !Array.isArray(key)) {
-      key = JSON.stringify(key);
-    }
-    //const value = getAtPath(this.shared, <string>key);
-    //return value;
-  }
 }
 
 /**
@@ -546,4 +534,3 @@ if (require.main === module) {
 * Then the adapter will send the response to one or more events on the channels
 * specified in the API shema, with the response data & metadata.
  */
-

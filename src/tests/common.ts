@@ -4,7 +4,9 @@ import glob from 'glob';
 import path from 'path';
 import fs from 'fs';
 import { PlainObject } from '../core/common';
+import { logger } from '../core/logger';
 
+logger.level = "silent"
 const describe = mocha.describe;
 const it = mocha.it;
 const expect = chai.expect;
@@ -28,4 +30,4 @@ fs.readdir(fixDir, function (err, subDir) {
     });
 });
 
-export { describe, it, expect, glob, path, fs, PlainObject, expectObj };
+export { describe, it, expect, glob, path, fs, expectObj };

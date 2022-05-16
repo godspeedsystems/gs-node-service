@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha './dist/tests/*.test.js'",
+    "test-cov": "nyc --reporter=html --reporter=text npm test",
     "dev": "PORT=3000 nodemon ./dist/app.js",
     "clean": "rm -rf project build dist",
     "build": "mkdir -p build && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc"
@@ -52,6 +53,7 @@
     "copyfiles": "^2.4.1",
     "mocha": "^10.0.0",
     "nodemon": "^2.0.15",
+    "nyc": "^15.1.0",
     "typescript": "^4.6.3"
   }
 }
