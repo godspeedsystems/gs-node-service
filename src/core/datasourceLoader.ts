@@ -6,16 +6,17 @@ import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
+import {PROJECT_ROOT_DIRECTORY} from './utils';
 
 export default async function loadDatasources() {
   logger.info('Loading datasources')
-  let datasources = await loadYaml(__dirname + '/datasources', false);
-  const prismaDatasources = await loadPrismaDsFileNames(__dirname + '/datasources');
-  datasources = {
-    ...datasources,
+  let yamlDatasources = await loadYaml(PROJECT_ROOT_DIRECTORY + '/datasources', false);
+  const prismaDatasources = await loadPrismaDsFileNames(PROJECT_ROOT_DIRECTORY + '/datasources');
+  const datasources = {
+    ...yamlDatasources,
     ...prismaDatasources
   }
-  logger.debug('Loaded datasources %o',datasources)
+  logger.debug('Loaded datasources yaml %o prisma %o',yamlDatasources, prismaDatasources)
   logger.info('Loaded datasources: %s',Object.keys(datasources))
 
   const loadedDatasources:PlainObject = {}
@@ -28,11 +29,8 @@ export default async function loadDatasources() {
     } else {
       logger.error('Found invalid datasource type %s for the datasource %s. Ignoring it.',datasources[ds].type, ds)
     }
-
-      //TODO: Expand all the variables in a datasource
-      
   }
-
+  logger.info('Finally loaded datasources: %s',Object.keys(datasources))
   return loadedDatasources
 }
 async function loadPrismaDsFileNames (pathString: string): Promise<PlainObject> {
@@ -44,21 +42,22 @@ async function loadPrismaDsFileNames (pathString: string): Promise<PlainObject> 
       if (err) {
           reject(err)
       } else {
-        Promise.all(
-          res.map((file:string) => {
-              const id = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.').replace(/\.(yaml|yml)/i, '').replace(/\.index$/, '');
-              prismaSchemas = {
-                ...prismaSchemas,
-                ...{//For now all datastores are Prisma stores only. Till we integrate Elasticsearch
-                  [id]: {
-                    type: 'datastore'
-                  }, 
-                }
-              }
-          })
-        ).then(() => {
-            resolve(prismaSchemas)
+        
+        res.forEach((file:string) => {
+          if (file.includes('generated-prisma-client')) {
+            return;
+          }
+          const id = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.').replace(/\.(prisma)/i, '').replace(/\.index$/, '');
+          prismaSchemas = {
+            ...prismaSchemas,
+            ...{//For now all datastores are Prisma stores only. Till we integrate Elasticsearch
+              [id]: {
+                type: 'datastore'
+              }, 
+            }
+          }
         })
+        resolve(prismaSchemas);
       }
     })
   })
@@ -130,7 +129,7 @@ async function loadHttpDatasource (datasource: PlainObject): Promise<PlainObject
 }
 
 async function loadPrismaClient (dsName: String): Promise<PlainObject> {
-  const PrismaClient = require(__dirname + '/datasources/generated-prisma-clients/' + dsName);
+  const {PrismaClient} = require(PROJECT_ROOT_DIRECTORY + '/datasources/generated-prisma-clients/' + dsName);
   const prisma = new PrismaClient();
   await prisma.$connect();
   return {
