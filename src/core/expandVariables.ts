@@ -1,6 +1,6 @@
 import { logger } from './logger';
 import config from 'config';
-export default function (value: string) {
+export default function (value: string): any {
   try {
       if ((value as string).includes('<%')) {
           logger.debug('value before %s', value)

@@ -16,7 +16,7 @@ import loadModules from './core/codeLoader';
 
 import {loadJsonSchemaForEvents, validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import { checkDatasource } from './core/utils';
-import loadDatasources from './core/dsLoader';
+import loadDatasources from './core/datasourceLoader';
 
 function JsonnetSnippet(plugins:any) {
     let snippet = `local inputs = std.extVar('inputs');
