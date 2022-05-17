@@ -51,8 +51,7 @@ describe(testName, () => {
             const result = await loadFunctions(datasources, pathString);
             const wf_function = result.functions['switch_wf'];
             expect(result.success).to.be.equal(true);
-            console.log('wf_function.args[1]: ',wf_function.args[1])
-            console.log('wf_function.args[0].args[1]: ',wf_function.args[0].args[1])
+
             // Check another_wf nested properties
             expect(wf_function).to.be.instanceOf(GSSeriesFunction)
             expect(wf_function.args[0]).to.be.instanceOf(GSSwitchFunction)
