@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha './dist/tests/*.test.js'",
+    "test": "NODE_CONFIG_DIR=./dist/config mocha './dist/tests/*.test.js'",
     "test-cov": "nyc --reporter=html --reporter=text npm test",
     "dev": "PORT=3000 nodemon ./dist/app.js",
     "clean": "rm -rf project build dist coverage",

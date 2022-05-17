@@ -6,7 +6,7 @@ import fs from 'fs';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 
-logger.level = "silent"
+logger.level = "silent";
 const describe = mocha.describe;
 const it = mocha.it;
 const expect = chai.expect;

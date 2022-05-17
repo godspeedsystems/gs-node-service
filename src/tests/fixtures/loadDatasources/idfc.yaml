@@ -1,0 +1,27 @@
+base_url: https://partner-uat.idfc.com
+  
+security:
+  - ApiKey: 239731bc3a784dcda31918891b183f32
+  - ApiToken: 679e36a018524e6dbfd3f184059b29f0
+  - bearerAuth: 8797987ad
+  - basicAuth: ['user','9089899fgt']
+
+securitySchemes:
+  ApiKey:
+    type: apiKey
+    in: header
+    name: api-key
+
+  ApiToken:
+    type: apiKey
+    in: header
+    name: api-token
+
+  bearerAuth:
+      type: http
+      scheme: bearer
+
+  basicAuth:
+      type: http
+      scheme: basic
+      name: basic-auth
