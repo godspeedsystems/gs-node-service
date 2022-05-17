@@ -116,10 +116,12 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
     } else if ( !event.data.body && eventSpec?.data?.schema?.body ) { 
         status = { success: false, code: 400, message: "Body not found in request but specified in the event schema"}
         return status
-    } else if ( Object.keys(event.data.body).length && !eventSpec?.data?.schema?.body ) { 
-        status = { success: false, code: 400, message: "Body found in request but not specified in the event schema"}
-        return status
-    } else { //Body is not present in request and not specified in the event schema
+    }
+    // } else if ( Object.keys(event.data.body).length && !eventSpec?.data?.schema?.body ) { 
+    //     status = { success: false, code: 400, message: "Body found in request but not specified in the event schema"}
+    //     return status
+    // } 
+    else { //Body is not present in request and not specified in the event schema
         status = { success: true }
     }
 
