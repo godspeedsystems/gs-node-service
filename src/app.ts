@@ -113,8 +113,8 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
     for (let f in functions) {
         const checkDS = checkDatasource(functions[f], datasources);
         if (!checkDS.success) {
-            loadFnStatus = { success: false , message: checkDS.message }
-            return loadFnStatus;
+          logger.error('Error in loading datasource for function %s . Error message: %s . Exiting.', f, checkDS.message);
+          process.exit(1);
         }
     }
 
