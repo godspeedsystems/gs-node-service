@@ -195,5 +195,4 @@ const status = new GSStatus(
 )
 
 const topic ='/v1/loan-application.http.post'
-console.log("gs_status", status)
 export { topic, status };
