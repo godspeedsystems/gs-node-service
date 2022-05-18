@@ -1,5 +1,5 @@
-import { logger } from '../../../core/logger';
 import {getAtPath} from '../../../core/utils';
+import {GSStatus} from '../../../core/interfaces';
 /**
  * 
  * @param args 
@@ -10,12 +10,24 @@ import {getAtPath} from '../../../core/utils';
 export default async function(args:{[key:string]:any;}) {
   const ds = args.datasource;
   const prismaMethod = <Function>getAtPath(ds.client, args.config.method);  
+  if (!prismaMethod) {
+    const entityType = args.config.method.substring(0, args.config.method.indexOf('.'));
+    //Check whether the entityType specified is wrong or the method
+    if (!ds.client[entityType]) {
+      return new GSStatus(false, 400, `Invalid entity type "${entityType}" in query`);
+    }
+    //The method specified must be wrong.
+    const method = args.config.method.substring(args.config.method.indexOf('.') + 1);
+    return new GSStatus(false, 500, `Invalid CRUD method "${method}" called on the server side`);
+  }
   try {
     const res = await prismaMethod(args.data);
     //logger.info('prisma res %o', res);{success, code, data, message, headers} 
-    return {success: true, code: code(args.config.method), data: res, message: 'Successfully executed'};
+    return new GSStatus(true, code(args.config.method), undefined, res);
   } catch (err) {
-    return {success: false, code: code(args.config.method), data: err, message: 'Errorly executed'};
+    //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
+    //@ts-ignore
+    return new GSStatus(false, 400, err.message || 'Error in query!', JSON.stringify(err.stack));
   }
 }
 
@@ -23,7 +35,7 @@ function code (method: string): number {
   const methodType = method.substring(method.indexOf('.') + 1);
   return response_codes[methodType] || 200;
 }
-const response_codes = {
+const response_codes: {[key: string]: number} = {
   find:200,
   findFirst:200,
   findUnique:200,
