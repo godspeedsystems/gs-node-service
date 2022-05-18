@@ -27,7 +27,8 @@ export default async function loadDatasources() {
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(ds);
     } else {
-      logger.error('Found invalid datasource type %s for the datasource %s. Ignoring it.',datasources[ds].type, ds)
+      logger.error('Found invalid datasource type %s for the datasource %s.',datasources[ds].type, ds)
+      process.exit(1);
     }
   }
   logger.info('Finally loaded datasources: %s',Object.keys(datasources))
