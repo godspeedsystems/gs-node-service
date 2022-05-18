@@ -6,3 +6,4 @@ dist
 build
 project
 coverage
+.nyc_output
