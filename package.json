@@ -8,6 +8,7 @@
     "dev": "PORT=3000 nodemon ./dist/app.js",
     "clean": "rm -rf project build dist",
     "lint": "eslint . --ext .ts --format table",
+    "service-build": "mkdir -p build && cp -r src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' dist/ && npm install && ./node_modules/typescript/bin/tsc",
     "build": "mkdir -p build project/src && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc"
   },
   "author": "",

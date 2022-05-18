@@ -20,7 +20,7 @@
   },  
   "rules": {
     "as-needed": "off",
-    "no-unused-vars": "warn",
+    "no-unused-vars": "error",
     "no-nested-ternary": "off",
     "semi": "error",
     "no-undef": "off",
