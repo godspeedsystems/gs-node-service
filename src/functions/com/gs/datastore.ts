@@ -9,15 +9,15 @@ import {GSStatus} from '../../../core/interfaces';
  */
 export default async function(args:{[key:string]:any;}) {
   const ds = args.datasource;
-  const prismaMethod = <Function>getAtPath(ds.client, args.config.method);  
-  if (!prismaMethod) {
-    const entityType = args.config.method.substring(0, args.config.method.indexOf('.'));
+  const prismaMethod = <Function>getAtPath(ds.client, args.config.method); 
+  
+  if (!prismaMethod) { //Oops!
+    const {entityType, method} = args.config.method.split('.')
     //Check whether the entityType specified is wrong or the method
     if (!ds.client[entityType]) {
       return new GSStatus(false, 400, `Invalid entity type "${entityType}" in query`);
     }
-    //The method specified must be wrong.
-    const method = args.config.method.substring(args.config.method.indexOf('.') + 1);
+    //If not the entity type, the method specified must be wrong.
     return new GSStatus(false, 500, `Invalid CRUD method "${method}" called on the server side`);
   }
   try {
