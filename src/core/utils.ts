@@ -1,7 +1,9 @@
 import { PlainObject } from "./common";
 import { logger } from './logger';
 import { GSStatus } from './interfaces';
-
+const { dirname } = require('path');
+//@ts-ignore
+export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
 export function getAtPath(obj: PlainObject, path: string) {
   const keys = path.split('.');
