@@ -3,6 +3,14 @@ import { loadFunctions } from '../core/functionLoader';
 import { fail } from 'assert';
 import { GSFunction, GSSeriesFunction, GSParallelFunction, GSSwitchFunction } from '../core/interfaces';
 import { PlainObject } from '../core/common';
+import { logger } from '../core/logger';
+
+/*
+ For all the functions which doesn't return JSON output and return some specific
+ output, separate *.test.ts file needs to be created for each such test case.
+ Mention each test case and its expected result separately.
+ This is test case file for loadFunctions function. 
+*/
 
 const testName = path.basename(__filename).split('.')[0]
 const pathString:string = path.join(__dirname, 'fixtures', testName, '/functions')
@@ -24,9 +32,10 @@ const datasources:PlainObject = {
 describe(testName, () => {
     it('should load subWorkflows successfully', async () => {
         try {
+            logger.debug('pathString: %s',pathString)
             const result = await loadFunctions(datasources, pathString);
+            logger.debug('keys of result: %s',Object.keys(result))
             const sub_wf_function = result.functions['another_wf'];
-            //expect(result).to.be.equal({success: true});
             expect(result.success).to.be.equal(true);
 
             // Check another_wf nested properties
@@ -48,7 +57,9 @@ describe(testName, () => {
     });
     it('should load switch workflow successfully', async () => {
         try {
+            logger.debug('pathString: %s',pathString)
             const result = await loadFunctions(datasources, pathString);
+            logger.debug('keys of result: %s',Object.keys(result))
             const wf_function = result.functions['switch_wf'];
             expect(result.success).to.be.equal(true);
 

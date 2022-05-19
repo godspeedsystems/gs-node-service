@@ -4,12 +4,15 @@ export default async function() {
     const datasources = await loadDatasources(__dirname + '/datasources'); 
     const args = {
         config: {
-            "method": "get",
-            "url": "/get123"
+            "method": "post",
+            "url": "/anything"
+        },
+        data: {
+            "TestData":"user1"
         },
         params: null,
         datasource: undefined
     }
-    args.datasource = datasources.swagger_ui;
+    args.datasource = datasources.swagger_base;
     return args
 }

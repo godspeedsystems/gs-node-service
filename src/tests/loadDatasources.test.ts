@@ -1,6 +1,13 @@
 import { describe, it, expect, glob, path, fs, expectObj } from './common';
 import loadDatasources from '../core/datasourceLoader';
 import { fail } from 'assert';
+import { logger } from '../core/logger';
+
+/*
+ For all the functions which doesn't return JSON output and return some specific
+ output, separate *.test.ts file needs to be created for each such test case.
+ Mention each test case and its expected result separately.
+*/
 
 const testName = path.basename(__filename).split('.')[0]
 const pathString:string = path.join(__dirname, 'fixtures', testName)
@@ -8,7 +15,9 @@ const pathString:string = path.join(__dirname, 'fixtures', testName)
 describe(testName, () => {
     it('should load idfc datasource', async () => {
         try {
+            logger.debug('pathString: %s',pathString)
             const result = await loadDatasources(pathString);
+            logger.debug('keys of result: %s',Object.keys(result))
             const datasource = result.idfc;
 
             expect(datasource).to.have.keys('client','schema')
@@ -26,7 +35,9 @@ describe(testName, () => {
     });
     it('should load growthsource datasource having config values', async () => {
         try {
+            logger.debug('pathString: %s',pathString)
             const result = await loadDatasources(pathString);
+            logger.debug('keys of result: %s',Object.keys(result))
             const datasource = result.growthsource;
 
             expect(datasource).to.have.keys('client','schema')

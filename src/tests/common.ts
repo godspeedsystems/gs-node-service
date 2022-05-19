@@ -6,7 +6,6 @@ import fs from 'fs';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 
-logger.level = "silent";
 const describe = mocha.describe;
 const it = mocha.it;
 const expect = chai.expect;
@@ -18,7 +17,9 @@ const fixDir = path.join(__dirname , 'fixtures')
  Read *.output files of all sub directories inside fixtures/ directory
  and put them in expectObj
 */
+logger.debug('Reading all *.output files under %s',fixDir)
 fs.readdir(fixDir, function (err, subDir) {
+    logger.debug('Reading *.output files from %s',subDir)
     subDir.forEach(function (dir) {
         expectObj[dir] = {};
         glob( path.join(__dirname , 'fixtures' , dir , '/*.?(output)'), function (err:Error|null, res: string[]) {

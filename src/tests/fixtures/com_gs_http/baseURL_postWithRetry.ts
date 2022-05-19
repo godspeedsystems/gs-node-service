@@ -5,11 +5,17 @@ export default async function() {
     const args = {
         config: {
             "method": "get",
-            "url": "/get123"
+            "url": "/status_get",
+            "timeout": 10
+        },
+        retry: {
+            "max_attempts": 5,
+            "type": "constant",
+            "interval": 2000
         },
         params: null,
         datasource: undefined
     }
-    args.datasource = datasources.swagger_ui;
+    args.datasource = datasources.swagger_base;
     return args
 }

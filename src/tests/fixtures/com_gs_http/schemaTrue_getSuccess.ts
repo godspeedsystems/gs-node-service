@@ -8,11 +8,6 @@ export default async function() {
             "url": "/get"
         },
         params: null,
-        retry: {
-            "maxAttempt": 5,
-            "type": "constant",
-            "interval": 900000
-        },
         datasource: undefined
     }
     args.datasource = datasources.swagger_ui;
