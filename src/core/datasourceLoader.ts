@@ -45,7 +45,7 @@ async function loadPrismaDsFileNames (pathString: string): Promise<PlainObject> 
       } else {
         
         res.forEach((file:string) => {
-          if (file.includes('generated-prisma-client')) {
+          if (file.includes('generated-client')) {
             return;
           }
           const id = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.').replace(/\.(prisma)/i, '').replace(/\.index$/, '');
@@ -130,7 +130,7 @@ async function loadHttpDatasource (datasource: PlainObject): Promise<PlainObject
 }
 
 async function loadPrismaClient (dsName: String): Promise<PlainObject> {
-  const {PrismaClient} = require(PROJECT_ROOT_DIRECTORY + '/datasources/generated-prisma-clients/' + dsName);
+  const {PrismaClient} = require(PROJECT_ROOT_DIRECTORY + '/datasources/generated-clients/' + dsName);
   const prisma = new PrismaClient();
   await prisma.$connect();
   return {
