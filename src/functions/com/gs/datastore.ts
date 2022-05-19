@@ -10,9 +10,10 @@ import {GSStatus} from '../../../core/interfaces';
 export default async function(args:{[key:string]:any;}) {
   const ds = args.datasource;
   const prismaMethod = <Function>getAtPath(ds.client, args.config.method); 
-  
+
+  const {entityType, method} = args.config.method.split('.')
+
   if (!prismaMethod) { //Oops!
-    const {entityType, method} = args.config.method.split('.')
     //Check whether the entityType specified is wrong or the method
     if (!ds.client[entityType]) {
       return new GSStatus(false, 400, `Invalid entity type "${entityType}" in query`);
@@ -23,7 +24,7 @@ export default async function(args:{[key:string]:any;}) {
   try {
     const res = await prismaMethod(args.data);
     //logger.info('prisma res %o', res);{success, code, data, message, headers} 
-    return new GSStatus(true, responseCode(args.config.method), undefined, res);
+    return new GSStatus(true, responseCode(method), undefined, res);
   } catch (err) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
     //@ts-ignore
@@ -32,22 +33,22 @@ export default async function(args:{[key:string]:any;}) {
 }
 
 function responseCode (method: string): number {
-  const methodType = method.substring(method.indexOf('.') + 1);
-  return response_codes[methodType] || 200;
+  return response_codes[method] || 200;
 }
+
 const response_codes: {[key: string]: number} = {
-  find:200,
-  findFirst:200,
-  findUnique:200,
-  findMany:200,
-  create:201,
-  createMany:201,
-  update:204,
-  updateMany:204,
-  upsert:201,
-  delete:202,
-  deleteMany:202,
-  count:200,
-  aggregate:200,
-  groupBy:200,
+  find: 200,
+  findFirst: 200,
+  findUnique: 200,
+  findMany: 200,
+  create: 201,
+  createMany: 201,
+  update: 204,
+  updateMany: 204,
+  upsert: 201,
+  delete: 202,
+  deleteMany: 202,
+  count: 200,
+  aggregate: 200,
+  groupBy: 200,
 }
