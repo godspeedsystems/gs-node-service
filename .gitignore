@@ -5,5 +5,4 @@ node_modules
 dist
 build
 project
-package-lock.json
 yarn-error.log
