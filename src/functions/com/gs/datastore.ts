@@ -23,7 +23,7 @@ export default async function(args:{[key:string]:any;}) {
   try {
     const res = await prismaMethod(args.data);
     //logger.info('prisma res %o', res);{success, code, data, message, headers} 
-    return new GSStatus(true, code(args.config.method), undefined, res);
+    return new GSStatus(true, responseCode(args.config.method), undefined, res);
   } catch (err) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
     //@ts-ignore
@@ -31,7 +31,7 @@ export default async function(args:{[key:string]:any;}) {
   }
 }
 
-function code (method: string): number {
+function responseCode (method: string): number {
   const methodType = method.substring(method.indexOf('.') + 1);
   return response_codes[methodType] || 200;
 }
