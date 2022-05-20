@@ -240,7 +240,7 @@ async function main() {
         try {
           // Execute the workflow
           await eventHandlerWorkflow(ctx);
-        } catch (err) {
+        } catch (err: any) {
           logger.error( `Error in executing handler ${events[event.type].fn} for the event ${event.type}`, JSON.stringify(err));
           // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
           if (event.channel !== 'REST') {
@@ -274,35 +274,36 @@ async function main() {
 
           // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
           eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.args[eventHandlerWorkflow.args.length - 1].id];
+          if (eventHandlerStatus.success) {
+            // Check the handler's reponse data now, against the event's response schema
 
-          // Check the handler's reponse data now, against the event's response schema
+            valid_status = validateResponseSchema(event.type, eventHandlerStatus);
 
-          valid_status = validateResponseSchema(event.type, eventHandlerStatus);
-
-          if (valid_status.success) {
-              logger.info(valid_status, 'Validate Response JSON Schema Success')
-          } else {
-              logger.error(valid_status, 'Validate Response JSON Schema Error');
-               // Reinitialize eventHandlerStatus with data for response validation erro
-              eventHandlerStatus = new GSStatus(false, 500, 'Internal server error. Server created wrong response object, not compatible with the event\'s response schema.')
+            if (valid_status.success) {
+                logger.info(valid_status, 'Validate Response JSON Schema Success')
+            } else {
+                logger.error(valid_status, 'Validate Response JSON Schema Error');
+                // Reinitialize eventHandlerStatus with data for response validation erro
+                eventHandlerStatus = new GSStatus(false, 500, 'Internal server error. Server created wrong response object, not compatible with the event\'s response schema.')
+            }
           }
         }
         
         //Now send the actual response over REST, for both the success and failure scenarios
-        if (eventHandlerStatus.success) {
+        if (eventHandlerStatus?.success) {
             logger.debug(eventHandlerStatus, 'Request Successful End');
             responseStructure.data = {
-                items: [ eventHandlerStatus.data ]
+                items: [ eventHandlerStatus?.data ]
             };
-            (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus.code || 200).send(responseStructure);
+            (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code || 200).send(responseStructure);
         } else {
             logger.error(eventHandlerStatus, 'Response Error End');
             responseStructure.error = {
-                code: eventHandlerStatus.code ?? 500,
-                message: eventHandlerStatus.message,
-                errors: [ eventHandlerStatus.data ]
+                code: eventHandlerStatus?.code ?? 500,
+                message: eventHandlerStatus?.message,
+                errors: [ eventHandlerStatus?.data ]
             };
-            (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus.code ?? 500).send(responseStructure);
+            (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code ?? 500).send(responseStructure);
         }
 
     }
