@@ -77,7 +77,7 @@ export class GSFunction extends Function {
         this.args = args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
-              .replace(/"\s*<%([\s\S]*?)%>[\s\S]*?"/g, '$1')
+              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
               .replace(/\\"/g, '"')
               .replace(/\\n/g, ' ')
       }
@@ -107,7 +107,7 @@ export class GSFunction extends Function {
   }
 
   async _evaluateVariables(ctx: GSContext, args: any) {
-    logger.info('_evaluateVariables')
+    logger.info('_evaluateVariables %o', args)
     if (!args) {
       return;
     }
@@ -124,7 +124,7 @@ export class GSFunction extends Function {
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
-      logger.info('executing handler %s', this.id)
+      logger.info('executing handler %s %o', this.id, this.args)
       const args = await this._evaluateVariables(ctx, this.args);
 
       logger.debug('args : %s', JSON.stringify(args), this.retry)
