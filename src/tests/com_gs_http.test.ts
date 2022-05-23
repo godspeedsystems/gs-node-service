@@ -1,4 +1,4 @@
-import { describe, it, expect, glob, path, fs, expectObj } from './common';
+import { describe, it, expect, path } from './common';
 import { fail } from 'assert';
 import com_gs_http from '../functions/com/gs/http';
 import { logger } from '../core/logger';
@@ -26,6 +26,7 @@ describe(testName, () => {
             expect(result.data).to.have.keys('args','headers','origin','url');
             expect(result.headers).to.be.an('Object');
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });
@@ -42,6 +43,7 @@ describe(testName, () => {
             expect(result.data).to.have.keys('code','message');
             expect(result.headers).to.equal(undefined);
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });
@@ -58,6 +60,7 @@ describe(testName, () => {
             expect(result.data.json).to.eql({"TestData":"user1"});
             expect(result.headers).to.be.an('Object');
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });
@@ -78,6 +81,7 @@ describe(testName, () => {
             expect(result.headers).to.be.an('Object');
             */
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });

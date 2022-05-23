@@ -1,0 +1,40 @@
+summary: Parallel Multiplexing create loan for hdfc api calls
+id: parallel_fn
+tasks:
+  - id: parallel_three_step
+    fn: com.gs.parallel
+    tasks:
+      - id: 1st
+        description: parallel_1
+        fn: com.gs.http
+        args:
+          datasource: httpbin
+          params:
+          data:
+              task_id: "parallel task1"
+          config:
+            url : /anything
+            method: post      
+      - id: 2nd
+        description: parallel_2
+        fn: com.gs.http
+        args:
+          datasource: httpbin
+          params:
+          data:
+              task_id: "parallel task2"
+          config:
+            url : /anything
+            method: post      
+      - id: 3rd
+        description: parallel_3
+        fn: com.gs.http
+        args:
+          datasource: httpbin
+          params:
+          data:
+              task_id: "parallel task3"
+          config:
+            url : /anything
+            method: post 
+            

@@ -9,7 +9,6 @@ import { logger } from '../core/logger';
  For all the functions which doesn't return JSON output and return some specific
  output, separate *.test.ts file needs to be created for each such test case.
  Mention each test case and its expected result separately.
- This is test case file for loadFunctions function. 
 */
 
 const testName = path.basename(__filename).split('.')[0]
@@ -52,6 +51,7 @@ describe(testName, () => {
             expect(sub_wf_function.args[0].fn.args[1]).to.be.instanceOf(GSFunction)
             expect(sub_wf_function.args[0].fn.args[1].fn).to.be.instanceOf(Function)
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });
@@ -79,6 +79,7 @@ describe(testName, () => {
             expect(wf_function.args[1]).to.be.instanceOf(GSFunction)
             expect(wf_function.args[1].fn).to.be.instanceOf(Function)
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });

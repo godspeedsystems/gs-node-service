@@ -19,6 +19,7 @@ describe(testName, () => {
             logger.debug('result: %s',result)
             expect(result).to.be.equal('return single arg');
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });
@@ -28,6 +29,7 @@ describe(testName, () => {
             logger.debug('result: %s',result)
             expect(result).to.eql(['return', 'multiple', 'arg']);
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });
@@ -37,6 +39,7 @@ describe(testName, () => {
             logger.debug('result: %s',result)
             expect(result).to.eql([]);
         } catch(error) {
+            logger.error('error: %s',<Error>error)
             fail(<Error>error);
         }
     });

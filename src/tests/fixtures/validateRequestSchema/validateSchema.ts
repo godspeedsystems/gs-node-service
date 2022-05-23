@@ -95,11 +95,10 @@ const sampleEvents:PlainObject = {
 
 loadJsonSchemaForEvents(sampleEvents)
 
-const date = new Date('2022-05-11');
 const event = new GSCloudEvent(
    'loan-application',
    '/v1/loan-application.http.post',
-   date,
+   new Date(),
    'test1',
    '1.0',
    {

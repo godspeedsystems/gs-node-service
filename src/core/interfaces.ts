@@ -70,7 +70,21 @@ export class GSFunction extends Function {
         if (args.config?.url) {
           args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>')
         }
-        args = JSON.stringify(args);
+
+        let stringify;
+        stringify = true;
+        for(let f in args) {
+          if (args[f] instanceof GSFunction) {
+            stringify = false
+            break;
+          }
+        }
+        logger.debug('stringify: ',stringify)
+        
+        if (stringify) {
+          args = JSON.stringify(args);
+          this.args = args;
+        }
       }
 
       if (_fn && args.includes('<%') && args.includes('%>')) {
