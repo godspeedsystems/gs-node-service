@@ -1,10 +1,11 @@
 import { PlainObject } from "./common";
 import { logger } from './logger';
 import { GSStatus } from './interfaces';
-import config from 'config';
+const { dirname } = require('path');
+//@ts-ignore
+export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
 //like Lodash _.get method
-
 export function getAtPath(obj: PlainObject, path: string) {
   const keys = path.split('.');
   for (const key of keys) {
@@ -16,8 +17,8 @@ export function getAtPath(obj: PlainObject, path: string) {
   }
   return obj;
 }
-//like Lodash _.set method
 
+//like Lodash _.set method
 export function setAtPath(o: PlainObject, path: string, value: any) {
   const keys = path.split('.');
   let obj = o;
@@ -54,24 +55,4 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
     }
   }
   return new GSStatus(true, undefined);
-}
-
-export function expandVariable(value: string) {
-  try {
-    if ((value as string).includes('<%')) {
-      console.log("value before:", value)
-      logger.debug('value before %s', value)
-
-      value = (value as string).replace(/"?<%\s*(.*?)\s*%>"?/, '$1');
-      //TODO: pass other context variables
-      console.log("config:;;", config)
-      value = Function('config', 'return ' + value)(config);
-      console.log("after value:", value)
-      logger.debug('value after %s', value)
-    }
-  } catch (ex) {
-    //console.error(ex);
-    logger.error(ex);
-  }
-  return value;
 }
