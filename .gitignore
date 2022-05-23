@@ -7,3 +7,4 @@ build
 project
 coverage
 .nyc_output
+yarn-error.log

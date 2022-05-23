@@ -1,5 +1,5 @@
 import { describe, it, expect, glob, path, fs, expectObj } from './common';
-import { expandVariable } from '../core/utils';
+import expandVariable from '../core/expandVariables';
 import { fail } from 'assert';
 import { logger } from '../core/logger';
 

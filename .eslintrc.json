@@ -1,9 +1,26 @@
 {
-  "extends": ["airbnb", "prettier", "plugin:node/recommended"],
-  "plugins": ["prettier"],
+  "extends": [  
+    "airbnb",
+    "prettier",
+    "plugin:node/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript",
+    "plugin:jsx-a11y/recommended",
+    "plugin:prettier/recommended"
+    ],
+  "plugins": [
+    "prettier",
+    "@typescript-eslint"
+  ],
+  "env" : {
+    "browser" : true,
+    "node" : true,
+    "es6" : true
+  },  
   "rules": {
     "as-needed": "off",
-    "no-unused-vars": "warn",
+    "no-unused-vars": "error",
     "no-nested-ternary": "off",
     "semi": "error",
     "no-undef": "off",
@@ -47,5 +64,13 @@
     "no-plusplus": "off", 
     "no-multi-assign": "off"
 
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "ecmaFeatures": {
+        "jsx": true // Allows for the parsing of JSX
+    }
   }
 }

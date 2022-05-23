@@ -8,7 +8,9 @@
     "test-cov": "nyc --reporter=html --reporter=text npm test",
     "dev": "PORT=3000 nodemon ./dist/app.js",
     "clean": "rm -rf project build dist coverage",
-    "build": "mkdir -p build && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc"
+    "lint": "eslint . --ext .ts --format table",
+    "service-build": "mkdir -p build && cp -r src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' dist/ && npm install && ./node_modules/typescript/bin/tsc",
+    "build": "mkdir -p build project/src && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc"
   },
   "author": "",
   "license": "ISC",
@@ -29,10 +31,12 @@
     "form-data": "^4.0.0",
     "glob": "^8.0.1",
     "js-yaml": "^4.1.0",
+    "kafkajs": "^2.0.0",
     "openapi-client-axios": "^5.1.2",
     "parse-duration": "^1.0.2",
     "pino": "^7.11.0",
     "pino-debug": "^2.0.0",
+    "prisma": "^3.14.0",
     "rambda": "^7.0.3",
     "yaml": "^2.0.0",
     "yarn": "^1.22.18"
@@ -50,11 +54,20 @@
     "@types/mocha": "^9.1.1",
     "@types/node": "^17.0.23",
     "chai": "^4.3.6",
-    "copyfiles": "^2.4.1",
     "mocha": "^10.0.0",
-    "nodemon": "^2.0.15",
     "nyc": "^15.1.0",
     "pino-pretty": "^7.6.1",
+    "@typescript-eslint/eslint-plugin": "^5.23.0",
+    "@typescript-eslint/parser": "^5.23.0",
+    "copyfiles": "^2.4.1",
+    "eslint": "^8.15.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-formatter-table": "^7.32.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "nodemon": "^2.0.15",
+    "prettier": "2.6.2",
     "typescript": "^4.6.3"
   }
 }
