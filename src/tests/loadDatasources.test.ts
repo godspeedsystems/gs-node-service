@@ -42,10 +42,10 @@ describe(testName, () => {
 
             expect(datasource).to.have.keys('client','schema')
             expect(datasource.client).to.have.keys('request','getUri','delete','get','head','options','post','put','patch','defaults','interceptors','create')
-            expect(datasource.client.defaults.baseURL).to.be.equal('http://127.0.0.1:8098/lending/gs/api');
+            expect(datasource.client.defaults.baseURL).to.be.equal('https://partner-uat.growthsourceft.com');
             expect(datasource.client.defaults.headers.common).to.have.keys('Accept','x-api-key','Authorization');
             expect(datasource.client.defaults.headers.common?.['x-api-key']).to.be.equal('plpinelabs');
-            expect(datasource.client.defaults.headers.common.Authorization).to.be.equal('basic 2b6a50d0-2090-11ec-a119-a7656cbcab18');
+            expect(datasource.client.defaults.headers.common.Authorization).to.be.equal('679e36a018524e6dbfd3f184059b29f0');
         } catch(error) {
             fail(<Error>error);
         }

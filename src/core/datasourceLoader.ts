@@ -10,8 +10,8 @@ import {PROJECT_ROOT_DIRECTORY} from './utils';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources')
-  let yamlDatasources = await loadYaml(PROJECT_ROOT_DIRECTORY + '/datasources', false);
-  const prismaDatasources = await loadPrismaDsFileNames(PROJECT_ROOT_DIRECTORY + '/datasources');
+  let yamlDatasources = await loadYaml(pathString, false);
+  const prismaDatasources = await loadPrismaDsFileNames(pathString);
   const datasources = {
     ...yamlDatasources,
     ...prismaDatasources
@@ -27,7 +27,7 @@ export default async function loadDatasources(pathString:string) {
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(ds);
     } else {
-      logger.error('Found invalid datasource type %s for the datasource %s.',datasources[ds].type, ds)
+      logger.error('Found invalid datasource type %s for the datasource %s.%s',datasources[ds].type, ds)
       process.exit(1);
     }
   }

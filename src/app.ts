@@ -15,6 +15,7 @@ import { loadFunctions } from './core/functionLoader';
 
 import {loadJsonSchemaForEvents, validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import loadDatasources from './core/datasourceLoader';
+import {PROJECT_ROOT_DIRECTORY} from './core/utils';
 
 function JsonnetSnippet(plugins:any) {
     let snippet = `local inputs = std.extVar('inputs');
@@ -91,8 +92,8 @@ async function main() {
     const ee = new EventEmitter({ captureRejections: true });
     ee.on('error', logger.error.bind(logger));
 
-    const datasources = await loadDatasources(__dirname + '/datasources');
-    const loadFnStatus = await loadFunctions(datasources,__dirname + '/functions');
+    const datasources = await loadDatasources(PROJECT_ROOT_DIRECTORY + '/datasources');
+    const loadFnStatus = await loadFunctions(datasources,PROJECT_ROOT_DIRECTORY + '/functions');
     if (loadFnStatus.success) {
         functions = loadFnStatus.functions
     } else {
