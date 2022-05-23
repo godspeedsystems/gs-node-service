@@ -1,6 +1,3 @@
-import EventEmitter from 'events';
-
-
 import express from 'express';
 import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeriesFunction, GSStatus, GSSwitchFunction, GSResponse} from './core/interfaces';
 
@@ -17,6 +14,7 @@ import loadModules from './core/codeLoader';
 import {loadJsonSchemaForEvents, validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import { checkDatasource } from './core/utils';
 import loadDatasources from './core/datasourceLoader';
+import KafkaMessageBus from './kafka';
 
 function JsonnetSnippet(plugins:any) {
     let snippet = `local inputs = std.extVar('inputs');
@@ -130,31 +128,29 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
     return loadFnStatus
 }
 
-
-
-
-async function loadEvents(ee: EventEmitter, processEvent: (...args: any[]) => void) {
+async function loadEvents() {
     logger.info('Loading events')
     const events = await loadYaml(__dirname + '/events', true)
     logger.debug(events,'events')
     logger.info('Loaded events: %s',Object.keys(events))
 
-    loadJsonSchemaForEvents(events)
-
-    //TODO Handle index.yaml events and nested directories
-    for (let e in events) {
-        ee.on(e, processEvent)
-    }
+    loadJsonSchemaForEvents(events);
 
     return events
 }
 
-function subscribeToEvents(ee: EventEmitter, events: any) {
+function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
+    //@ts-ignore
+    logger.info('Creating to kafka bus %o', config.kafka);
 
+    //@ts-ignore
+    let kafka = new KafkaMessageBus(config.kafka);
+    
     for (let route in events) {
+        let originalRoute = route;
+
         if (route.includes('.http.')) {
             let method = 'get';
-            let originalRoute = route;
 
             [route, method] = route.split('.http.')
             route = route.replace(/{(.*?)}/g, ":$1");
@@ -174,11 +170,12 @@ function subscribeToEvents(ee: EventEmitter, events: any) {
                     //@ts-ignore
                     files: Object.values(req.files || {}),
                 }, 'REST', new GSActor('user'),  {http: {express:{res}}});
-                ee.emit(originalRoute, event);
+                processEvent(event);
             })
         } else  if (route.includes('.kafka.')) {
             let [topic, groupId] = route.split('.kafka.')
-            logger.info('registering kafka handler %s %s', topic, groupId)
+            logger.info('registering kafka handler %s %s', topic, groupId);
+            kafka.subscribe(topic, groupId, processEvent, originalRoute);
         }
     }
 }
@@ -187,15 +184,13 @@ async function main() {
     logger.info('Main execution');
     let functions:PlainObject;
 
-    const ee = new EventEmitter({ captureRejections: true });
-    ee.on('error', logger.error.bind(logger));
-
     const datasources = await loadDatasources();
     const loadFnStatus = await loadFunctions(datasources);
     if (loadFnStatus.success) {
         functions = loadFnStatus.functions
     } else {
-        ee.emit('error', new Error(JSON.stringify(loadFnStatus)));
+        logger.error('Unable to load functions exiting...');
+        process.exit(1);
     }
 
     const plugins = await loadModules(__dirname + '/plugins', true);
@@ -305,11 +300,10 @@ async function main() {
             };
             (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code ?? 500).send(responseStructure);
         }
-
     }
 
-    const events = await loadEvents(ee, processEvent);
-    subscribeToEvents(ee, events);
+    const events = await loadEvents();
+    subscribeToEvents(events, processEvent);
 }
 
 main();

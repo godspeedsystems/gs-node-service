@@ -132,6 +132,10 @@ export class GSFunction extends Function {
         args.datasource = ctx.datasources[args.datasource];
       }
 
+      if ( ctx.inputs.metadata?.messagebus.kafka) {
+        args.kafka = ctx.inputs.metadata?.messagebus.kafka;
+      }
+
       if (this.retry) {
         args.retry = this.retry;
       }
@@ -311,6 +315,9 @@ export class GSCloudEvent {
       express: {
         res: object //Express response object
       }
+    },
+    messagebus: {
+      kafka: object
     },
     telemetry?: object //all the otel info captured in the incoming event headers/metadata
   };
