@@ -140,11 +140,10 @@ async function loadEvents() {
 }
 
 function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
-    //@ts-ignore
-    logger.info('Creating to kafka bus %o', config.kafka);
+    
 
     //@ts-ignore
-    let kafka = new KafkaMessageBus(config.kafka);
+    let kafka ;
     
     for (let route in events) {
         let originalRoute = route;
@@ -175,6 +174,12 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
         } else  if (route.includes('.kafka.')) {
             let [topic, groupId] = route.split('.kafka.');
             logger.info('registering kafka handler %s %s', topic, groupId);
+            if (!kafka) {
+              //@ts-ignore
+              logger.info('Creating to kafka bus %o', config.kafka);
+              //@ts-ignore
+              kafka = new KafkaMessageBus(config?.kafka);
+            }
             kafka.subscribe(topic, groupId, processEvent, originalRoute);
         }
     }
@@ -268,7 +273,7 @@ async function main() {
         if (successfulExecution) { // Means no error happened
 
           // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
-          eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.args[eventHandlerWorkflow.args.length - 1].id];
+          eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id];
           if (eventHandlerStatus.success) {
             // Check the handler's reponse data now, against the event's response schema
 
