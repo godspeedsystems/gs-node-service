@@ -18,7 +18,6 @@ describe(testName, () => {
 
         try {
             const result = expandVariable("<%config.api_version%>");
-            console.log("result: --++--++--", result)
 
             logger.debug('result: %s', result)
             expect(result).to.be.equal("1.0");
@@ -26,7 +25,6 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
-
 
 });
 

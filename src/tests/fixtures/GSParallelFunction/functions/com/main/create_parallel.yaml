@@ -4,7 +4,7 @@ tasks:
   - id: parallel_three_step
     fn: com.gs.parallel
     tasks:
-      - id: 1st
+      - id: one
         description: parallel_1
         fn: com.gs.http
         args:
@@ -15,26 +15,13 @@ tasks:
           config:
             url : /anything
             method: post      
-      - id: 2nd
+      - id: two
         description: parallel_2
-        fn: com.gs.http
+        fn: com.gs.transform
+        args: "parallel task2"    
+      - id: three
+        fn: com.main.sum
         args:
-          datasource: httpbin
-          params:
-          data:
-              task_id: "parallel task2"
-          config:
-            url : /anything
-            method: post      
-      - id: 3rd
-        description: parallel_3
-        fn: com.gs.http
-        args:
-          datasource: httpbin
-          params:
-          data:
-              task_id: "parallel task3"
-          config:
-            url : /anything
-            method: post 
+          x: 5
+          y: 7
             

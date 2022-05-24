@@ -1,6 +1,5 @@
 import { describe, it, expect, path } from './common';
 import { fail } from 'assert';
-import com_gs_http from '../functions/com/gs/http';
 import { logger } from '../core/logger';
 
 /*
@@ -17,18 +16,19 @@ describe(testName, () => {
         try {
             const testId = 'parallelThreeFnSuccess'
             const result = await require(`${fixDir}/${testId}`).default();
-            //const result = await com_gs_http(args);
             logger.debug('result: %o',result)
 
-            /*
-            expect(result.success).to.equal(true);
-            expect(result.code).to.equal(200);
-            expect(result.message).to.equal('OK');
-            expect(result.data.json).to.have.keys('application_id','code','customer_consent','customer_name','date_of_birth','gender','mobile_number','pan_number','personal_email_id');
-            expect(result.data.json.personal_email_id).to.equal('ala.eforwich@email.com');
-            expect(result.data.json.gender).to.equal('O');
-            expect(result.headers).to.be.an('Object');
-            */
+            expect(result.one).to.be.an('Object');
+            expect(result.one.success).to.equal(true);
+            expect(result.one.code).to.equal(200);
+            expect(result.one.message).to.equal('OK');
+            expect(result.one.data.json.task_id).to.equal('parallel task1');
+            expect(result.two).to.be.an('Object');
+            expect(result.two.success).to.equal(true);
+            expect(result.two.data).to.equal('parallel task2');
+            expect(result.three).to.be.an('Object');
+            expect(result.three.success).to.equal(true);
+            expect(result.three.data).to.equal(12);
         } catch(error) {
             logger.error('error: %s',<Error>error)
             fail(<Error>error);
