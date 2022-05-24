@@ -125,7 +125,42 @@ export class GSFunction extends Function {
       ${args}
     `
     logger.debug('snippet: %s',snippet)
-    return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
+    try {
+      return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
+    } catch (err: any) {
+      ctx.exitWithStatus = new GSStatus(
+        false,
+        undefined,
+        err.message,
+        err.stack
+      );;
+    }
+    
+  }
+
+  async _evaluateConditions(ctx: GSContext, condition: any) {
+    logger.info('_evaluateConditions %o', condition)
+    if (!condition) {
+      return;
+    }
+
+    let snippet = ctx.jsonnetSnippet;
+
+    snippet += `
+      local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
+      ${condition}
+    `
+    logger.debug('snippet: %s',snippet)
+    try {
+      return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
+    } catch (err: any) {
+      ctx.exitWithStatus = new GSStatus(
+        false,
+        undefined,
+        err.message,
+        err.stack
+      );;
+    }
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
@@ -133,7 +168,7 @@ export class GSFunction extends Function {
       logger.info('executing handler %s %o', this.id, this.args)
       const args = await this._evaluateVariables(ctx, this.args);
 
-      logger.debug('args : %s', JSON.stringify(args), this.retry)
+      logger.debug('args after evaluation: %s', JSON.stringify(args), this.retry)
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
@@ -154,7 +189,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args)
       }
 
-      logger.info(res,'result of _executeFn')
+      logger.info(`Result of _executeFn is ${typeof res === 'string' ? res: JSON.stringify(res)}`)
 
       if (res instanceof GSStatus) {
         return res;
@@ -227,6 +262,10 @@ export class GSFunction extends Function {
 }
 
 export class GSSeriesFunction extends GSFunction {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+    super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
+    this.dontEvaluateVars = true;
+  }
   override async _call(ctx: GSContext) {
     logger.info('GSSeriesFunction')
     logger.debug(this.args,'inside series executor')
@@ -236,6 +275,11 @@ export class GSSeriesFunction extends GSFunction {
       logger.debug(child)  //Not displaying the object --> Need to check
       await child(ctx);
       finalId = child.id;
+      if (ctx.exitWithStatus) {
+        ctx.outputs[this.id] = ctx.exitWithStatus;
+        return;
+      }
+     
       logger.debug('finalID: %s',finalId)
     }
     logger.debug('this.id: %s, finalId: %s', this.id, finalId)
@@ -244,6 +288,10 @@ export class GSSeriesFunction extends GSFunction {
 }
 
 export class GSParallelFunction extends GSFunction {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+    super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
+    this.dontEvaluateVars = true;
+  }
   override async _call(ctx: GSContext) {
     logger.info('GSParallelFunction')
     logger.debug(this.args,'inside parallel executor')
@@ -260,6 +308,10 @@ export class GSParallelFunction extends GSFunction {
 }
 
 export class GSSwitchFunction extends GSFunction {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+    super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
+    this.dontEvaluateVars = true;
+  }
   override async _call(ctx: GSContext) {
     logger.info('GSSwitchFunction')
     logger.debug(this.args, 'inside switch executor')
@@ -268,7 +320,7 @@ export class GSSwitchFunction extends GSFunction {
     const [condition, cases] = this.args!;
     logger.debug('condition: %s' , condition)
     logger.debug('condition after replace: %s' , condition.replace(/<%\s*(.*?)\s*%>/g, '$1'))
-    let value = await this._evaluateVariables(ctx, condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
+    let value = await this._evaluateConditions(ctx, condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
 
     if (cases[value]) {
       await cases[value](ctx);
@@ -367,6 +419,7 @@ export class GSContext { //span executions
   mappings: any;
   jsonnetSnippet: string;
   plugins: PlainObject;
+  exitWithStatus?: GSStatus;
 
   constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
     this.inputs = event;

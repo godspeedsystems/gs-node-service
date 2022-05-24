@@ -180,7 +180,7 @@ async function main() {
         if (successfulExecution) { // Means no error happened
 
           // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
-          eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.args[eventHandlerWorkflow.args.length - 1].id];
+          eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id];
           if (eventHandlerStatus.success) {
             // Check the handler's reponse data now, against the event's response schema
 
