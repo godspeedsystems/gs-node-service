@@ -138,6 +138,31 @@ export class GSFunction extends Function {
     
   }
 
+  async _evaluateConditions(ctx: GSContext, condition: any) {
+    logger.info('_evaluateConditions %o', condition)
+    if (!condition) {
+      return;
+    }
+
+    let snippet = ctx.jsonnetSnippet;
+
+    snippet += `
+      local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
+      ${condition}
+    `
+    logger.debug('snippet: %s',snippet)
+    try {
+      return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
+    } catch (err: any) {
+      ctx.exitWithStatus = new GSStatus(
+        false,
+        undefined,
+        err.message,
+        err.stack
+      );;
+    }
+  }
+
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
       logger.info('executing handler %s %o', this.id, this.args)
@@ -295,7 +320,7 @@ export class GSSwitchFunction extends GSFunction {
     const [condition, cases] = this.args!;
     logger.debug('condition: %s' , condition)
     logger.debug('condition after replace: %s' , condition.replace(/<%\s*(.*?)\s*%>/g, '$1'))
-    let value = await this._evaluateVariables(ctx, condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
+    let value = await this._evaluateConditions(ctx, condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
 
     if (cases[value]) {
       await cases[value](ctx);
