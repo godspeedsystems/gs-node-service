@@ -1,7 +1,7 @@
 import { Consumer, Kafka, Producer }  from 'kafkajs';
 import axios from 'axios';
 import { GSActor, GSCloudEvent } from '../core/interfaces';
-import { EventEmitter } from 'stream';
+import { logger } from '../core/logger';
 
 
 export default class KafkaMessageBus {
@@ -16,7 +16,11 @@ export default class KafkaMessageBus {
     async producer() {
         if (!this._producer) {
             this._producer = this.kafka.producer()
-            await this._producer.connect();
+            try {
+              await this._producer.connect();
+            } catch(error){
+              logger.error(error);
+            }
         }
 
         return this._producer;
@@ -31,22 +35,29 @@ export default class KafkaMessageBus {
         return this.consumers[groupId];
     }
 
-    async subscribe(topic: string, groupId: string, ee: EventEmitter, route: string) {
+    async subscribe(topic: string, groupId: string, processEvent:(event: GSCloudEvent)=>Promise<any>, route: string) {
         let consumer = await this.consumer(groupId);
 
         await consumer.subscribe({ topic })
+
+        const self = this;
     
         await consumer.run({
             eachMessage: async ({ topic, partition, message }) => {
+                //@ts-ignore
+                const data =  JSON.parse(message?.value?.toString());
+                logger.debug('data %o', data)
                 const event = new GSCloudEvent('id', route, new Date(message.timestamp), 'kafka', 
-                    '1.0', message, 'messagebus', new GSActor('user'),  {messagebus: {kafka: this.kafka}});
-                ee.emit(route, event);
+                    '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
+                return processEvent(event);
             },
         })
     }
 
     constructor(config: Record<string, any>) {
         this.config = config;
+
+        logger.info('Connecting to kafka %o', config);
 
         this.kafka = new Kafka({
             clientId: config.client_id,
@@ -74,7 +85,8 @@ export default class KafkaMessageBus {
                 return brokers
               },
         })
-    
+
+        //this.producer();
     }
 }
 

@@ -57,6 +57,7 @@ export class GSFunction extends Function {
   onError?: Function;
   retry?: PlainObject;
   isSubWorkflow?: boolean;
+  dontEvaluateVars: boolean = false;
 
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
@@ -70,30 +71,18 @@ export class GSFunction extends Function {
         if (args.config?.url) {
           args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>')
         }
-
-        let stringify;
-        stringify = true;
-        for(let f in args) {
-          if (args[f] instanceof GSFunction) {
-            stringify = false
-            break;
-          }
-        }
-        logger.debug('stringify: ',stringify)
-        
-        if (stringify) {
-          args = JSON.stringify(args);
-          this.args = args;
-        }
+        args = JSON.stringify(args);
       }
 
       if (_fn && args.includes('<%') && args.includes('%>')) {
         this.args = args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
-              .replace(/"\s*<%([\s\S]*?)%>[\s\S]*?"/g, '$1')
+              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
               .replace(/\\"/g, '"')
               .replace(/\\n/g, ' ')
+      } else {
+        this.dontEvaluateVars = true
       }
 
     }
@@ -121,9 +110,12 @@ export class GSFunction extends Function {
   }
 
   async _evaluateVariables(ctx: GSContext, args: any) {
-    logger.info('_evaluateVariables')
+    logger.info('_evaluateVariables %o', args)
     if (!args) {
       return;
+    }
+    if (this.dontEvaluateVars) {
+      return args;
     }
 
     let snippet = ctx.jsonnetSnippet;
@@ -138,12 +130,16 @@ export class GSFunction extends Function {
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
-      logger.info('executing handler %s', this.id)
+      logger.info('executing handler %s %o', this.id, this.args)
       const args = await this._evaluateVariables(ctx, this.args);
 
       logger.debug('args : %s', JSON.stringify(args), this.retry)
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
+      }
+
+      if ( ctx.inputs.metadata?.messagebus?.kafka) {
+        args.kafka = ctx.inputs.metadata?.messagebus.kafka;
       }
 
       if (this.retry) {
@@ -325,6 +321,9 @@ export class GSCloudEvent {
       express: {
         res: object //Express response object
       }
+    },
+    messagebus: {
+      kafka: object
     },
     telemetry?: object //all the otel info captured in the incoming event headers/metadata
   };
