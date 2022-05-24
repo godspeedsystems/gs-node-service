@@ -57,6 +57,7 @@ export class GSFunction extends Function {
   onError?: Function;
   retry?: PlainObject;
   isSubWorkflow?: boolean;
+  dontEvaluateVars: boolean = false;
 
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
@@ -80,6 +81,8 @@ export class GSFunction extends Function {
               .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
               .replace(/\\"/g, '"')
               .replace(/\\n/g, ' ')
+      } else {
+        this.dontEvaluateVars = true
       }
 
     }
@@ -111,6 +114,9 @@ export class GSFunction extends Function {
     if (!args) {
       return;
     }
+    if (this.dontEvaluateVars) {
+      return args;
+    }
 
     let snippet = ctx.jsonnetSnippet;
 
@@ -132,7 +138,7 @@ export class GSFunction extends Function {
         args.datasource = ctx.datasources[args.datasource];
       }
 
-      if ( ctx.inputs.metadata?.messagebus.kafka) {
+      if ( ctx.inputs.metadata?.messagebus?.kafka) {
         args.kafka = ctx.inputs.metadata?.messagebus.kafka;
       }
 
