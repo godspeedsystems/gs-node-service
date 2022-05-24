@@ -133,7 +133,7 @@ export class GSFunction extends Function {
       logger.info('executing handler %s %o', this.id, this.args)
       const args = await this._evaluateVariables(ctx, this.args);
 
-      logger.debug('args : %s', JSON.stringify(args), this.retry)
+      logger.debug('args after evaluation: %s', JSON.stringify(args), this.retry)
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
@@ -154,7 +154,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args)
       }
 
-      logger.info(res,'result of _executeFn')
+      logger.info(`Result of _executeFn is ${typeof res === 'string' ? res: JSON.stringify(res)}`)
 
       if (res instanceof GSStatus) {
         return res;
