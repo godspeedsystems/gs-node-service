@@ -18,13 +18,13 @@ app.use(loggerExpress);
 //     console.log('called endpoint')
 // });
 
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 3000;
 app.use(fileUpload({
     useTempFiles: true,
     limits: { fileSize: 50 * 1024 * 1024 },
 }));
 
 app.listen(port);
-logger.info('Node + Express REST API skeleton server started on port: %s', port)
+logger.info('Node + Express REST API skeleton server started on port: %s', port);
 
 export default app;

@@ -14,6 +14,6 @@ pinoDebug(logger, {
     'express:router': 'debug',
     '*': 'trace' // everything else - trace
   }
-})
+});
 
 export { logger };
