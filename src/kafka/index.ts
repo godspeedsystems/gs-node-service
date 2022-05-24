@@ -15,7 +15,7 @@ export default class KafkaMessageBus {
 
     async producer() {
         if (!this._producer) {
-            this._producer = this.kafka.producer()
+            this._producer = this.kafka.producer();
             try {
               await this._producer.connect();
             } catch(error){
@@ -38,7 +38,7 @@ export default class KafkaMessageBus {
     async subscribe(topic: string, groupId: string, processEvent:(event: GSCloudEvent)=>Promise<any>, route: string) {
         let consumer = await this.consumer(groupId);
 
-        await consumer.subscribe({ topic })
+        await consumer.subscribe({ topic });
 
         const self = this;
     
@@ -51,7 +51,7 @@ export default class KafkaMessageBus {
                     '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
                 return processEvent(event);
             },
-        })
+        });
     }
 
     constructor(config: Record<string, any>) {
@@ -67,24 +67,24 @@ export default class KafkaMessageBus {
                   headers:  {
                     Accept:  'application/vnd.api+json',
                   }
-                })
+                });
                 
-                const clusterUrl = clusterResponse.data[0].links.self
+                const clusterUrl = clusterResponse.data[0].links.self;
             
                 const brokersResponse = await axios(`${clusterUrl}/brokers`, {
                   headers: {
                     Accept: 'application/vnd.api+json',
                   }
-                })
+                });
     
                 const brokers = brokersResponse.data.map((broker: any) => {
-                  const { host, port } = broker.attributes
-                  return `${host}:${port}`
-                })
+                  const { host, port } = broker.attributes;
+                  return `${host}:${port}`;
+                });
             
-                return brokers
+                return brokers;
               },
-        })
+        });
 
         //this.producer();
     }

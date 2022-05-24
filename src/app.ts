@@ -3,7 +3,7 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import config from 'config';
 
-import app from './http_listener'
+import app from './http_listener';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
@@ -23,12 +23,12 @@ function JsonnetSnippet(plugins:any) {
     `;
 
     for (let fn in plugins) {
-        let f = fn.split('.')
+        let f = fn.split('.');
         fn = f[f.length - 1];
 
         snippet += `
             local ${fn} = std.native('${fn}');
-            `
+            `;
     }
 
     return snippet;
@@ -37,7 +37,7 @@ function JsonnetSnippet(plugins:any) {
 
 function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
 
-    logger.debug('Creating GSFunction %s', workflowJson.id)
+    logger.debug('Creating GSFunction %s', workflowJson.id);
 
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
@@ -76,7 +76,7 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
 
             args.push(cases);
 
-            logger.debug('loading switch workflow %s', JSON.stringify(workflowJson.cases))
+            logger.debug('loading switch workflow %s', JSON.stringify(workflowJson.cases));
 
             return new GSSwitchFunction(workflowJson.id, undefined, args,
                     workflowJson.summary, workflowJson.description);
@@ -85,15 +85,15 @@ function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nat
     //logger.debug('loading workflow %s',workflowJson.fn)
 
     //Load the fn for this GSFunction
-    let fn = nativeFunctions[workflowJson.fn] //First check if it's a native function
-    let subwf = false
+    let fn = nativeFunctions[workflowJson.fn]; //First check if it's a native function
+    let subwf = false;
     if (!fn) { //If not a native function, it should be a GSFunction/Json
-        const existingWorkflowData = workflows[workflowJson.fn]
+        const existingWorkflowData = workflows[workflowJson.fn];
         if (!(existingWorkflowData instanceof GSFunction) ) { //Is still a Json data, not converted to GSFunction
-            subwf = true
+            subwf = true;
             fn = workflows[workflowJson.fn] = createGSFunction(existingWorkflowData, workflows, nativeFunctions);
         } else { //Is a GSFunction already
-            fn = existingWorkflowData
+            fn = existingWorkflowData;
         }
     }
 
@@ -106,7 +106,7 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
     let functions = await loadYaml(__dirname + '/functions');
     let loadFnStatus:PlainObject;
 
-    logger.info('Loaded native functions: %s', Object.keys(code))
+    logger.info('Loaded native functions: %s', Object.keys(code));
 
     for (let f in functions) {
         const checkDS = checkDatasource(functions[f], datasources);
@@ -116,27 +116,27 @@ async function loadFunctions(datasources: PlainObject): Promise<PlainObject> {
         }
     }
 
-    logger.info('Creating workflows: %s', Object.keys(functions))
+    logger.info('Creating workflows: %s', Object.keys(functions));
 
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
             functions[f] = createGSFunction(functions[f], functions, code);
         }
     }
-    loadFnStatus = { success: true, functions: functions}
-    logger.info('Loaded workflows: %s', Object.keys(functions))
-    return loadFnStatus
+    loadFnStatus = { success: true, functions: functions};
+    logger.info('Loaded workflows: %s', Object.keys(functions));
+    return loadFnStatus;
 }
 
 async function loadEvents() {
-    logger.info('Loading events')
-    const events = await loadYaml(__dirname + '/events', true)
-    logger.debug(events,'events')
-    logger.info('Loaded events: %s',Object.keys(events))
+    logger.info('Loading events');
+    const events = await loadYaml(__dirname + '/events', true);
+    logger.debug(events,'events');
+    logger.info('Loaded events: %s',Object.keys(events));
 
     loadJsonSchemaForEvents(events);
 
-    return events
+    return events;
 }
 
 function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
@@ -151,15 +151,15 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
         if (route.includes('.http.')) {
             let method = 'get';
 
-            [route, method] = route.split('.http.')
+            [route, method] = route.split('.http.');
             route = route.replace(/{(.*?)}/g, ":$1");
 
-            logger.info('registering http handler %s %s', route, method)
+            logger.info('registering http handler %s %s', route, method);
             // @ts-ignore
             app[method](route, function(req: express.Request, res: express.Response) {
-                logger.debug('originalRoute: %s', originalRoute, req.params, req.files)
-                logger.debug('req.params: %s', req.params)
-                logger.debug('req.files: %s', req.files)
+                logger.debug('originalRoute: %s', originalRoute, req.params, req.files);
+                logger.debug('req.params: %s', req.params);
+                logger.debug('req.files: %s', req.files);
 
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
@@ -170,9 +170,9 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
                     files: Object.values(req.files || {}),
                 }, 'REST', new GSActor('user'),  {http: {express:{res}}});
                 processEvent(event);
-            })
+            });
         } else  if (route.includes('.kafka.')) {
-            let [topic, groupId] = route.split('.kafka.')
+            let [topic, groupId] = route.split('.kafka.');
             logger.info('registering kafka handler %s %s', topic, groupId);
             if (!kafka) {
               //@ts-ignore
@@ -192,7 +192,7 @@ async function main() {
     const datasources = await loadDatasources();
     const loadFnStatus = await loadFunctions(datasources);
     if (loadFnStatus.success) {
-        functions = loadFnStatus.functions
+        functions = loadFnStatus.functions;
     } else {
         logger.error('Unable to load functions exiting...');
         process.exit(1);
@@ -204,20 +204,20 @@ async function main() {
     logger.debug(plugins,'plugins');
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
-        logger.debug(events[event.type], event)
-        logger.info('Processing event %s',event.type)
+        logger.debug(events[event.type], event);
+        logger.info('Processing event %s',event.type);
         const responseStructure:GSResponse = { apiVersion: (config as any).api_version || "1.0" };
 
         let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
 
         if(valid_status.success === false)
         {
-            logger.error(valid_status, 'Failed to validate Request JSON Schema')
+            logger.error(valid_status, 'Failed to validate Request JSON Schema');
             responseStructure.error = {
                 code: valid_status.code,
                 message: valid_status.message,
                 errors: [ { message: valid_status.message, location: valid_status.data.schemaPath}]
-            }
+            };
             return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(responseStructure);
         }
         logger.info(valid_status, 'Request JSON Schema validated successfully');
@@ -225,7 +225,7 @@ async function main() {
          // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
         const eventHandlerWorkflow:GSSeriesFunction = <GSSeriesFunction>functions[events[event.type].fn];
 
-        logger.info('calling processevent, type of handler is %s',typeof(eventHandlerWorkflow))
+        logger.info('calling processevent, type of handler is %s',typeof(eventHandlerWorkflow));
 
         const ctx = new GSContext(
             config,
@@ -280,11 +280,11 @@ async function main() {
             valid_status = validateResponseSchema(event.type, eventHandlerStatus);
 
             if (valid_status.success) {
-                logger.info(valid_status, 'Validate Response JSON Schema Success')
+                logger.info(valid_status, 'Validate Response JSON Schema Success');
             } else {
                 logger.error(valid_status, 'Validate Response JSON Schema Error');
                 // Reinitialize eventHandlerStatus with data for response validation erro
-                eventHandlerStatus = new GSStatus(false, 500, 'Internal server error. Server created wrong response object, not compatible with the event\'s response schema.')
+                eventHandlerStatus = new GSStatus(false, 500, 'Internal server error. Server created wrong response object, not compatible with the event\'s response schema.');
             }
           }
         }
