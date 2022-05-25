@@ -25,6 +25,32 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
+    it('If specified path is wrong ', () => {
+        // object that will be modified
+
+        try {
+            const result = expandVariable("<%config.api%>");
+
+            logger.debug('result: %s', result)
+            expect(result).to.be.equal(undefined);
+        } catch (error) {
+            fail(<Error>error);
+        }
+    });
+    it('Cannot read value', () => {
+        // object that will be modified
+
+        try {
+            const result = expandVariable("config.log_level");
+            console.log("config.log_level:", result)
+
+            logger.debug('result: %s', result)
+
+            expect(result).to.be.equal("config.log_level");
+        } catch (error) {
+            fail(<Error>error);
+        }
+    });
 
 });
 
