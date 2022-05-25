@@ -9,17 +9,17 @@ import glob from 'glob';
 import {PROJECT_ROOT_DIRECTORY} from './utils';
 
 export default async function loadDatasources(pathString:string) {
-  logger.info('Loading datasources')
+  logger.info('Loading datasources');
   let yamlDatasources = await loadYaml(pathString, false);
   const prismaDatasources = await loadPrismaDsFileNames(pathString);
   const datasources = {
     ...yamlDatasources,
     ...prismaDatasources
-  }
-  logger.debug('Loaded datasources yaml %o prisma %o',yamlDatasources, prismaDatasources)
-  logger.info('Loaded datasources: %s',Object.keys(datasources))
+  };
+  logger.debug('Loaded datasources yaml %o prisma %o',yamlDatasources, prismaDatasources);
+  logger.info('Loaded datasources: %s',Object.keys(datasources));
 
-  const loadedDatasources:PlainObject = {}
+  const loadedDatasources:PlainObject = {};
 
   for (let ds in datasources) {
     if (datasources[ds].type === 'api') {
@@ -27,21 +27,21 @@ export default async function loadDatasources(pathString:string) {
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(ds);
     } else {
-      logger.error('Found invalid datasource type %s for the datasource %s.%s',datasources[ds].type, ds)
+      logger.error('Found invalid datasource type %s for the datasource %s.%s',datasources[ds].type, ds);
       process.exit(1);
     }
   }
-  logger.info('Finally loaded datasources: %s',Object.keys(datasources))
-  return loadedDatasources
+  logger.info('Finally loaded datasources: %s',Object.keys(datasources));
+  return loadedDatasources;
 }
 async function loadPrismaDsFileNames (pathString: string): Promise<PlainObject> {
   let basePath = path.basename(pathString);
-  let prismaSchemas: PlainObject = {}
+  let prismaSchemas: PlainObject = {};
   return new Promise((resolve, reject) => {
     glob(pathString + '/**/*.?(prisma)', function (err:Error|null, res: string[]) {
-      logger.debug('loaded prisma files: %s',res)
+      logger.debug('loaded prisma files: %s',res);
       if (err) {
-          reject(err)
+          reject(err);
       } else {
         
         res.forEach((file:string) => {
@@ -56,12 +56,12 @@ async function loadPrismaDsFileNames (pathString: string): Promise<PlainObject> 
                 type: 'datastore'
               }, 
             }
-          }
-        })
+          };
+        });
         resolve(prismaSchemas);
       }
-    })
-  })
+    });
+  });
 }
 async function loadHttpDatasource (datasource: PlainObject): Promise<PlainObject> {
   if (datasource.schema) {
@@ -70,7 +70,7 @@ async function loadHttpDatasource (datasource: PlainObject): Promise<PlainObject
     return {
         client: await api.getClient(),
         schema: true,
-    }
+    };
 } else {
    const ds = {
         client: axios.create({
@@ -81,7 +81,7 @@ async function loadHttpDatasource (datasource: PlainObject): Promise<PlainObject
 
     const security = datasource.security;
     const securitySchemes = datasource.securitySchemes;
-    logger.debug('security %o',security)
+    logger.debug('security %o',security);
 
     if (security && security.length) {
         for (let values of security) {
@@ -94,7 +94,7 @@ async function loadHttpDatasource (datasource: PlainObject): Promise<PlainObject
                     try {
                         value = expandVariables(value as string);
                         ds.client.defaults.headers.common[securityScheme.name] = <any> value;
-                        logger.debug('Adding header %s: %s',securityScheme.name,value)
+                        logger.debug('Adding header %s: %s',securityScheme.name,value);
                     } catch(ex) {
                         //console.error(ex);
                         logger.error(ex);
@@ -118,9 +118,9 @@ async function loadHttpDatasource (datasource: PlainObject): Promise<PlainObject
                     ds.client.defaults.auth = auth;
                 }
                 else if (securityScheme.scheme == 'bearer') {
-                    ds.client.defaults.headers.common['Authorization'] = `Bearer ${expandVariables(value as string)}`;
+                    ds.client.defaults.headers.common.Authorization = `Bearer ${expandVariables(value as string)}`;
                 } else {
-                    ds.client.defaults.headers.common['Authorization'] = `${securityScheme.scheme} ${expandVariables(value as string)}`;
+                    ds.client.defaults.headers.common.Authorization = `${securityScheme.scheme} ${expandVariables(value as string)}`;
                 }
             }
         }
@@ -136,5 +136,5 @@ async function loadPrismaClient (dsName: String): Promise<PlainObject> {
   return {
     client: prisma,
     //any other config params
-  }
+  };
 }

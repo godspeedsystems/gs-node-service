@@ -9,8 +9,8 @@ import { logger } from '../core/logger';
  Mention each test case and its expected result separately.
 */
 
-const testName = path.basename(__filename).split('.')[0]
-const fixDir: string = path.join(__dirname, 'fixtures', testName)
+const testName = path.basename(__filename).split('.')[0];
+const fixDir: string = path.join(__dirname, 'fixtures', testName);
 
 describe(testName, () => {
     it(' sets the given value at the specified path and returns the modified object', () => {
@@ -19,7 +19,7 @@ describe(testName, () => {
         try {
             const result = expandVariable("<%config.api_version%>");
 
-            logger.debug('result: %s', result)
+            logger.debug('result: %s', result);
             expect(result).to.be.equal("1.0");
         } catch (error) {
             fail(<Error>error);
@@ -31,7 +31,7 @@ describe(testName, () => {
         try {
             const result = expandVariable("<%config.api%>");
 
-            logger.debug('result: %s', result)
+            logger.debug('result: %s', result);
             expect(result).to.be.equal(undefined);
         } catch (error) {
             fail(<Error>error);
@@ -42,9 +42,9 @@ describe(testName, () => {
 
         try {
             const result = expandVariable("config.log_level");
-            console.log("config.log_level:", result)
+            console.log("config.log_level:", result);
 
-            logger.debug('result: %s', result)
+            logger.debug('result: %s', result);
 
             expect(result).to.be.equal("config.log_level");
         } catch (error) {

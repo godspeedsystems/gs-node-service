@@ -10,7 +10,7 @@ export function randomString(length: number, characters: string) {
     for(let i = 0; i < length; i++ ) {
         let c = characters.charAt(Math.floor(Math.random() * charactersLength));
         if (!result && c == '0') {
-            continue
+            continue;
         }
 
         result += c;

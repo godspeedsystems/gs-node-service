@@ -9,8 +9,8 @@ import { logger } from '../core/logger';
  output, separate *.test.ts file needs to be created for each such test case.
  Mention each test case and its expected result separately.
 */
-const testName = path.basename(__filename).split('.')[0]
-const fixDir: string = path.join(__dirname, 'fixtures', testName)
+const testName = path.basename(__filename).split('.')[0];
+const fixDir: string = path.join(__dirname, 'fixtures', testName);
 
 describe(testName, () => {
     const object = {
@@ -22,17 +22,17 @@ describe(testName, () => {
                 'yop': 2021
             }
         }
-    }
+    };
     // path to retrieve value
-    const collegeYopPath = 'education.college.yop'
+    const collegeYopPath = 'education.college.yop';
     // falsy path to retrieve value
-    const falsyPath = 'education.college.passingYear'
+    const falsyPath = 'education.college.passingYear';
     it(' return the value at the specified path', () => {
         // object that will be queried
 
         try {
             const result = getAtPath(object, collegeYopPath);
-            logger.debug('result: %s', result)
+            logger.debug('result: %s', result);
             expect(result).to.be.equal(2021);
         } catch (error) {
             fail(<Error>error);
@@ -41,7 +41,7 @@ describe(testName, () => {
     it(' falsy path to retrieve value', () => {
         try {
             const result = getAtPath(object, falsyPath);
-            logger.debug('result: %s', result)
+            logger.debug('result: %s', result);
             expect(result).to.be.equal(undefined);
         } catch (error) {
             fail(<Error>error);
@@ -55,19 +55,19 @@ describe(testName, () => {
             'education': {
 
             }
-        }
+        };
 
         // value to set
         const collegeEducation = {
             'name': 'IIIT',
             'yop': 2021
-        }
+        };
 
         // path of the value to be set
-        const path = 'education.college'
+        const path = 'education.college';
         try {
             const result = setAtPath(object, path, collegeEducation);
-            logger.debug('result: %s', result)
+            logger.debug('result: %s', result);
             /*
             expect(result).to.be.equal({
                 "name": "Kushal Chauhan",

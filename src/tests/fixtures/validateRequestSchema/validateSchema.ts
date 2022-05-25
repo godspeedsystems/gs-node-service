@@ -91,9 +91,9 @@ const sampleEvents:PlainObject = {
         }
       }
     }
-  }
+  };
 
-loadJsonSchemaForEvents(sampleEvents)
+loadJsonSchemaForEvents(sampleEvents);
 
 const event = new GSCloudEvent(
    'loan-application',
@@ -126,9 +126,9 @@ const event = new GSCloudEvent(
    'REST',
    <GSActor>{},
    {}
-)
+);
 
-const topic = event.type
-const eventSpec = sampleEvents[topic]
+const topic = event.type;
+const eventSpec = sampleEvents[topic];
 
 export { topic, event, eventSpec };

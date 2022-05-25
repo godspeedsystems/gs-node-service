@@ -8,15 +8,15 @@ import { logger } from '../core/logger';
  Mention each test case and its expected result separately.
 */
 
-const testName = path.basename(__filename).split('.')[0]
+const testName = path.basename(__filename).split('.')[0];
 const fixDir = path.join(__dirname, 'fixtures', testName);
 
 describe(testName, () => {
-    it('parallelThreeFnSuccess', async () => {
+    it('parallelThreeFn', async () => {
         try {
-            const testId = 'parallelThreeFnSuccess'
+            const testId = 'parallelThreeFn';
             const result = await require(`${fixDir}/${testId}`).default();
-            logger.debug('result: %o',result)
+            logger.debug('result: %o',result);
 
             expect(result.one).to.be.an('Object');
             expect(result.one.success).to.equal(true);
@@ -30,7 +30,29 @@ describe(testName, () => {
             expect(result.three.success).to.equal(true);
             expect(result.three.data).to.equal(12);
         } catch(error) {
-            logger.error('error: %s',<Error>error)
+            logger.error('error: %s',<Error>error);
+            fail(<Error>error);
+        }
+    });
+    it('parallelFnSeriesOutput', async () => {
+        try {
+            const testId = 'parallelFnSeriesOutput';
+            const result = await require(`${fixDir}/${testId}`).default();
+            logger.debug('result: %o',result);
+
+            expect(result.parallel_output_task1).to.be.an('Object');
+            expect(result.parallel_output_task1.success).to.equal(true);
+            expect(result.parallel_output_task1.code).to.equal(200);
+            expect(result.parallel_output_task1.message).to.equal('OK');
+            expect(result.parallel_output_task1.data.json.task_id).to.equal('parallel task1');
+            expect(result.parallel_output_task2).to.be.an('Object');
+            expect(result.parallel_output_task2.success).to.equal(true);
+            expect(result.parallel_output_task2.data).to.equal('parallel task2');
+            expect(result.parallel_output_task3).to.be.an('Object');
+            expect(result.parallel_output_task3.success).to.equal(true);
+            expect(result.parallel_output_task3.data).to.equal(12);
+        } catch(error) {
+            logger.error('error: %s',<Error>error);
             fail(<Error>error);
         }
     });

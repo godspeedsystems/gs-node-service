@@ -35,7 +35,7 @@ function JsonnetSnippet(plugins:any) {
 async function loadInputs() {
     const testName = path.basename(__filename).split('.')[0];
     const mappings = {"Gender":{"Male":"M","Female":"F","Others":"O"}};
-    const originalRoute = '/kyc.http.post';
+    const originalRoute = '/parallel_fn_series.http.post';
     const datasources = await loadDatasources(__dirname + '/datasources');
     const loadFnStatus = await loadFunctions(datasources, __dirname + '/functions');
     if (loadFnStatus.success) {
@@ -51,7 +51,7 @@ async function loadInputs() {
     //Creating GSCloudEvent
     event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
         body: {
-            "Gender": "Others"
+            "Gender": "Male"
         },
         params: {},
         query: {},
@@ -89,5 +89,5 @@ export default async function() {
         JSON.stringify(err) //status data
     );
     }
-    return ctx.outputs[eventHandlerWorkflow.args[eventHandlerWorkflow.args.length - 1].id]; 
+    return ctx.outputs;
 }

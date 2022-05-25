@@ -7,7 +7,7 @@ import loadModules from './codeLoader';
 
 export function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
 
-    logger.debug('Creating GSFunction %s', workflowJson.id)
+    logger.debug('Creating GSFunction %s', workflowJson.id);
 
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
@@ -44,22 +44,22 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
             args.push(cases);
 
-            logger.debug('loading switch workflow %s', JSON.stringify(workflowJson.cases))
+            logger.debug('loading switch workflow %s', JSON.stringify(workflowJson.cases));
 
             return new GSSwitchFunction(workflowJson.id, undefined, args,
                     workflowJson.summary, workflowJson.description);
     }
 
     //Load the fn for this GSFunction
-    let fn = nativeFunctions[workflowJson.fn] //First check if it's a native function
-    let subwf = false
+    let fn = nativeFunctions[workflowJson.fn]; //First check if it's a native function
+    let subwf = false;
     if (!fn) { //If not a native function, it should be a GSFunction/Json
-        const existingWorkflowData = workflows[workflowJson.fn]
+        const existingWorkflowData = workflows[workflowJson.fn];
         if (!(existingWorkflowData instanceof GSFunction) ) { //Is still a Json data, not converted to GSFunction
-            subwf = true
+            subwf = true;
             fn = workflows[workflowJson.fn] = createGSFunction(existingWorkflowData, workflows, nativeFunctions);
         } else { //Is a GSFunction already
-            fn = existingWorkflowData
+            fn = existingWorkflowData;
         }
     }
 
@@ -72,7 +72,7 @@ export async function loadFunctions(datasources: PlainObject,pathString: string)
     let functions = await loadYaml(pathString);
     let loadFnStatus:PlainObject;
 
-    logger.info('Loaded native functions: %s', Object.keys(code))
+    logger.info('Loaded native functions: %s', Object.keys(code));
 
     for (let f in functions) {
         const checkDS = checkDatasource(functions[f], datasources);
@@ -82,14 +82,14 @@ export async function loadFunctions(datasources: PlainObject,pathString: string)
         }
     }
 
-    logger.info('Creating workflows: %s', Object.keys(functions))
+    logger.info('Creating workflows: %s', Object.keys(functions));
 
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
             functions[f] = createGSFunction(functions[f], functions, code);
         }
     }
-    loadFnStatus = { success: true, functions: functions}
-    logger.info('Loaded workflows: %s', Object.keys(functions))
-    return loadFnStatus
+    loadFnStatus = { success: true, functions: functions};
+    logger.info('Loaded workflows: %s', Object.keys(functions));
+    return loadFnStatus;
 }

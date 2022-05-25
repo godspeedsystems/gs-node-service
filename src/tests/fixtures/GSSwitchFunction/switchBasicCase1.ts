@@ -8,8 +8,10 @@ import loadYaml from '../../../core/yamlLoader';
 import { logger } from '../../../core/logger';
 import { GSCloudEvent, GSActor, GSContext, GSSeriesFunction, GSStatus } from '../../../core/interfaces';
 
-let functions:PlainObject, events:PlainObject;
-let ctx:GSContext, event: GSCloudEvent;
+let functions:PlainObject;
+let events:PlainObject;
+let ctx:GSContext;
+let event: GSCloudEvent;
 
 function JsonnetSnippet(plugins:any) {
     let snippet = `local inputs = std.extVar('inputs');
@@ -18,12 +20,12 @@ function JsonnetSnippet(plugins:any) {
     `;
 
     for (let fn in plugins) {
-        let f = fn.split('.')
+        let f = fn.split('.');
         fn = f[f.length - 1];
 
         snippet += `
             local ${fn} = std.native('${fn}');
-            `
+            `;
     }
 
     return snippet;
@@ -37,7 +39,7 @@ async function loadInputs() {
     const datasources = await loadDatasources(__dirname + '/datasources');
     const loadFnStatus = await loadFunctions(datasources, __dirname + '/functions');
     if (loadFnStatus.success) {
-        functions = loadFnStatus.functions
+        functions = loadFnStatus.functions;
     } else {
         logger.error('error: %s',new Error(JSON.stringify(loadFnStatus)));
     }
@@ -87,6 +89,6 @@ export default async function() {
         JSON.stringify(err) //status data
     );
     }
-    logger.debug('ctx.outputs: %o',ctx.outputs)
+    logger.debug('ctx.outputs: %o',ctx.outputs);
     return ctx.outputs[eventHandlerWorkflow.args[eventHandlerWorkflow.args.length - 1].id];
 }

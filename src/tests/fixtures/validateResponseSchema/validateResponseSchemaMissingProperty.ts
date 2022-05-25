@@ -237,9 +237,9 @@ const sampleEvents:PlainObject = {
             }
         }
     }
-  }
+  };
 
-loadJsonSchemaForEvents(sampleEvents)
+loadJsonSchemaForEvents(sampleEvents);
 
 const date = new Date('2022-05-11');
 const status = new GSStatus(
@@ -250,7 +250,7 @@ const status = new GSStatus(
             "application_id":2314            
             }
         
-)
+);
 
-const topic ='/v1/loan-application.http.post'
+const topic ='/v1/loan-application.http.post';
 export { topic, status };

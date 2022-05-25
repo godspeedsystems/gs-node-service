@@ -7,8 +7,8 @@ let config:PlainObject = {};
 
 (function loadSources() {
     config.app = iterate_yaml_directories(__dirname + '/..')['..'];
-    logger.info('Loading app configuration')
-    logger.debug(config.app,'config.app')
+    logger.info('Loading app configuration');
+    logger.debug(config.app,'config.app');
 })();
 
 export { config };

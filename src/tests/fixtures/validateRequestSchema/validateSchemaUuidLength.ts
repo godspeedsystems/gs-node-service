@@ -80,9 +80,9 @@ const sampleEvents:PlainObject = {
         }
       }
     }
-  }
+  };
 
-loadJsonSchemaForEvents(sampleEvents)
+loadJsonSchemaForEvents(sampleEvents);
 
 const date = new Date('2022-05-11');
 const event = new GSCloudEvent(
@@ -110,9 +110,9 @@ const event = new GSCloudEvent(
    'REST',
    <GSActor>{},
    {}
-)
+);
 
-const topic = event.type
-const eventSpec = sampleEvents[topic]
+const topic = event.type;
+const eventSpec = sampleEvents[topic];
 
 export { topic, event, eventSpec };

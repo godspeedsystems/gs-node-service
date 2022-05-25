@@ -1,5 +1,5 @@
-'/parallel_test.http.post': # event id. Will include path params. For ex. com.abc.do_kyc/{bank_id}/process/{user_id}
-  fn: com.main.parallelThreeFnSuccess
+'/parallel_fn_series.http.post': # event id. Will include path params. For ex. com.abc.do_kyc/{bank_id}/process/{user_id}
+  fn: com.main.parallelFnSeriesOutput
   data: 
     examples: # <string, ExampleObject>
     schema:

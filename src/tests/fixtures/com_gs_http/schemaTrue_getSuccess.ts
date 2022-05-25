@@ -9,7 +9,7 @@ export default async function() {
         },
         params: null,
         datasource: undefined
-    }
+    };
     args.datasource = datasources.swagger_ui;
-    return args
+    return args;
 }

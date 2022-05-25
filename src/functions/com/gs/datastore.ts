@@ -50,4 +50,4 @@ const response_codes: {[key: string]: number} = {
   count: 200,
   aggregate: 200,
   groupBy: 200,
-}
+};

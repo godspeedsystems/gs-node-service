@@ -16,12 +16,12 @@ export default async function(args:{[key:string]:any;}) {
     try {
         const ds = args.datasource;
         let res;
-        logger.debug('calling http client')
-        logger.debug('http client baseURL %s',ds.client.baseURL)
+        logger.debug('calling http client');
+        logger.debug('http client baseURL %s',ds.client.baseURL);
 
         if (ds.schema) {
             logger.debug('invoking with schema');
-            res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config)
+            res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config);
         } else {
             logger.info('invoking wihout schema');
             logger.debug('invoking wihout schema args: %o', args);
@@ -41,7 +41,7 @@ export default async function(args:{[key:string]:any;}) {
                 args.config.headers = {
                     ...(args.config.headers || {}),
                     ...form.getHeaders()
-                }
+                };
 
                 if (args.data) {
                     for(let k in args.data) {
@@ -56,10 +56,10 @@ export default async function(args:{[key:string]:any;}) {
                 axiosRetry(ds.client, {
                     retries: args.retry.max_attempts,
                     retryDelay: function(retryNumber: number, error: AxiosError<any, any>) {
-                        logger.debug('called retryDelay function %s', args.retry.type)
+                        logger.debug('called retryDelay function %s', args.retry.type);
                         switch (args.retry.type) {
                             case 'constant':
-                                logger.debug('called retryDelay return %s', args.retry.interval)
+                                logger.debug('called retryDelay return %s', args.retry.interval);
 
                                 return args.retry.interval;
 
@@ -67,23 +67,23 @@ export default async function(args:{[key:string]:any;}) {
                                 return getRandomInt(args.retry.min_interval, args.retry.max_interval);
 
                             case 'exponential':
-                                const delay = Math.pow(2, retryNumber) * args.retry.interval;
+                                const delay = 2**retryNumber * args.retry.interval;
                                 const randomSum = delay * 0.2 * Math.random(); // 0-20% of the delay
                                 return delay + randomSum;
                         }
 
-                        logger.debug('returning retryDelay function with 0')
+                        logger.debug('returning retryDelay function with 0');
 
                         return 0;
                     }
-                })
+                });
             }
 
             res = await ds.client({
                 ...args.config,
                 params: args.params,
                 data:  form || args.data
-            })
+            });
         }
 
         logger.debug('res', res);
@@ -101,7 +101,7 @@ export default async function(args:{[key:string]:any;}) {
                     code: (ex as Error).name,
                     message: (ex as Error).message,
                 }
-            }
+            };
         }
         return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
     }

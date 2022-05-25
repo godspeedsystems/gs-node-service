@@ -1,25 +1,25 @@
-import glob from 'glob'
+import glob from 'glob';
 import yaml from 'yaml';
 import path from 'path';
 
 import {readFileSync} from 'fs';
 
-import { PlainObject } from "./common"
+import { PlainObject } from "./common";
 import { logger } from "./logger";
 
 export default function loadYaml(pathString: string, global: boolean = false):PlainObject {
 
     let basePath = path.basename(pathString);
 
-    let api: PlainObject = {}
+    let api: PlainObject = {};
 
-    logger.info('Loading %s from %s', basePath, pathString)
+    logger.info('Loading %s from %s', basePath, pathString);
 
     return new Promise((resolve, reject) => {
       glob(pathString + '/**/*.?(yaml|yml)', function (err:Error|null, res: string[]) {
-        logger.debug('parsing files: %s',res)
+        logger.debug('parsing files: %s',res);
         if (err) {
-            reject(err)
+            reject(err);
         } else {
           Promise.all(
             res.map((file:string) => {
@@ -30,21 +30,21 @@ export default function loadYaml(pathString: string, global: boolean = false):Pl
                   api = {
                     ...api,
                     ...module
-                  }
+                  };
                 } else {
                   if (id == 'index') {
-                      api = module
+                      api = module;
                   } else {
                       api[id] = module;
                   }
                 }
             })
           ).then(() => {
-              resolve(api)
-          })
+              resolve(api);
+          });
         }
-      })
-    })
+      });
+    });
 }
 
 

@@ -9,16 +9,16 @@ import { logger } from '../core/logger';
  Mention each test case and its expected result separately.
 */
 
-const testName = path.basename(__filename).split('.')[0]
+const testName = path.basename(__filename).split('.')[0];
 const fixDir = path.join(__dirname, 'fixtures', testName);
 
 describe(testName, () => {
     it('seriesSingleFnSuccess', async () => {
         try {
-            const testId = 'seriesSingleFnSuccess'
+            const testId = 'seriesSingleFnSuccess';
             const result = await require(`${fixDir}/${testId}`).default();
             //const result = await com_gs_http(args);
-            logger.debug('result: %o',result)
+            logger.debug('result: %o',result);
 
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
@@ -28,7 +28,7 @@ describe(testName, () => {
             expect(result.data.json.gender).to.equal('O');
             expect(result.headers).to.be.an('Object');
         } catch(error) {
-            logger.error('error: %s',<Error>error)
+            logger.error('error: %s',<Error>error);
             fail(<Error>error);
         }
     });
