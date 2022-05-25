@@ -59,14 +59,15 @@ export class GSFunction extends Function {
 
   fn?: Function;
 
-  onError?: Function;
+  onError?: PlainObject;
 
   retry?: PlainObject;
 
   isSubWorkflow?: boolean;
+
   dontEvaluateVars: boolean = false;
 
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id || randomUUID();
     this.fn = _fn;
@@ -91,11 +92,20 @@ export class GSFunction extends Function {
       } else {
         this.dontEvaluateVars = true
       }
-
     }
+
     this.summary = summary;
     this.description = description;
     this.onError = onError;
+
+    if (onError && onError.response) {
+        this.onError.response = onError.response.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
+              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
+              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
+              .replace(/\\"/g, '"')
+              .replace(/\\n/g, ' ')
+    }
 
     if (retry) {
       this.retry = retry;
@@ -140,9 +150,9 @@ export class GSFunction extends Function {
         undefined,
         err.message,
         err.stack
-      );;
+      );
     }
-    
+
   }
 
   async _evaluateConditions(ctx: GSContext, condition: any) {
@@ -221,13 +231,26 @@ export class GSFunction extends Function {
       }
     } catch (err) {
       if (err instanceof Error) {
-        //This function threw an error, so it has failed
-        return new GSStatus(
+        let status = new GSStatus(
           false,
           undefined,
           err.message,
           err.stack
         );
+
+        if (this.onError) {
+          if (this.onError.response) {
+            this.dontEvaluateVars = false;
+            status =  await this._evaluateVariables(ctx, this.onError.response);
+          }
+
+          if (!this.onError.continue) {
+            ctx.exitWithStatus = status
+          }
+        }
+
+        //This function threw an error, so it has failed
+        return status
       }
     }
 
@@ -269,7 +292,7 @@ export class GSFunction extends Function {
 }
 
 export class GSSeriesFunction extends GSFunction {
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
@@ -286,7 +309,7 @@ export class GSSeriesFunction extends GSFunction {
         ctx.outputs[this.id] = ctx.exitWithStatus;
         return;
       }
-     
+
       logger.debug('finalID: %s',finalId)
     }
     logger.debug('this.id: %s, finalId: %s', this.id, finalId);
@@ -295,7 +318,7 @@ export class GSSeriesFunction extends GSFunction {
 }
 
 export class GSParallelFunction extends GSFunction {
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
@@ -311,11 +334,30 @@ export class GSParallelFunction extends GSFunction {
     }
 
     await Promise.all(promises);
+
+    const outputs = []
+    const status = new GSStatus(true, 200, '', outputs);
+    let output;
+
+    for (const child of this.args!) {
+      output = ctx.outputs[child.id];
+
+      // populating only first failed task status and code
+      if (!output.success && status.success) {
+        status.success = false;
+        status.code = output.code;
+        status.message = output.message;
+      }
+
+      outputs.push(output);
+    }
+
+    ctx.outputs[this.id] = status;
   }
 }
 
 export class GSSwitchFunction extends GSFunction {
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
