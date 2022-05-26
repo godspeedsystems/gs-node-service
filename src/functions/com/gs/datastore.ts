@@ -8,7 +8,6 @@ import {GSStatus} from '../../../core/interfaces';
  * data: arguments specific to the prisma method being invoked
  */
 export default async function(args:{[key:string]:any;}) {
-  console.log('*********** args: ',args);
   const ds = args.datasource;
   const prismaMethod = <Function>getAtPath(ds.client, args.config.method); 
   const [entityType, method] = args.config.method.split('.');

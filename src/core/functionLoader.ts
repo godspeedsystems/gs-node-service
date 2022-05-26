@@ -55,6 +55,10 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
     let subwf = false;
     if (!fn) { //If not a native function, it should be a GSFunction/Json
         const existingWorkflowData = workflows[workflowJson.fn];
+        if (!existingWorkflowData) {
+          logger.error(`Function specified by name ${workflowJson.fn} not found in src/functions. Please ensure a function by this path exists.`);
+          process.exit(1);
+        }
         subwf = true;
         if (!(existingWorkflowData instanceof GSFunction) ) { //Is still a Json data, not converted to GSFunction
             fn = workflows[workflowJson.fn] = createGSFunction(existingWorkflowData, workflows, nativeFunctions);

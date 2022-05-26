@@ -6,7 +6,6 @@ import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
-import { PROJECT_ROOT_DIRECTORY } from './utils';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
@@ -38,7 +37,7 @@ export default async function loadDatasources(pathString:string) {
       loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
     } else {
       logger.error(
-        'Found invalid datasource type %s for the datasource %s.',
+        'Found invalid datasource type %s for the datasource %s. Exiting.',
         datasources[ds].type,
         ds
       );

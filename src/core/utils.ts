@@ -46,13 +46,41 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
           const status:GSStatus = checkDatasource(task,datasources);
       } else {
           if (task.args?.datasource) {
-              if (!(task.args.datasource in datasources)) {                  
-                  logger.error('datasource %s is not present in datasources', task.args.datasource);
-                  const msg = `datasource ${task.args.datasource} is not present in datasources`;
-                  return new GSStatus(false,500,msg);
+              if (!(task.args.datasource in datasources) && !task.args.datasource.match(/<%.+%>/)) {
+                //The datasource is neither present in listed datasources and nor is a dynamically evaluated expression, then it is an error
+                logger.error('datasource %s is not present in datasources', task.args.datasource);
+                const msg = `datasource ${task.args.datasource} is not present in datasources`;
+                return new GSStatus(false,500,msg);
               }
           }
         }
-      }
-  return new GSStatus(true, undefined);
+  }
+  return new GSStatus(true,undefined);
+}
+
+export function prepareJsonnetScript(str: string): string {
+  return str.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
+              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
+              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
+              .replace(/\\"/g, '"')
+              .replace(/\\n/g, ' ');
+}
+
+export function JsonnetSnippet(plugins:any) {
+  let snippet = `local inputs = std.extVar('inputs');
+      local mappings = std.extVar('mappings');
+      local config = std.extVar('config');
+  `;
+
+  for (let fn in plugins) {
+      let f = fn.split('.');
+      fn = f[f.length - 1];
+
+      snippet += `
+          local ${fn} = std.native('${fn}');
+          `;
+  }
+
+  return snippet;
 }

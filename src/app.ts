@@ -11,11 +11,10 @@ import { logger } from './core/logger';
 import loadYaml from './core/yamlLoader';
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
-import JsonnetSnippet from './core/jsonnetSnippet';
+import { JsonnetSnippet, PROJECT_ROOT_DIRECTORY } from './core/utils';
 
 import {loadJsonSchemaForEvents, validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import loadDatasources from './core/datasourceLoader';
-import {PROJECT_ROOT_DIRECTORY} from './core/utils';
 import KafkaMessageBus from './kafka';
 
 async function loadEvents() {
@@ -131,7 +130,7 @@ async function main() {
           // Execute the workflow
           await eventHandlerWorkflow(ctx);
         } catch (err: any) {
-          logger.error( `Error in executing handler ${events[event.type].fn} for the event ${event.type}`, JSON.stringify(err));
+          logger.error(`Error in executing handler ${events[event.type].fn} for the event ${event.type}. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`);
           // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
           if (event.channel !== 'REST') {
             return;
@@ -141,7 +140,7 @@ async function main() {
             false, 
             err.code || 500, //Treat as internal server error by default
             `Error in executing handler ${events[event.type].fn} for the event ${event.type}`, 
-            JSON.stringify(err) //status data
+            err //status data
           );
         }
         /**
