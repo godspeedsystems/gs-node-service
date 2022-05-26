@@ -5,6 +5,7 @@ import parseDuration from 'parse-duration';
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
+import { prepareJsonnetScript } from './utils';
 //import R from 'ramda';
 /**
   * SPEC:
@@ -52,6 +53,7 @@ export class GSFunction extends Function {
   id: string; // can be dot separated fqn
 
   args?: any;
+  args_script?: string;
 
   summary?: string;
 
@@ -64,8 +66,6 @@ export class GSFunction extends Function {
   retry?: PlainObject;
 
   isSubWorkflow?: boolean;
-
-  dontEvaluateVars: boolean = false;
 
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
@@ -83,14 +83,7 @@ export class GSFunction extends Function {
       }
 
       if (_fn && args.includes('<%') && args.includes('%>')) {
-        this.args = args.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
-              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
-              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
-              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
-              .replace(/\\"/g, '"')
-              .replace(/\\n/g, ' ');
-      } else {
-        this.dontEvaluateVars = true;
+        this.args_script = prepareJsonnetScript(args);
       }
     }
 
@@ -99,12 +92,10 @@ export class GSFunction extends Function {
     this.onError = onError;
 
     if (onError && onError.response) {
-        this.onError!.response = onError.response.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
-              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
-              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
-              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
-              .replace(/\\"/g, '"')
-              .replace(/\\n/g, ' ');
+      const response = JSON.stringify(onError.response);
+      if (response.includes('<%') && response.includes('%>')) {
+        this.onError!.response_script = prepareJsonnetScript(response);
+      }
     }
 
     if (retry) {
@@ -125,21 +116,21 @@ export class GSFunction extends Function {
 
     this.isSubWorkflow = isSubWorkflow;
   }
-
-  async _evaluateVariables(ctx: GSContext, args: any) {
-    logger.info('_evaluateVariables %o', args);
-    if (!args) {
+  /**
+   * Can be called for gsFunction.args, gsFunction.on_error.transform and switch.condition
+   * Input an be scalar or object
+   */
+  async _evaluateScript(ctx: GSContext, script: string) {
+    logger.info('before _evaluateScript %s', script);
+    if (!script) {
       return;
-    }
-    if (this.dontEvaluateVars) {
-      return args;
     }
 
     let snippet = ctx.jsonnetSnippet;
 
     snippet += `
       local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
-      ${args}
+      ${script}
     `;
     logger.debug('snippet: %s',snippet);
     try {
@@ -155,46 +146,24 @@ export class GSFunction extends Function {
 
   }
 
-  async _evaluateConditions(ctx: GSContext, condition: any) {
-    logger.info('_evaluateConditions %o', condition);
-    if (!condition) {
-      return;
-    }
-
-    let snippet = ctx.jsonnetSnippet;
-
-    snippet += `
-      local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
-      ${condition}
-    `;
-    logger.debug('snippet: %s',snippet);
-    try {
-      return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
-    } catch (err: any) {
-      ctx.exitWithStatus = new GSStatus(
-        false,
-        undefined,
-        err.message,
-        err.stack
-      );;
-    }
-  }
-
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     try {
-      logger.info('executing handler %s %o', this.id, this.args);
-      const args = await this._evaluateVariables(ctx, this.args);
-
-      logger.debug('args after evaluation: %s, %s', JSON.stringify(args), this.retry);
-      if (args.datasource) {
-        args.datasource = ctx.datasources[args.datasource];
+      logger.info('Executing handler %s %o', this.id, this.args);
+      let args = this.args;
+      if (this.args_script) {
+        args = await this._evaluateScript(ctx, this.args_script);
       }
 
-      if ( ctx.inputs.metadata?.messagebus?.kafka) {
+      logger.debug(`args after evaluation: ${JSON.stringify(args)}. Retry logic is ${this.retry}`)
+      if (args?.datasource && typeof args.datasource === 'string') {
+        args.datasource = ctx.datasources[args.datasource]; //here we are loading the datasource object
+      }
+
+      if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
         args.kafka = ctx.inputs.metadata?.messagebus.kafka;
       }
 
-      if (this.retry) {
+      if (args && this.retry) { //Generally all methods with retry will have some args
         args.retry = this.retry;
       }
 
@@ -239,9 +208,22 @@ export class GSFunction extends Function {
         );
 
         if (this.onError) {
-          if (this.onError.response) {
-            this.dontEvaluateVars = false;
-            status =  await this._evaluateVariables(ctx, this.onError.response);
+          //status = this.onError.response; //default status value
+          if (this.onError.response_script ) {
+
+            status = new GSStatus(
+              false,
+              500,
+              err.message,
+              await this._evaluateScript(ctx, this.onError.response_script)
+            );
+          } else {
+            status = new GSStatus(
+              false,
+              500,
+              err.message,
+              this.onError.response
+            );
           }
 
           if (!this.onError.continue) {
@@ -268,7 +250,10 @@ export class GSFunction extends Function {
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
         logger.info('isSubWorkflow, creating new ctx');
-        const args = await this._evaluateVariables(ctx, this.args);
+        let args = this.args;
+        if (this.args_script) {
+          args = await this._evaluateScript(ctx, this.args_script);
+        }
         const newCtx = ctx.cloneWithNewData(args);
         await this.fn(newCtx);
         ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
@@ -279,7 +264,7 @@ export class GSFunction extends Function {
     }
     else {
       logger.info('invoking inner function');
-      logger.debug(ctx.inputs, 'inputs');
+      //logger.debug(ctx.inputs, 'inputs');
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
     /**
@@ -294,12 +279,10 @@ export class GSFunction extends Function {
 export class GSSeriesFunction extends GSFunction {
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
-    this.dontEvaluateVars = true;
   }
 
   override async _call(ctx: GSContext) {
-    logger.info('GSSeriesFunction');
-    logger.debug('inside series executor: %o',this.args);
+    logger.debug(`GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
     let finalId;
 
     for (const child of this.args!) {
@@ -321,13 +304,10 @@ export class GSSeriesFunction extends GSFunction {
 export class GSParallelFunction extends GSFunction {
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
-    this.dontEvaluateVars = true;
   }
 
   override async _call(ctx: GSContext) {
-    logger.info('GSParallelFunction');
-    logger.debug('inside parallel executor: %o',this.args);
-    logger.debug(ctx,'ctx');
+    logger.debug(`GSParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
     const promises = [];
 
@@ -359,9 +339,14 @@ export class GSParallelFunction extends GSFunction {
 }
 
 export class GSSwitchFunction extends GSFunction {
+  condition_script?: string;
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
-    this.dontEvaluateVars = true;
+    const [condition, cases] = this.args!;
+    if (condition.includes('<%') && condition.includes('%>')) {
+      this.condition_script = prepareJsonnetScript(condition);
+    }
+     
   }
 
   override async _call(ctx: GSContext) {
@@ -369,11 +354,11 @@ export class GSSwitchFunction extends GSFunction {
     logger.debug('inside switch executor: %o',this.args);
     //logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
-    const [condition, cases] = this.args!;
-    logger.debug('condition: %s' , condition);
-    logger.debug('condition after replace: %s' , condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
-    let value = await this._evaluateConditions(ctx, condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
-
+    let [value, cases] = this.args!;
+    logger.debug('condition: %s' , value);
+    if (this.condition_script) {
+      value = await this._evaluateScript(ctx, this.condition_script);
+    } 
     if (cases[value]) {
       await cases[value](ctx);
       ctx.outputs[this.id] = ctx.outputs[cases[value].id];
