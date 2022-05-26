@@ -11,29 +11,12 @@ import { logger } from './core/logger';
 import loadYaml from './core/yamlLoader';
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
+import JsonnetSnippet from './core/jsonnetSnippet';
 
 import {loadJsonSchemaForEvents, validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import loadDatasources from './core/datasourceLoader';
 import {PROJECT_ROOT_DIRECTORY} from './core/utils';
 import KafkaMessageBus from './kafka';
-
-function JsonnetSnippet(plugins:any) {
-    let snippet = `local inputs = std.extVar('inputs');
-        local mappings = std.extVar('mappings');
-        local config = std.extVar('config');
-    `;
-
-    for (let fn in plugins) {
-        let f = fn.split('.');
-        fn = f[f.length - 1];
-
-        snippet += `
-            local ${fn} = std.native('${fn}');
-            `;
-    }
-
-    return snippet;
-}
 
 async function loadEvents() {
     logger.info('Loading events');

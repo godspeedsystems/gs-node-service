@@ -4,6 +4,7 @@ import { PlainObject } from '../../../core/common';
 import loadModules from '../../../core/codeLoader';
 import loadDatasources from '../../../core/datasourceLoader';
 import { loadFunctions } from '../../../core/functionLoader';
+import JsonnetSnippet from '../../../core/jsonnetSnippet';
 import loadYaml from '../../../core/yamlLoader';
 import { logger } from '../../../core/logger';
 import { GSCloudEvent, GSActor, GSContext, GSSeriesFunction, GSStatus } from '../../../core/interfaces';
@@ -12,24 +13,6 @@ let functions:PlainObject;
 let events:PlainObject;
 let ctx:GSContext;
 let event: GSCloudEvent;
-
-function JsonnetSnippet(plugins:any) {
-    let snippet = `local inputs = std.extVar('inputs');
-        local mappings = std.extVar('mappings');
-        local config = std.extVar('config');
-    `;
-
-    for (let fn in plugins) {
-        let f = fn.split('.');
-        fn = f[f.length - 1];
-
-        snippet += `
-            local ${fn} = std.native('${fn}');
-            `;
-    }
-
-    return snippet;
-}
 
 //Load inputs for GSFunction execution
 async function loadInputs() {
@@ -89,5 +72,6 @@ export default async function() {
         JSON.stringify(err) //status data
     );
     }
+    logger.debug('ctx.outputs: %o',ctx.outputs);
     return ctx.outputs;
 }

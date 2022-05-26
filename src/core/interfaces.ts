@@ -99,7 +99,7 @@ export class GSFunction extends Function {
     this.onError = onError;
 
     if (onError && onError.response) {
-        this.onError.response = onError.response.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+        this.onError!.response = onError.response.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
               .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
@@ -299,7 +299,7 @@ export class GSSeriesFunction extends GSFunction {
 
   override async _call(ctx: GSContext) {
     logger.info('GSSeriesFunction');
-    logger.debug(this.args,'inside series executor');
+    logger.debug('inside series executor: %o',this.args);
     let finalId;
 
     for (const child of this.args!) {
@@ -326,7 +326,7 @@ export class GSParallelFunction extends GSFunction {
 
   override async _call(ctx: GSContext) {
     logger.info('GSParallelFunction');
-    logger.debug(this.args,'inside parallel executor');
+    logger.debug('inside parallel executor: %o',this.args);
     logger.debug(ctx,'ctx');
 
     const promises = [];
@@ -337,13 +337,12 @@ export class GSParallelFunction extends GSFunction {
 
     await Promise.all(promises);
 
-    const outputs = [];
+    const outputs:any[] = [];
     const status = new GSStatus(true, 200, '', outputs);
     let output;
 
     for (const child of this.args!) {
       output = ctx.outputs[child.id];
-
       // populating only first failed task status and code
       if (!output.success && status.success) {
         status.success = false;
@@ -353,7 +352,6 @@ export class GSParallelFunction extends GSFunction {
 
       outputs.push(output);
     }
-
     ctx.outputs[this.id] = status;
   }
 }
@@ -366,7 +364,7 @@ export class GSSwitchFunction extends GSFunction {
 
   override async _call(ctx: GSContext) {
     logger.info('GSSwitchFunction');
-    logger.debug(this.args, 'inside switch executor');
+    logger.debug('inside switch executor: %o',this.args);
     //logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;

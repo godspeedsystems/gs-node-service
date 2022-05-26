@@ -1,0 +1,19 @@
+summary: Sub workflow including combination of nested switch, series and parallel wfs in parallel function at parent level
+id: parent_wf2
+tasks:
+  - id: parallel_tasks
+    fn: com.gs.parallel
+    tasks:
+      - id: parallel_task1
+        fn: com.main.parentWf2_subWf1
+        args: <%inputs%>
+      - id: parallel_task2
+        fn: com.main.parentWf2_subWf2
+        args: |
+          <%
+          { x: 5, } + 
+          inputs.body
+          %>
+  - id: output_parallel_tasks
+    fn: com.gs.transform
+    args: <%outputs.parallel_tasks%>

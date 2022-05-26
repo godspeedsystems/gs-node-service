@@ -1,0 +1,26 @@
+'/parentWf2Event.http.post': # event id. Will include path params. For ex. com.abc.do_kyc/{bank_id}/process/{user_id}
+  fn: com.main.parentWf2
+  data: 
+    examples: # <string, ExampleObject>
+    schema:
+      body: 
+        description:
+        required: # default value is false
+        content:
+          application/json: # For ex. application/json application/xml
+            schema: 
+              type: object
+              properties:
+                task_id: 
+                  type: string
+                x: 
+                  type: number
+                y: 
+                  type: number
+            examples: # <string, ExampleObject>
+              '{example_name}':
+                summary:
+                description:
+                value: # anyGSCLoudEvent
+                external_value:
+            encoding:
