@@ -99,6 +99,7 @@ export class GSFunction extends Function {
     this.onError = onError;
 
     if (onError && onError.response) {
+      //@ts-ignore
         this.onError.response = onError.response.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
@@ -335,7 +336,7 @@ export class GSParallelFunction extends GSFunction {
 
     await Promise.all(promises);
 
-    const outputs = []
+    const outputs: any[] = []
     const status = new GSStatus(true, 200, '', outputs);
     let output;
 
