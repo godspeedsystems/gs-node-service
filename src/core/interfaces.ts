@@ -147,6 +147,7 @@ export class GSFunction extends Function {
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
+    let status: GSStatus; //Final status to return
     try {
       logger.info('Executing handler %s %o', this.id, this.args);
       let args = this.args;
@@ -177,69 +178,58 @@ export class GSFunction extends Function {
 
       logger.info(`Result of _executeFn is ${typeof res === 'string' ? res: JSON.stringify(res)}`);
 
+      
       if (res instanceof GSStatus) {
-        return res;
+        status = res;
       } else {
-        if (typeof(res) == 'object' && !Array.isArray(res)) {
+        if (typeof(res) == 'object' && res.success !== undefined) {
           //Some framework functions like HTTP return an object in following format. Check if that is the case.
           //All framework functions are expected to set success as boolean variable. Can not be null.
-          if (res.success !== undefined) {
-            let {success, code, data, message, headers} = res;
-            return new GSStatus(success, code, message, data, headers);
-          }
+          let {success, code, data, message, headers} = res;
+          status = new GSStatus(success, code, message, data, headers);
+        } else {
+          //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
+          status = new GSStatus(
+            true,
+            undefined,
+            undefined,
+            res
+            //message: skip
+            //code: skip
+          );
         }
-        //This function gives a non GSStatus comliant return, then create a new GSStatus and set in the output for this function
-        return new GSStatus(
-          true,
-          undefined,
-          undefined,
-          res
-          //message: skip
-          //code: skip
-        );
       }
-    } catch (err) {
-      if (err instanceof Error) {
-        let status = new GSStatus(
+    } catch (err: any) {
+      status = new GSStatus(
           false,
-          undefined,
+          500,
           err.message,
-          err.stack
+          `Caught error from execution in task id ${this.id}`
         );
-
-        if (this.onError) {
-          //status = this.onError.response; //default status value
-          if (this.onError.response_script ) {
-
-            status = new GSStatus(
-              false,
-              500,
-              err.message,
-              await this._evaluateScript(ctx, this.onError.response_script)
-            );
-          } else {
-            status = new GSStatus(
-              false,
-              500,
-              err.message,
-              this.onError.response
-            );
-          }
-
-          if (!this.onError.continue) {
-            ctx.exitWithStatus = status;
-          }
-        }
-
-        //This function threw an error, so it has failed
-        return status;
-      }
     }
-
-    //shouldn't come here
-    return new GSStatus();
+    return this.handleError(ctx, status); //In acvse there is error, this.on_error will be considered for further action
   }
 
+  async handleError (ctx: GSContext, status: GSStatus): Promise<GSStatus> {
+    if (this.onError) {
+
+      if (this.onError.response_script ) {
+        const res = await this._evaluateScript(ctx, this.onError.response_script);
+        if (typeof res === 'object' && res.success !== undefined) {
+          let {success, code, data, message, headers} = res;
+          status = new GSStatus(success, code, message, data, headers);
+        }
+
+      } else if (this.onError.response) {
+          status.data = this.onError.response;
+      }
+
+      if (!this.onError.continue) {
+        ctx.exitWithStatus = status;
+      }
+    }
+    return status;
+  }
   /**
    *
    * @param instruction
