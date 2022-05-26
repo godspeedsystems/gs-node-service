@@ -8,25 +8,14 @@ import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
 
-import loadYaml from './core/yamlLoader';
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
 import { JsonnetSnippet, PROJECT_ROOT_DIRECTORY } from './core/utils';
 
-import {loadJsonSchemaForEvents, validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
+import {validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
+import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
 import KafkaMessageBus from './kafka';
-
-async function loadEvents() {
-    logger.info('Loading events');
-    const events = await loadYaml(__dirname + '/events', true);
-    logger.debug(events,'events');
-    logger.info('Loaded events: %s',Object.keys(events));
-
-    loadJsonSchemaForEvents(events);
-
-    return events;
-}
 
 function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
     
@@ -196,7 +185,7 @@ async function main() {
         }
     }
 
-    const events = await loadEvents();
+    const events = await loadEvents(functions);
     subscribeToEvents(events, processEvent);
 }
 

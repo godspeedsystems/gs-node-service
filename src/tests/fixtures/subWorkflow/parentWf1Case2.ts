@@ -5,7 +5,7 @@ import loadModules from '../../../core/codeLoader';
 import loadDatasources from '../../../core/datasourceLoader';
 import { loadFunctions } from '../../../core/functionLoader';
 import loadYaml from '../../../core/yamlLoader';
-import JsonnetSnippet from '../../../core/jsonnetSnippet';
+import { JsonnetSnippet } from '../../../core/utils';
 import { logger } from '../../../core/logger';
 import { GSCloudEvent, GSActor, GSContext, GSSeriesFunction, GSStatus } from '../../../core/interfaces';
 

@@ -84,3 +84,14 @@ export function JsonnetSnippet(plugins:any) {
 
   return snippet;
 }
+
+export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {
+  for (let event in events) {
+    if (! (events[event].fn in functions)) {
+      logger.error('function %s of event %s is not present in functions', events[event].fn, event);
+      const msg = `function ${events[event].fn} of event ${event} is not present in functions`;
+      return new GSStatus(false,500,msg);
+    }
+  }
+  return new GSStatus(true, undefined);
+}
