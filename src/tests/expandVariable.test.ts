@@ -42,8 +42,6 @@ describe(testName, () => {
 
         try {
             const result = expandVariable("config.log_level");
-            console.log("config.log_level:", result);
-
             logger.debug('result: %s', result);
 
             expect(result).to.be.equal("config.log_level");
