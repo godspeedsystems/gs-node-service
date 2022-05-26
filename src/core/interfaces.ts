@@ -50,24 +50,24 @@ import { logger } from './logger';
 
 export class GSFunction extends Function {
   id: string; // can be dot separated fqn
-  
+
   args?: any;
-  
+
   summary?: string;
-  
+
   description?: string;
-  
+
   fn?: Function;
-  
-  onError?: Function;
-  
+
+  onError?: PlainObject;
+
   retry?: PlainObject;
-  
+
   isSubWorkflow?: boolean;
-  
+
   dontEvaluateVars: boolean = false;
 
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super('return arguments.callee._call.apply(arguments.callee, arguments)');
     this.id = id || randomUUID();
     this.fn = _fn;
@@ -92,11 +92,20 @@ export class GSFunction extends Function {
       } else {
         this.dontEvaluateVars = true;
       }
-
     }
+
     this.summary = summary;
     this.description = description;
     this.onError = onError;
+
+    if (onError && onError.response) {
+        this.onError.response = onError.response.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
+              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
+              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
+              .replace(/\\"/g, '"')
+              .replace(/\\n/g, ' ');
+    }
 
     if (retry) {
       this.retry = retry;
@@ -141,9 +150,9 @@ export class GSFunction extends Function {
         undefined,
         err.message,
         err.stack
-      );;
+      );
     }
-    
+
   }
 
   async _evaluateConditions(ctx: GSContext, condition: any) {
@@ -176,7 +185,7 @@ export class GSFunction extends Function {
       logger.info('executing handler %s %o', this.id, this.args);
       const args = await this._evaluateVariables(ctx, this.args);
 
-      logger.debug('args after evaluation: %s', JSON.stringify(args), this.retry);
+      logger.debug('args after evaluation: %s, %s', JSON.stringify(args), this.retry);
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
@@ -222,13 +231,26 @@ export class GSFunction extends Function {
       }
     } catch (err) {
       if (err instanceof Error) {
-        //This function threw an error, so it has failed
-        return new GSStatus(
+        let status = new GSStatus(
           false,
           undefined,
           err.message,
           err.stack
         );
+
+        if (this.onError) {
+          if (this.onError.response) {
+            this.dontEvaluateVars = false;
+            status =  await this._evaluateVariables(ctx, this.onError.response);
+          }
+
+          if (!this.onError.continue) {
+            ctx.exitWithStatus = status;
+          }
+        }
+
+        //This function threw an error, so it has failed
+        return status;
       }
     }
 
@@ -270,7 +292,7 @@ export class GSFunction extends Function {
 }
 
 export class GSSeriesFunction extends GSFunction {
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
@@ -281,14 +303,14 @@ export class GSSeriesFunction extends GSFunction {
     let finalId;
 
     for (const child of this.args!) {
-      logger.debug(child) ; //Not displaying the object --> Need to check
+      logger.debug(child);  //Not displaying the object --> Need to check
       await child(ctx);
       finalId = child.id;
       if (ctx.exitWithStatus) {
         ctx.outputs[this.id] = ctx.exitWithStatus;
         return;
       }
-     
+
       logger.debug('finalID: %s',finalId);
     }
     logger.debug('this.id: %s, finalId: %s', this.id, finalId);
@@ -297,7 +319,7 @@ export class GSSeriesFunction extends GSFunction {
 }
 
 export class GSParallelFunction extends GSFunction {
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
@@ -314,11 +336,30 @@ export class GSParallelFunction extends GSFunction {
     }
 
     await Promise.all(promises);
+
+    const outputs = [];
+    const status = new GSStatus(true, 200, '', outputs);
+    let output;
+
+    for (const child of this.args!) {
+      output = ctx.outputs[child.id];
+
+      // populating only first failed task status and code
+      if (!output.success && status.success) {
+        status.success = false;
+        status.code = output.code;
+        status.message = output.message;
+      }
+
+      outputs.push(output);
+    }
+
+    ctx.outputs[this.id] = status;
   }
 }
 
 export class GSSwitchFunction extends GSFunction {
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: Function, retry?: PlainObject, isSubWorkflow?: boolean) {
+  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
@@ -354,13 +395,13 @@ export class GSSwitchFunction extends GSFunction {
  */
 export class GSStatus {
   success: boolean;
-  
+
   code?: number;
-  
+
   message?: string;
-  
+
   data?: any;
-  
+
   headers?: {[key:string]: any;};
 
   constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: {[key:string]: any;}) {
@@ -375,22 +416,22 @@ export class GSStatus {
 export class GSCloudEvent {
   //Cloud event format common fields
   id: string; //This should be the request id of distributed context
-  
+
   time: Date;
-  
+
   specversion: string;
-  
+
   type: string; //URI of this event
-  
+
   source: string;
-  
+
   channel: CHANNEL_TYPE;
-  
+
   actor: GSActor;
-  
+
   //JSON schema: This data will be validated in the function definition in YAML. In __args.schema
   data: PlainObject; //{body, params, query, headers}, flattened and merged into a single object
-  
+
   metadata?: {
     http?: {
       express: {
@@ -434,21 +475,21 @@ export class GSCloudEvent {
  */
 export class GSContext { //span executions
   inputs: GSCloudEvent; //The very original event for which this workflow context was created
-  
+
   outputs:{[key: string]: GSStatus; }; //DAG result. This context has a trace history and responses of all instructions in the DAG are stored in this object
-  
+
   log_events: GSLogEvent[] = [];
-  
+
   config: PlainObject; //app config
-  
+
   datasources: PlainObject; //app config
-  
+
   jsonnet: Jsonnet;
-  
+
   mappings: any;
-  
+
   jsonnetSnippet: string;
-  
+
   plugins: PlainObject;
   
   exitWithStatus?: GSStatus;
@@ -507,13 +548,13 @@ export class GSContext { //span executions
  */
 export class GSLogEvent {
   type: EVENT_TYPE;
-  
+
   data: any;
-  
+
   timestamp: Date;
-  
+
   attributes: object;
-  
+
   constructor(type: EVENT_TYPE, data: any, attributes: object = {}, timestamp: Date = new Date()) {
     this.type = type;
     this.data = data;
@@ -524,13 +565,13 @@ export class GSLogEvent {
 
 export class GSActor {
   type: ACTOR_TYPE;
-  
+
   tenant_id?: string;
-  
+
   name?: string; // Fully qualified name
-  
+
   id?: string; // id of the actor
-  
+
   data?: PlainObject; //Other information in key value pairs. For example IP address
 
   constructor(type: ACTOR_TYPE, tenant_id?: string, name?: string, id?: string, data?: PlainObject) {
