@@ -54,3 +54,12 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
   }
   return new GSStatus(true,undefined);
 }
+
+export function prepareJsonnetScript(str: string): string {
+  return str.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
+              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
+              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
+              .replace(/\\"/g, '"')
+              .replace(/\\n/g, ' ');
+}
