@@ -5,6 +5,7 @@ const { dirname } = require('path');
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
+//like Lodash _.get method
 export function getAtPath(obj: PlainObject, path: string) {
   const keys = path.split('.');
   for (const key of keys) {
@@ -16,12 +17,14 @@ export function getAtPath(obj: PlainObject, path: string) {
   }
   return obj;
 }
+
+//like Lodash _.set method
 export function setAtPath(o: PlainObject, path: string, value: any) {
   const keys = path.split('.');
   let obj = o;
   //prepare the array to ensure that there is nested PlainObject till the last key
   //Ensure there is an PlainObject as value till the second last key
-  for (let i = 0; i< keys.length - 1; i++) {
+  for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
     if (key in obj) { //obj[key]
       obj = obj[key];
@@ -50,7 +53,7 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
                 return new GSStatus(false,500,msg);
               }
           }
-      }
+        }
   }
   return new GSStatus(true,undefined);
 }
@@ -62,4 +65,33 @@ export function prepareJsonnetScript(str: string): string {
               .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
               .replace(/\\"/g, '"')
               .replace(/\\n/g, ' ');
+}
+
+export function JsonnetSnippet(plugins:any) {
+  let snippet = `local inputs = std.extVar('inputs');
+      local mappings = std.extVar('mappings');
+      local config = std.extVar('config');
+  `;
+
+  for (let fn in plugins) {
+      let f = fn.split('.');
+      fn = f[f.length - 1];
+
+      snippet += `
+          local ${fn} = std.native('${fn}');
+          `;
+  }
+
+  return snippet;
+}
+
+export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {
+  for (let event in events) {
+    if (! (events[event].fn in functions)) {
+      logger.error('function %s of event %s is not present in functions', events[event].fn, event);
+      const msg = `function ${events[event].fn} of event ${event} is not present in functions`;
+      return new GSStatus(false,500,msg);
+    }
+  }
+  return new GSStatus(true, undefined);
 }

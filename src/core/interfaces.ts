@@ -53,6 +53,7 @@ export class GSFunction extends Function {
   id: string; // can be dot separated fqn
 
   args?: any;
+  
   args_script?: string;
 
   summary?: string;
@@ -116,6 +117,7 @@ export class GSFunction extends Function {
 
     this.isSubWorkflow = isSubWorkflow;
   }
+
   /**
    * Can be called for gsFunction.args, gsFunction.on_error.transform and switch.condition
    * Input an be scalar or object
@@ -155,7 +157,7 @@ export class GSFunction extends Function {
         args = await this._evaluateScript(ctx, this.args_script);
       }
 
-      logger.debug(`args after evaluation: ${JSON.stringify(args)}. Retry logic is ${this.retry}`)
+      logger.debug(`args after evaluation: ${JSON.stringify(args)}. Retry logic is ${this.retry}`);
       if (args?.datasource && typeof args.datasource === 'string') {
         args.datasource = ctx.datasources[args.datasource]; //here we are loading the datasource object
       }
@@ -230,6 +232,7 @@ export class GSFunction extends Function {
     }
     return status;
   }
+
   /**
    *
    * @param instruction
@@ -313,7 +316,6 @@ export class GSParallelFunction extends GSFunction {
 
     for (const child of this.args!) {
       output = ctx.outputs[child.id];
-
       // populating only first failed task status and code
       if (!output.success && status.success) {
         status.success = false;
@@ -330,6 +332,7 @@ export class GSParallelFunction extends GSFunction {
 
 export class GSSwitchFunction extends GSFunction {
   condition_script?: string;
+  
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     const [condition, cases] = this.args!;

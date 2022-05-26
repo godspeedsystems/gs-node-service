@@ -8,12 +8,12 @@ import { PlainObject } from "./common";
 import { logger } from "./logger";
 
 const ajv = new Ajv();
+// Add formats to ajv instance
+addFormats(ajv);
 
 export function loadJsonSchemaForEvents(eventObj: PlainObject) {
     logger.info('Loading JSON Schema for events %s',Object.keys(eventObj));
     logger.debug(eventObj,'eventObj');
-    // Add formats to ajv instance
-    addFormats(ajv);
 
     Object.keys(eventObj).forEach(function(topic) {
         // Add body schema in ajv for each content_type per topic
@@ -31,7 +31,9 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
                     if(content_schema) {
                         logger.info('adding body schema for %s', topic);
                         logger.debug(content_schema);
-                        ajv.addSchema(content_schema, topic);
+                        if (!ajv.getSchema(topic)) {
+                            ajv.addSchema(content_schema, topic);
+                        }
                     }
                 });
             }
@@ -70,7 +72,9 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
                 logger.debug(paramSchema[schema]);
 
                 const topic_param = topic + ':'+ schema;
-                ajv.addSchema( paramSchema[schema], topic_param);
+                if (!ajv.getSchema(topic_param)) {
+                    ajv.addSchema( paramSchema[schema], topic_param);
+                }
             }
 
             // Add responses schema in ajv for each response per topic
@@ -82,7 +86,9 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
                         const response_schema = response_s;
                         const topic_response = topic + ':responses:'+ k;
                         //console.log("topic_response: ",topic_response)
-                        ajv.addSchema(response_schema, topic_response);
+                        if (!ajv.getSchema(topic_response)) {
+                            ajv.addSchema(response_schema, topic_response);
+                        }
                     }
                 });
             }
