@@ -8,14 +8,14 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { PROJECT_ROOT_DIRECTORY } from './utils';
 
-export default async function loadDatasources() {
+export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
   let yamlDatasources = await loadYaml(
-    PROJECT_ROOT_DIRECTORY + '/datasources',
+    pathString,
     false
   );
   const prismaDatasources = await loadPrismaDsFileNames(
-    PROJECT_ROOT_DIRECTORY + '/datasources'
+    pathString
   );
   const datasources = {
     ...yamlDatasources,
@@ -37,7 +37,7 @@ export default async function loadDatasources() {
       loadedDatasources[ds] = await loadPrismaClient(ds);
     } else {
       logger.error(
-        'Found invalid datasource type %s for the datasource %s.',
+        'Found invalid datasource type %s for the datasource %s. Exiting.',
         datasources[ds].type,
         ds
       );

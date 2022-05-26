@@ -88,9 +88,9 @@ export class GSFunction extends Function {
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
               .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
               .replace(/\\"/g, '"')
-              .replace(/\\n/g, ' ')
+              .replace(/\\n/g, ' ');
       } else {
-        this.dontEvaluateVars = true
+        this.dontEvaluateVars = true;
       }
     }
 
@@ -99,13 +99,12 @@ export class GSFunction extends Function {
     this.onError = onError;
 
     if (onError && onError.response) {
-      //@ts-ignore
-        this.onError.response = onError.response.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+        this.onError!.response = onError.response.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
               .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
               .replace(/\\"/g, '"')
-              .replace(/\\n/g, ' ')
+              .replace(/\\n/g, ' ');
     }
 
     if (retry) {
@@ -141,8 +140,8 @@ export class GSFunction extends Function {
     snippet += `
       local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
       ${args}
-    `
-    logger.debug('snippet: %s',snippet)
+    `;
+    logger.debug('snippet: %s',snippet);
     try {
       return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
     } catch (err: any) {
@@ -157,7 +156,7 @@ export class GSFunction extends Function {
   }
 
   async _evaluateConditions(ctx: GSContext, condition: any) {
-    logger.info('_evaluateConditions %o', condition)
+    logger.info('_evaluateConditions %o', condition);
     if (!condition) {
       return;
     }
@@ -167,8 +166,8 @@ export class GSFunction extends Function {
     snippet += `
       local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
       ${condition}
-    `
-    logger.debug('snippet: %s',snippet)
+    `;
+    logger.debug('snippet: %s',snippet);
     try {
       return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
     } catch (err: any) {
@@ -186,7 +185,7 @@ export class GSFunction extends Function {
       logger.info('executing handler %s %o', this.id, this.args);
       const args = await this._evaluateVariables(ctx, this.args);
 
-      logger.debug('args after evaluation: %s, %s', JSON.stringify(args), this.retry)
+      logger.debug('args after evaluation: %s, %s', JSON.stringify(args), this.retry);
       if (args.datasource) {
         args.datasource = ctx.datasources[args.datasource];
       }
@@ -207,7 +206,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args);
       }
 
-      logger.info(`Result of _executeFn is ${typeof res === 'string' ? res: JSON.stringify(res)}`)
+      logger.info(`Result of _executeFn is ${typeof res === 'string' ? res: JSON.stringify(res)}`);
 
       if (res instanceof GSStatus) {
         return res;
@@ -246,12 +245,12 @@ export class GSFunction extends Function {
           }
 
           if (!this.onError.continue) {
-            ctx.exitWithStatus = status
+            ctx.exitWithStatus = status;
           }
         }
 
         //This function threw an error, so it has failed
-        return status
+        return status;
       }
     }
 
@@ -297,9 +296,10 @@ export class GSSeriesFunction extends GSFunction {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
+
   override async _call(ctx: GSContext) {
     logger.info('GSSeriesFunction');
-    logger.debug(this.args,'inside series executor');
+    logger.debug('inside series executor: %o',this.args);
     let finalId;
 
     for (const child of this.args!) {
@@ -311,7 +311,7 @@ export class GSSeriesFunction extends GSFunction {
         return;
       }
 
-      logger.debug('finalID: %s',finalId)
+      logger.debug('finalID: %s',finalId);
     }
     logger.debug('this.id: %s, finalId: %s', this.id, finalId);
     ctx.outputs[this.id] = ctx.outputs[finalId];
@@ -323,9 +323,10 @@ export class GSParallelFunction extends GSFunction {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
+
   override async _call(ctx: GSContext) {
     logger.info('GSParallelFunction');
-    logger.debug(this.args,'inside parallel executor');
+    logger.debug('inside parallel executor: %o',this.args);
     logger.debug(ctx,'ctx');
 
     const promises = [];
@@ -336,7 +337,7 @@ export class GSParallelFunction extends GSFunction {
 
     await Promise.all(promises);
 
-    const outputs: any[] = []
+    const outputs:any[] = [];
     const status = new GSStatus(true, 200, '', outputs);
     let output;
 
@@ -352,7 +353,7 @@ export class GSParallelFunction extends GSFunction {
 
       outputs.push(output);
     }
-
+    
     ctx.outputs[this.id] = status;
   }
 }
@@ -362,14 +363,15 @@ export class GSSwitchFunction extends GSFunction {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     this.dontEvaluateVars = true;
   }
+
   override async _call(ctx: GSContext) {
     logger.info('GSSwitchFunction');
-    logger.debug(this.args, 'inside switch executor');
+    logger.debug('inside switch executor: %o',this.args);
     //logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
     const [condition, cases] = this.args!;
-    logger.debug('condition: %s' , condition)
-    logger.debug('condition after replace: %s' , condition.replace(/<%\s*(.*?)\s*%>/g, '$1'))
+    logger.debug('condition: %s' , condition);
+    logger.debug('condition after replace: %s' , condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
     let value = await this._evaluateConditions(ctx, condition.replace(/<%\s*(.*?)\s*%>/g, '$1'));
 
     if (cases[value]) {
@@ -489,6 +491,7 @@ export class GSContext { //span executions
   jsonnetSnippet: string;
 
   plugins: PlainObject;
+  
   exitWithStatus?: GSStatus;
 
   constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
@@ -684,4 +687,3 @@ if (require.main === module) {
 * Then the adapter will send the response to one or more events on the channels
 * specified in the API shema, with the response data & metadata.
  */
-

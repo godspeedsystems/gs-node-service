@@ -46,7 +46,7 @@ export default class KafkaMessageBus {
             eachMessage: async ({ topic, partition, message }) => {
                 //@ts-ignore
                 const data =  JSON.parse(message?.value?.toString());
-                logger.debug('data %o', data)
+                logger.debug('data %o', data);
                 const event = new GSCloudEvent('id', route, new Date(message.timestamp), 'kafka', 
                     '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
                 return processEvent(event);
