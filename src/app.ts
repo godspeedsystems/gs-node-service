@@ -148,7 +148,7 @@ async function main() {
           // Execute the workflow
           await eventHandlerWorkflow(ctx);
         } catch (err: any) {
-          logger.error( `Error in executing handler ${events[event.type].fn} for the event ${event.type}`, JSON.stringify(err));
+          logger.error(`Error in executing handler ${events[event.type].fn} for the event ${event.type}. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`);
           // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
           if (event.channel !== 'REST') {
             return;
@@ -158,7 +158,7 @@ async function main() {
             false, 
             err.code || 500, //Treat as internal server error by default
             `Error in executing handler ${events[event.type].fn} for the event ${event.type}`, 
-            JSON.stringify(err) //status data
+            err //status data
           );
         }
         /**
