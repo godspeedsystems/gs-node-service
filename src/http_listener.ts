@@ -3,7 +3,7 @@ import bodyParser from 'body-parser';
 import expressPinoLogger from 'express-pino-logger';
 import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
-
+const { countAllRequests } = require("./telemetry//monitoring");
 const loggerExpress = expressPinoLogger({
     logger: logger,
     autoLogging: true,
@@ -13,6 +13,7 @@ const app:express.Express = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(countAllRequests());
 app.use(loggerExpress);
 // app.get('/', function(req, res) {
 //     console.log('called endpoint')

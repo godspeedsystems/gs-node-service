@@ -16,6 +16,10 @@
   "license": "ISC",
   "dependencies": {
     "@hanazuki/node-jsonnet": "^1.0.0",
+    "@opentelemetry/api": "^1.1.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.30.0",
+    "@opentelemetry/sdk-metrics-base": "^0.27.0",
+    "@opentelemetry/sdk-node": "^0.29.0",
     "ajv": "^8.11.0",
     "ajv-formats": "^2.1.1",
     "axios": "^0.25.0",
@@ -33,6 +37,7 @@
     "js-yaml": "^4.1.0",
     "kafkajs": "^2.0.0",
     "openapi-client-axios": "^5.1.2",
+    "opentelemetry-instrumentation-kafkajs": "^0.27.1",
     "parse-duration": "^1.0.2",
     "pino": "^7.11.0",
     "pino-debug": "^2.0.0",
