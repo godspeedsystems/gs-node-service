@@ -185,7 +185,7 @@ async function main() {
         }
     }
 
-    const events = await loadEvents(functions);
+    const events = await loadEvents(functions,PROJECT_ROOT_DIRECTORY + '/events');
     subscribeToEvents(events, processEvent);
 }
 
