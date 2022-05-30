@@ -5,6 +5,7 @@ const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
 const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { KafkaJsInstrumentation } = require('opentelemetry-instrumentation-kafkajs');
+import { logger } from '../core/logger';
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
@@ -14,3 +15,13 @@ const sdk = new opentelemetry.NodeSDK({
 });
 
 sdk.start()
+  .then(() => logger.info('Tracing initialized'))
+  .catch((error) => logger.error('Error initializing tracing', error));
+
+// gracefully shut down the SDK on process exit
+process.on('SIGTERM', () => {
+  sdk.shutdown()
+    .then(() => logger.info('Tracing terminated'))
+    .catch((error) => logger.error('Error terminating tracing', error))
+    .finally(() => process.exit(0));
+});
