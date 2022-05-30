@@ -1,0 +1,26 @@
+'/sample.http.post':
+  fn: com.pinelabs.sample
+  data: 
+    examples: # <string, ExampleObject>
+    schema:
+      body: 
+        description:
+        required: # default value is false
+        content:
+          application/json: # For ex. application/json application/xml
+            schema: 
+              type: object
+              properties:
+                Gender: 
+                  type: string
+              #additionalProperties: false
+              #required: [id]
+            examples: # <string, ExampleObject>
+              '{example_name}':
+                summary:
+                description:
+                value: # anyGSCLoudEvent
+                external_value:
+            encoding:
+
+  

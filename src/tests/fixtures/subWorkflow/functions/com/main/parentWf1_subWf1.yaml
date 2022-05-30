@@ -1,0 +1,32 @@
+summary: Parallel functions execution with series output
+id: parentWf1_subWf1
+tasks:
+  - id: parallel_fn_exec
+    fn: com.gs.parallel
+    tasks:
+      - id: parallel_fn_exec_1
+        description: parallel_1
+        fn: com.gs.http
+        args:
+          datasource: httpbin
+          params:
+          data: <%inputs.body%>
+          config:
+            url : /anything
+            method: post        
+      - id: parallel_fn_exec_2
+        fn: com.main.sum
+        args: |
+          <%
+          { x: 5, } + 
+          inputs.body
+          %>
+  - id: find_parallel_output
+    fn: com.gs.parallel
+    tasks:
+      - id: parallel_output_task1
+        fn: com.gs.transform
+        args: <% outputs.parallel_fn_exec_1 %>
+      - id: parallel_output_task2
+        fn: com.gs.transform
+        args: <% outputs.parallel_fn_exec_2 %>

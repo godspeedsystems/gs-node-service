@@ -1,0 +1,14 @@
+{
+    "code": 400,
+    "data": {
+        "instancePath": "",
+        "keyword": "required",
+        "message": "must have required property 'lender_response_code'",
+        "params": {
+            "missingProperty": "lender_response_code"
+        },
+        "schemaPath": "#/required"
+    },
+    "message": "must have required property 'lender_response_code'",
+    "success": false
+}

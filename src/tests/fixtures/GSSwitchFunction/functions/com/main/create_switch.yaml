@@ -1,0 +1,32 @@
+summary: Switch case function
+id: switch_fn
+tasks:
+  - id: switch_case_step1
+    fn: com.gs.switch
+    value: <%inputs.body.condition%>
+    cases:
+      FIRST:
+        id: one
+        fn: com.gs.return
+        args: 'switch case 1'
+      SECOND:
+        id: two
+        fn: com.main.sum
+        args:
+          x: 3
+          y: 5
+      default:
+        id: three
+        fn: com.gs.http
+        args:
+          datasource: httpbin
+          params:
+          data:
+              task_id: "switch case 3"
+          config:
+            url : /status/100
+            method: get
+  - id: switch_case_step2
+    fn: com.gs.transform
+    args: |
+        <% outputs.switch_case_step1 %>
