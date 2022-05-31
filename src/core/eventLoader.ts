@@ -4,9 +4,9 @@ import { checkFunctionExists, PROJECT_ROOT_DIRECTORY} from './utils';
 import loadYaml from './yamlLoader';
 import {loadJsonSchemaForEvents} from './jsonSchemaValidation';
 
-export default async function loadEvents(functions: PlainObject) {
+export default async function loadEvents(functions: PlainObject,pathString: string) {
     logger.info('Loading events');
-    const events = await loadYaml(PROJECT_ROOT_DIRECTORY + '/events', true);
+    const events = await loadYaml(pathString, true);
     logger.debug(events,'events');
     logger.info('Loaded events: %s',Object.keys(events));
 

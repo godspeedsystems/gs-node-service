@@ -1,6 +1,5 @@
 import { describe, it, expect, glob, path, fs, expectObj } from './common';
-import { getAtPath, setAtPath } from '../core/utils';
-import expandVariable from '../core/expandVariables';
+import { getAtPath, setAtPath, checkFunctionExists } from '../core/utils';
 import { fail } from 'assert';
 import { logger } from '../core/logger';
 
@@ -13,24 +12,21 @@ const testName = path.basename(__filename).split('.')[0];
 const fixDir: string = path.join(__dirname, 'fixtures', testName);
 
 describe(testName, () => {
-    const object = {
-        'name': 'kushal Chauhan',
-        'designation': 'Software Enginner',
-        'education': {
-            'college': {
-                'name': 'IIIT',
-                'yop': 2021
-            }
-        }
-    };
-    // path to retrieve value
-    const collegeYopPath = 'education.college.yop';
-    // falsy path to retrieve value
-    const falsyPath = 'education.college.passingYear';
-    it(' return the value at the specified path', () => {
+    it('getAtPath - return the value at the specified path', () => {
         // object that will be queried
-
         try {
+            const object = {
+                'name': 'kushal Chauhan',
+                'designation': 'Software Enginner',
+                'education': {
+                    'college': {
+                        'name': 'IIIT',
+                        'yop': 2021
+                    }
+                }
+            };
+            // path to retrieve value
+            const collegeYopPath = 'education.college.yop';
             const result = getAtPath(object, collegeYopPath);
             logger.debug('result: %s', result);
             expect(result).to.be.equal(2021);
@@ -38,8 +34,20 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
-    it(' falsy path to retrieve value', () => {
+    it('getAtPath - falsy path to retrieve value', () => {
         try {
+            const object = {
+                'name': 'kushal Chauhan',
+                'designation': 'Software Enginner',
+                'education': {
+                    'college': {
+                        'name': 'IIIT',
+                        'yop': 2021
+                    }
+                }
+            };
+            // falsy path to retrieve value
+            const falsyPath = 'education.college.passingYear';
             const result = getAtPath(object, falsyPath);
             logger.debug('result: %s', result);
             expect(result).to.be.equal(undefined);
@@ -47,7 +55,7 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
-    it(' sets the given value at the specified path and returns the modified object', () => {
+    it('setAtPath - sets the given value at the specified path and returns the modified object', () => {
         // object that will be modified
         const object = {
             'name': 'Kushal Chauhan',
@@ -79,6 +87,57 @@ describe(testName, () => {
                     }
                 }
             });*/
+        } catch (error) {
+            fail(<Error>error);
+        }
+    });
+    it('checkFunctionExists - return successs, all events fn are present in functions', () => {
+        try {
+            const events = {
+                "/do_kyc/idfc.http.post": {
+                  "fn": "com.biz.create_hdfc_account"
+                },
+                "/sum.http.get": {
+                  "fn": "com.biz.sum-workflow"
+                },
+                "/test.http.get": {
+                  "fn": "com.biz.test"
+                }
+              };
+            const functions = {
+                "com.biz.create_hdfc_account": "GSFunction",
+                "com.biz.sum-workflow": "GSFunction",
+                "com.biz.test": "GSFunction"
+              };
+            const result = checkFunctionExists(events, functions);
+            logger.debug('result: %s', result);
+            expect(result.success).to.be.equal(true);
+        } catch (error) {
+            fail(<Error>error);
+        }
+    });
+    it('checkFunctionExists - return false, events fn is not present in functions', () => {
+        try {
+            const events = {
+                "/do_kyc/idfc.http.post": {
+                  "fn": "com.biz.create_hdfc_account"
+                },
+                "/sum.http.get": {
+                  "fn": "com.biz.sum-workflow"
+                },
+                "/test.http.get": {
+                  "fn": "com.biz.test"
+                }
+              };
+            const functions = {
+                "com.biz.create_hdfc_account": "GSFunction",
+                "com.biz.test": "GSFunction"
+              };
+            const result = checkFunctionExists(events, functions);
+            logger.debug('result: %s', result);
+            expect(result.success).to.be.equal(false);
+            expect(result.code).to.be.equal(500);
+            expect(result.message).to.be.equal('function com.biz.sum-workflow of event /sum.http.get is not present in functions');
         } catch (error) {
             fail(<Error>error);
         }

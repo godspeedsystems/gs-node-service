@@ -96,7 +96,10 @@
     "node/no-unpublished-require": "off",
     "strict": "off",
     "no-plusplus": "off", 
-    "no-multi-assign": "off"
+    "no-multi-assign": "off",
+    "node/no-unpublished-import": ["error", {
+      "allowModules": ["chai","mocha"]
+    }]
 
   },
   "parser": "@typescript-eslint/parser",

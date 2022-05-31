@@ -9,7 +9,6 @@ export default function loadModules(
   global: boolean = false
 ): PlainObject {
   let api: PlainObject = {};
-
   logger.info('Loading %s from %s', path.basename(pathString), pathString);
 
   return new Promise((resolve, reject) => {
@@ -34,7 +33,7 @@ export default function loadModules(
                 if (global) {
                   api = {
                     ...api,
-                    ...module,
+                    ...module
                   };
                 } else {
                   if (id == 'index') {

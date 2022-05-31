@@ -1,0 +1,11 @@
+# config, inputs, ouputs, vars
+# Environment variables will be loaded in config files via some convention
+summary: Summing x + y
+id: sum
+tasks:
+    - id: step1 # the response of this will be accessible within the parent step key, under the step1 sub key
+      description: add two numbers
+      fn: com.biz.sum
+      args:
+        x: 1
+        y: 2

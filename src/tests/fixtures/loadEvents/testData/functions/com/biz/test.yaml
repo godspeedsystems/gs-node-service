@@ -1,0 +1,9 @@
+# config, inputs, ouputs, vars
+# Environment variables will be loaded in config files via some convention
+summary: Summing x + y
+tasks:
+  - id: one
+    fn: com.biz.sum
+    args:
+      x: 1
+      y: 2
