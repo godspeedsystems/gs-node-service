@@ -86,17 +86,16 @@ export default async function(args:{[key:string]:any;}) {
             });
         }
 
-        logger.debug('res', res);
+        logger.debug('res: %o', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex) {
         //logger.error(ex);
         //@ts-ignore
-        
         let res = ex.response;
-        
+
         if (!res) {
             res = {
-                code: 500,
+                status: 500,
                 data: {
                     code: (ex as Error).name,
                     message: (ex as Error).message,

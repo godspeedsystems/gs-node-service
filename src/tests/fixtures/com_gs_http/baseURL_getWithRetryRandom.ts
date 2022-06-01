@@ -5,13 +5,13 @@ export default async function() {
     const args = {
         config: {
             "method": "get",
-            "url": "/status_get",
-            "timeout": 10
+            "url": "/status/503"
         },
         retry: {
-            "max_attempts": 5,
-            "type": "constant",
-            "interval": 2000
+            "max_attempts": 2,
+            "type": "random",
+            "min_interval": 1000,
+            "max_interval": 3000
         },
         params: null,
         datasource: undefined
