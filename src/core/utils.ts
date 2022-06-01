@@ -1,6 +1,6 @@
 import { PlainObject } from "./common";
 import { logger } from './logger';
-import { GSStatus } from './interfaces';
+import { GSStatus } from './interfaces'; // eslint-disable-line
 const { dirname } = require('path');
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
