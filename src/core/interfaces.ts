@@ -226,7 +226,7 @@ export class GSFunction extends Function {
           status.data = this.onError.response;
       }
 
-      if (!this.onError.continue) {
+      if (!status.success && this.onError.continue === false) {
         ctx.exitWithStatus = status;
       }
     }
