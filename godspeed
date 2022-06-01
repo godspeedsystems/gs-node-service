@@ -1,0 +1,16 @@
+#!/bin/bash
+
+case $1 in 
+build)
+    exec npx prisma generate --schema=/workspace/development/gs_service/src/datasources/*.prisma
+    exec npm run $@
+;;
+test|dev|start)
+    exec npm run $@
+;;
+*)
+    echo -e "!!!!!!!!!!!!  Invalid Input !!!!!!!!!!!!"
+    echo "Acceptable parameters are :- build || test || dev || start"
+    exit 1
+;;
+esac
