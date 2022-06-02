@@ -3,7 +3,7 @@ import bodyParser from 'body-parser';
 import expressPinoLogger from 'express-pino-logger';
 import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
-const { countAllRequests } = require("./telemetry//monitoring");
+const { countAllRequests } = require("./telemetry/monitoring");
 const loggerExpress = expressPinoLogger({
     logger: logger,
     autoLogging: true,

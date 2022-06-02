@@ -1,7 +1,7 @@
+import { config } from '../core/loader';  // eslint-disable-line
 'use strict';
 
 const { MeterProvider, ConsoleMetricExporter } = require('@opentelemetry/sdk-metrics-base');
-import { config } from '../core/loader';
 const meter = new MeterProvider({
   exporter: new ConsoleMetricExporter(),
   interval: config.app.config.telemetry.metrics.export.interval,
@@ -19,7 +19,7 @@ module.exports.countAllRequests = () => {
       const labels = { route: req.path };
       const boundCounter = function (count: number) {
         requestCounter.add(count, labels);
-      }
+      };
       boundInstruments.set(req.path, boundCounter);
     }
 

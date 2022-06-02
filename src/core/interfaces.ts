@@ -5,7 +5,7 @@ import parseDuration from 'parse-duration';
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
-import { prepareJsonnetScript } from './utils';
+import { prepareJsonnetScript } from './utils';  // eslint-disable-line
 //import R from 'ramda';
 /**
   * SPEC:
@@ -270,9 +270,6 @@ export class GSFunction extends Function {
 }
 
 export class GSSeriesFunction extends GSFunction {
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
-    super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
-  }
 
   override async _call(ctx: GSContext) {
     logger.debug(`GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
@@ -295,9 +292,6 @@ export class GSSeriesFunction extends GSFunction {
 }
 
 export class GSParallelFunction extends GSFunction {
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
-    super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
-  }
 
   override async _call(ctx: GSContext) {
     logger.debug(`GSParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
