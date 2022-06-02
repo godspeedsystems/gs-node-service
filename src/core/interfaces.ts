@@ -80,8 +80,8 @@ export class GSFunction extends Function {
         if (args.config?.url) {
           args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>');
         }
-        args = JSON.stringify(args);
       }
+      args = JSON.stringify(args);
 
       if (_fn && args.includes('<%') && args.includes('%>')) {
         this.args_script = prepareJsonnetScript(args);
@@ -138,6 +138,7 @@ export class GSFunction extends Function {
     try {
       return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
     } catch (err: any) {
+      logger.error(err);
       ctx.exitWithStatus = new GSStatus(
         false,
         undefined,
@@ -157,7 +158,7 @@ export class GSFunction extends Function {
         args = await this._evaluateScript(ctx, this.args_script);
       }
 
-      logger.debug(`args after evaluation: ${JSON.stringify(args)}. Retry logic is ${this.retry}`);
+      logger.debug(`args after evaluation: ${this.id} ${JSON.stringify(args)}. Retry logic is ${this.retry}`);
       if (args?.datasource && typeof args.datasource === 'string') {
         args.datasource = ctx.datasources[args.datasource]; //here we are loading the datasource object
       }
@@ -178,7 +179,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args);
       }
 
-      logger.info(`Result of _executeFn is ${typeof res === 'string' ? res: JSON.stringify(res)}`);
+      logger.info(`Result of _executeFn ${this.id} is ${typeof res === 'string' ? res: JSON.stringify(res)}`);
 
       
       if (res instanceof GSStatus) {
@@ -226,7 +227,7 @@ export class GSFunction extends Function {
           status.data = this.onError.response;
       }
 
-      if (!this.onError.continue) {
+      if (!status.success && this.onError.continue === false) {
         ctx.exitWithStatus = status;
       }
     }
@@ -256,7 +257,7 @@ export class GSFunction extends Function {
       }
     }
     else {
-      logger.info('invoking inner function');
+      //logger.info('invoking inner function');
       //logger.debug(ctx.inputs, 'inputs');
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
