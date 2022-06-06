@@ -51,6 +51,7 @@
     "node-cleanup": "^2.1.2"
   },
   "devDependencies": {
+    "@types/node-cleanup": "^2.1.2",
     "@types/body-parser": "^1.19.2",
     "@types/chai": "^4.3.1",
     "@types/config": "^0.0.41",
