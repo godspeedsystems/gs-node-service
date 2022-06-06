@@ -1,5 +1,6 @@
 import {getAtPath} from '../../../core/utils';
 import {GSStatus} from '../../../core/interfaces';
+import { logger } from '../../../core/logger';
 /**
  * 
  * @param args 
@@ -8,9 +9,12 @@ import {GSStatus} from '../../../core/interfaces';
  * data: arguments specific to the prisma method being invoked
  */
 export default async function(args:{[key:string]:any;}) {
+  logger.debug('args %o', args.data);
+  
   const ds = args.datasource;
-  const prismaMethod = <Function>getAtPath(ds.client, args.config.method); 
+  //const prismaMethod = <Function>getAtPath(ds.client, args.config.method); 
   const [entityType, method] = args.config.method.split('.');
+  let prismaMethod = ds.client[entityType][method];
   if (!prismaMethod) { //Oops!
     
     //Check whether the entityType specified is wrong or the method
@@ -18,10 +22,10 @@ export default async function(args:{[key:string]:any;}) {
       return new GSStatus(false, 400, `Invalid entity type "${entityType}" in query`);
     }
     //If not the entity type, the method specified must be wrong.
-    return new GSStatus(false, 500, `Invalid CRUD method "${method}" called on the server side`);
+    return new GSStatus(false, 500, `Invalid CRUD method "${entityType}" "${method}" called`);
   }
   try {
-    const res = await prismaMethod(args.data);
+    const res = await prismaMethod.bind(ds.client)(args.data);
     //logger.info('prisma res %o', res);{success, code, data, message, headers} 
     return new GSStatus(true, responseCode(method), undefined, res);
   } catch (err) {

@@ -4,7 +4,7 @@ import { config } from '../core/loader';  // eslint-disable-line
 const { MeterProvider, ConsoleMetricExporter } = require('@opentelemetry/sdk-metrics-base');
 const meter = new MeterProvider({
   exporter: new ConsoleMetricExporter(),
-  interval: config.app.config.telemetry.metrics.export.interval,
+  interval: config.app.config.telemetry?.metrics?.export?.interval || 1000,
 }).getMeter('gs-rquest-metrics');
 
 const requestCounter = meter.createCounter("requests-count", {
