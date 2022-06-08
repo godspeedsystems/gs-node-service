@@ -194,7 +194,7 @@ export class GSFunction extends Function {
           //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
           status = new GSStatus(
             true,
-            undefined,
+            200, //Default code be 200 for now
             undefined,
             res
             //message: skip

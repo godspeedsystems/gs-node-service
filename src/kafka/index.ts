@@ -17,7 +17,7 @@ export default class KafkaMessageBus {
 
     async producer() {
         if (!this._producer) {
-            let p = this.kafka.producer()
+            let p = this.kafka.producer();
             try {
               await p.connect();
               nodeCleanup(function() {
@@ -63,19 +63,19 @@ export default class KafkaMessageBus {
         let consumer = await this.consumer(groupId);
 
         try {
-          await consumer.subscribe({ topic })
+          await consumer.subscribe({ topic });
 
           const self = this;
       
           await consumer.run({
               eachMessage: async ({ topic, partition, message }) => {
                   const data =  JSON.parse(message?.value?.toString() || '');
-                  logger.debug('topic %s partition %o data %o', topic, partition)
+                  logger.debug('topic %s partition %o data %o', topic, partition);
                   const event = new GSCloudEvent('id', `${topic}.kafka.${groupId}`, new Date(message.timestamp), 'kafka', 
                       '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
                   return processEvent(event);
               },
-          })
+          });
         } catch(error){
           logger.error(error);
         }
@@ -100,24 +100,24 @@ export default class KafkaMessageBus {
                   headers:  {
                     Accept:  'application/vnd.api+json',
                   }
-                })
+                });
                 
-                const clusterUrl = clusterResponse.data[0].links.self
+                const clusterUrl = clusterResponse.data[0].links.self;
             
                 const brokersResponse = await axios(`${clusterUrl}/brokers`, {
                   headers: {
                     Accept: 'application/vnd.api+json',
                   }
-                })
+                });
     
                 const brokers = brokersResponse.data.map((broker: any) => {
-                  const { host, port } = broker.attributes
-                  return `${host}:${port}`
-                })
+                  const { host, port } = broker.attributes;
+                  return `${host}:${port}`;
+                });
             
-                return brokers
+                return brokers;
               },
-        })
+        });
 
         this.producer();
     }
