@@ -86,6 +86,12 @@ export default class KafkaMessageBus {
 
         logger.info('Connecting to kafka %o', config);
 
+        let brokers = config.brokers;
+
+        if (typeof(brokers) == 'string') {
+          brokers = brokers.split(',').map(s => s.trim());
+        }
+
         this.kafka = new Kafka({
             clientId: config.client_id,
             brokers: config.brokers ? config.brokers : async () => {

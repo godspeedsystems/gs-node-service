@@ -20,6 +20,9 @@ import KafkaMessageBus from './kafka';
 function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
     
     //@ts-ignore
+    logger.info('kafka config %o', config?.kafka);
+
+    //@ts-ignore
     let kafka = new KafkaMessageBus(config?.kafka);
     
     for (let route in events) {
