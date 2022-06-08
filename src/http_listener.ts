@@ -1,9 +1,15 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import expressPinoLogger from 'express-pino-logger';
+import swaggerUI from "swagger-ui-express";
+import path from 'path';
+
 import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
 const { countAllRequests } = require("./telemetry/monitoring");
+import { PROJECT_ROOT_DIRECTORY } from './core/utils';
+import generateSchema from './api-specs/api-spec';
+
 const loggerExpress = expressPinoLogger({
     logger: logger,
     autoLogging: true,
@@ -26,6 +32,20 @@ app.use(fileUpload({
 }));
 
 app.listen(port);
+
+
+const eventPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/events');
+generateSchema(eventPath)
+  .then((schema) => {
+    logger.debug("api-schema generated at /api-docs");
+    app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(schema));
+  })
+  .catch((e) => {
+    logger.error('Error in generating API schema %o', e);
+    process.exit(1);
+  });
+
+
 logger.info('Node + Express REST API skeleton server started on port: %s', port);
 
 export default app;
