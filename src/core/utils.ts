@@ -95,3 +95,24 @@ export function checkFunctionExists(events: PlainObject, functions: PlainObject)
   }
   return new GSStatus(true, undefined);
 }
+
+export function removeNulls (obj: PlainObject) {
+  const isArray = Array.isArray(obj);
+  for (const k of Object.keys(obj)) {
+    if (obj[k] === null) {
+      if (isArray) {
+        //@ts-ignore
+        obj.splice(k, 1);
+      } else {
+        delete obj[k];
+      }
+    } else if (typeof obj[k] === "object") {
+      removeNulls(obj[k]);
+    }
+    //@ts-ignore
+    if (isArray && obj.length === k) {
+      removeNulls(obj);
+    }
+  }
+  return obj;
+}

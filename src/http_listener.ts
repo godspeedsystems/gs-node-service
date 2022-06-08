@@ -6,9 +6,9 @@ import path from 'path';
 
 import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
-const { countAllRequests } = require("./telemetry/monitoring");
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
+const { countAllRequests } = require("./telemetry/monitoring");
 
 const loggerExpress = expressPinoLogger({
     logger: logger,

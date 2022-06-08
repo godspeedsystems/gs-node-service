@@ -2,6 +2,7 @@ import loadYaml from "../core/yamlLoader";
 import { PlainObject } from '../core/common';
 import { logger } from "../core/logger";
 import * as fs from 'fs';
+import { removeNulls } from "../core/utils";
 const swaggerCommanPart: PlainObject = require('./basic-spec.json');
 
 export default async function generateSchema(eventsFolderPath: string): Promise<PlainObject> {
@@ -9,7 +10,8 @@ export default async function generateSchema(eventsFolderPath: string): Promise<
   const finalSpec = JSON.parse(JSON.stringify(swaggerCommanPart)); //Make a deep clone copy
 
   Object.keys(eventsSchema).forEach((event:any) => {
-    const apiEndPoint = event.split('.')[0];
+    let apiEndPoint = event.split('.')[0];
+    apiEndPoint = apiEndPoint.replaceAll(/:([^\/]+)/g, "{$1}"); //We take :path_param. OAS3 takes {path_param}
     const method = event.split('.')[2];
     const eventSchema = eventsSchema[event];
       
@@ -22,10 +24,13 @@ export default async function generateSchema(eventsFolderPath: string): Promise<
       responses: eventSchema.responses,
     };
 
+    //Set it in the overall schema
     finalSpec.paths[apiEndPoint] = {
       [method]: methodSpec
     };
   });
+  removeNulls(finalSpec);
+  // fs.writeFileSync('/tmp/t.json', JSON.stringify(finalSpec));
   return finalSpec;
 }
 async function loadEventsYaml(path:string){

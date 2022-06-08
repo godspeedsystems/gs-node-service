@@ -23,7 +23,10 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
        const eventObjTopic = eventObj[topic];
 
        //Object.keys(eventObjTopic).forEach(function(topic) {
-            const body_content= eventObjTopic?.data?.schema?.body?.content;
+            const body_content= 
+                eventObjTopic?.body?.content //just like OpenAPI Spec but with body instead of requestBody
+                ||
+                eventObjTopic?.data?.schema?.body?.content; //Legacy
             if (body_content) {
 
                 Object.keys(body_content).forEach(function(k) {
@@ -39,7 +42,10 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
             }
 
             // Add params schema in ajv for each param per topic
-            const params = eventObjTopic?.data?.schema?.params;
+            const params = 
+                eventObjTopic?.params
+                ||
+                eventObjTopic?.data?.schema?.params;
             let paramSchema:PlainObject = {};
 
             if (params) {
@@ -81,7 +87,10 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
             const responses = eventObjTopic?.responses;
             if (responses) {
                 Object.keys(responses).forEach(function(k) {
-                    const response_s = responses[k]?.schema?.data?.content?.['application/json']?.schema;
+                    const response_s = 
+                        responses[k]?.content?.['application/json']?.schema //Exactly as OpenApi spec
+                        ||
+                        responses[k]?.schema?.data?.content?.['application/json']?.schema; //Legacy implementation
                     if (response_s) {
                         const response_schema = response_s;
                         const topic_response = topic + ':responses:'+ k;
@@ -101,7 +110,8 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
     let status:GSStatus;
 
     // Validate event.data.body
-    if (event.data.body && eventSpec?.data?.schema?.body) {
+    const hasSchema: any = eventSpec?.body || eventSpec?.data?.schema?.body;
+    if (event.data.body && hasSchema) {
         logger.info('event body and eventSpec exist');
         logger.info('event.data.body: %o',event.data.body);
         const ajv_validate = ajv.getSchema(topic);
@@ -119,7 +129,7 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
         } else{
             status = { success: true };
         }
-    } else if ( !event.data.body && eventSpec?.data?.schema?.body ) { 
+    } else if ( !event.data.body && hasSchema ) { 
         status = { success: false, code: 400, message: "Body not found in request but specified in the event schema"};
         return status;
     }
@@ -131,7 +141,10 @@ export function validateRequestSchema(topic: string, event: any, eventSpec: Plai
         status = { success: true };
     }
 
-    const params = eventSpec?.data?.schema?.params;
+    const params = 
+        eventSpec?.params //structure like open api spec
+        || 
+        eventSpec?.data?.schema?.params; //Legacy
 
     // Validate event.data['params']
     let MAP:PlainObject = {
