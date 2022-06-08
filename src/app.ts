@@ -160,22 +160,24 @@ async function main() {
           }
         }
         
-        //Now send the actual response over REST, for both the success and failure scenarios
-        if (eventHandlerStatus?.success) {
-            logger.debug(eventHandlerStatus, 'Request Successful End');
-            responseStructure.data = {
-                items: [ eventHandlerStatus?.data ]
-            };
-            (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code || 200).send(responseStructure);
-        } else {
-            logger.error(eventHandlerStatus, 'Response Error End');
-            responseStructure.error = {
-                code: eventHandlerStatus?.code ?? 500,
-                message: eventHandlerStatus?.message,
-                errors: [ eventHandlerStatus?.data ]
-            };
-            (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code ?? 500).send(responseStructure);
-        }
+        (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code ?? 500).send(eventHandlerStatus?.data);
+
+        // //Now send the actual response over REST, for both the success and failure scenarios
+        // if (eventHandlerStatus?.success) {
+        //     logger.debug(eventHandlerStatus, 'Request Successful End');
+        //     responseStructure.data = {
+        //         items: [ eventHandlerStatus?.data ]
+        //     };
+        //     (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code || 200).send(responseStructure);
+        // } else {
+        //     logger.error(eventHandlerStatus, 'Response Error End');
+        //     responseStructure.error = {
+        //         code: eventHandlerStatus?.code ?? 500,
+        //         message: eventHandlerStatus?.message,
+        //         errors: [ eventHandlerStatus?.data ]
+        //     };
+        //     (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code ?? 500).send(responseStructure);
+        // }
     }
 
     const events = await loadEvents(functions,PROJECT_ROOT_DIRECTORY + '/events');
