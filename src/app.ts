@@ -3,7 +3,7 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import config from 'config';
 
-import app from './http_listener';
+import app, {router} from './http_listener';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
@@ -36,7 +36,7 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
 
             logger.info('registering http handler %s %s', route, method);
             // @ts-ignore
-            app[method](route, function(req: express.Request, res: express.Response) {
+            router[method](route, function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s', originalRoute, req.params, req.files);
                 logger.debug('req.params: %s', req.params);
                 logger.debug('req.files: %s', req.files);
@@ -57,6 +57,10 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
             kafka.subscribe(topic, groupId, processEvent);
         }
     }
+
+    //@ts-ignore
+    const baseUrl = config.base_url || '/';
+    app.use(baseUrl, router);
 }
 
 async function main() {

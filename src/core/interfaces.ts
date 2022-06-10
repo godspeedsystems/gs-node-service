@@ -53,7 +53,7 @@ export class GSFunction extends Function {
   id: string; // can be dot separated fqn
 
   args?: any;
-  
+
   args_script?: string;
 
   summary?: string;
@@ -153,13 +153,30 @@ export class GSFunction extends Function {
     let status: GSStatus; //Final status to return
     try {
       logger.info('Executing handler %s %o', this.id, this.args);
-      let args = this.args;
+      let args;
       if (this.args_script) {
         args = await this._evaluateScript(ctx, this.args_script);
+      } else {
+        args = _.cloneDeep(this.args);
       }
 
       logger.debug(`args after evaluation: ${this.id} ${JSON.stringify(args)}. Retry logic is ${this.retry}`);
-      if (args?.datasource && typeof args.datasource === 'string') {
+      if (args?.datasource) {
+        let headers = ctx.datasources[args.datasource].headers;
+        if (headers) {
+          args.config.headers = args.config.headers || {};
+          for (let key in headers) {
+            let script = headers[key];
+            if (script.includes('<%') && script.includes('%>')) {
+              script = prepareJsonnetScript(script);
+            }
+            args.config.headers[key] = await this._evaluateScript(ctx, script);
+            logger.debug(`settings datasource headers key: %s script: %s value: %s`, key, script,  args.config.headers[key]);
+          }
+
+          logger.debug(`settings datasource headers: %o`, args.config.headers);
+
+        }
         args.datasource = ctx.datasources[args.datasource]; //here we are loading the datasource object
       }
 
@@ -181,7 +198,7 @@ export class GSFunction extends Function {
 
       logger.info(`Result of _executeFn ${this.id} is ${typeof res === 'string' ? res: JSON.stringify(res)}`);
 
-      
+
       if (res instanceof GSStatus) {
         status = res;
       } else {
@@ -320,21 +337,20 @@ export class GSParallelFunction extends GSFunction {
 
       outputs.push(output);
     }
-    
+
     ctx.outputs[this.id] = status;
   }
 }
 
 export class GSSwitchFunction extends GSFunction {
   condition_script?: string;
-  
+
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     const [condition, cases] = this.args!;
     if (condition.includes('<%') && condition.includes('%>')) {
       this.condition_script = prepareJsonnetScript(condition);
     }
-     
   }
 
   override async _call(ctx: GSContext) {
@@ -346,7 +362,7 @@ export class GSSwitchFunction extends GSFunction {
     logger.debug('condition: %s' , value);
     if (this.condition_script) {
       value = await this._evaluateScript(ctx, this.condition_script);
-    } 
+    }
     if (cases[value]) {
       await cases[value](ctx);
       ctx.outputs[this.id] = ctx.outputs[cases[value].id];
@@ -464,7 +480,7 @@ export class GSContext { //span executions
   jsonnetSnippet: string;
 
   plugins: PlainObject;
-  
+
   exitWithStatus?: GSStatus;
 
   constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction

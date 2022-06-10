@@ -90,11 +90,13 @@ async function loadHttpDatasource(
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
     return {
+      ...datasource,
       client: await api.getClient(),
       schema: true,
     };
   } else {
     const ds = {
+      ...datasource,
       client: axios.create({
         baseURL: expandVariables(datasource.base_url),
       }),

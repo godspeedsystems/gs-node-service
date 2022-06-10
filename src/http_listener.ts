@@ -49,3 +49,5 @@ generateSchema(eventPath)
 logger.info('Node + Express REST API skeleton server started on port: %s', port);
 
 export default app;
+
+export let router = express.Router();

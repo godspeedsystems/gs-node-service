@@ -16,8 +16,8 @@ export default async function(args:{[key:string]:any;}) {
     try {
         const ds = args.datasource;
         let res;
-        logger.debug('calling http client');
-        logger.debug('http client baseURL %s',ds.client.baseURL);
+        logger.debug('calling http client with args %o', args);
+        logger.debug('http client baseURL %s', ds.client.baseURL);
 
         if (ds.schema) {
             logger.debug('invoking with schema');
