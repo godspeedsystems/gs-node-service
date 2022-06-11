@@ -1,0 +1,42 @@
+name: Dev App Build
+
+on: 
+  workflow_dispatch:
+    inputs:
+     gs_service_version:
+        description: 'Gs_service version'
+        required: true
+        default: '0.0.1'
+     branch:
+        description: 'Branch'
+        required: true
+        default: 'master'        
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        path: ${{ github.event.inputs.branch }}
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Extracting version
+      run: |
+        APP_VERSION=$(grep -oP '(?<="version": ")[^"]*' package.json) >> $GITHUB_ENV
+        echo "APP_VERSION is $APP_VERSION"
+
+    - name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        context: .
+        file: Dockerfile
+        tags: adminmindgrep/gs_service-test:${{ github.event.inputs.gs_service_version }}
