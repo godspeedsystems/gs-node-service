@@ -1,7 +1,11 @@
 # Ignore everything
 *
 
-!/src
+!src
 !package.json
 !tsconfig.json
-!/typings
+!typings
+!node_modules
+
+node_modules/@hanazuki
+node_modules/@prisma
