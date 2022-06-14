@@ -3,6 +3,10 @@ import bodyParser from 'body-parser';
 import expressPinoLogger from 'express-pino-logger';
 import swaggerUI from "swagger-ui-express";
 import path from 'path';
+import passport from 'passport';
+import {Strategy as JwtStrategy, ExtractJwt} from 'passport-jwt';
+import config  from 'config';
+import jwt from 'jsonwebtoken';
 
 import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
@@ -21,9 +25,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(countAllRequests());
 app.use(loggerExpress);
-// app.get('/', function(req, res) {
-//     console.log('called endpoint')
-// });
 
 const port = process.env.PORT || 3000;
 app.use(fileUpload({
@@ -31,8 +32,23 @@ app.use(fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },
 }));
 
-app.listen(port);
+const jwtConfig = (config.get('jwt') as any);
 
+passport.use(new JwtStrategy({
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  ...jwtConfig,
+  ignoreExpiration: true,
+  jsonWebTokenOptions: {
+    audience: jwtConfig.audience,
+    issuer: jwtConfig.issuer,
+  }
+}, function(jwtPayload, done) {
+    return done(null);
+}));
+
+app.use(passport.authenticate('jwt', { session: false }));
+
+app.listen(port);
 
 const eventPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/events');
 generateSchema(eventPath)
