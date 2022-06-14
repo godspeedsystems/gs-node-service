@@ -1,0 +1,14 @@
+{
+    "code": 400,
+    "data": {
+        "instancePath": "/lender_response_code",
+        "keyword": "type",
+        "message": "must be string",
+        "params": {
+            "type": "string"
+        },
+        "schemaPath": "#/properties/lender_response_code/type"
+    },
+    "message": "must be string",
+    "success": false
+}

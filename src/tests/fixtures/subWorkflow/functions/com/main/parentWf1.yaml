@@ -1,0 +1,23 @@
+summary: Sub workflow including combination of series and parallel wfs on the basis of switch case
+id: parent_wf
+tasks:
+  - id: switch_case
+    fn: com.gs.switch
+    value: <%inputs.body.y%>
+    cases:
+      1:
+        id: switch_case_step1
+        fn: com.main.parentWf1_subWf1
+        args: <%inputs%>
+      2:
+        id: switch_case_step2
+        fn: com.main.parentWf1_subWf2
+        args: |
+          <%
+          { x: 5, } + 
+          inputs.body
+          %>
+      default:
+        id: switch_case_step3
+        fn: com.gs.transform
+        args: "switch case 3"

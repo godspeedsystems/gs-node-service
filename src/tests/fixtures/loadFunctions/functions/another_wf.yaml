@@ -1,0 +1,14 @@
+# config, inputs, ouputs, vars
+# Environment variables will be loaded in config files via some convention
+summary: Multiplexing create loan for hdfc api calls
+id: another
+tasks:
+    - id: another_step1 # the response of this will be accessible within the parent step key, under the step1 sub key
+      description: call another workflow
+      fn: com.pinelabs.create_parallel
+      args:
+        datasource: growthsource
+        customer_name: "ABC"
+        config:
+          url : /loki/v1/application/
+          method: post

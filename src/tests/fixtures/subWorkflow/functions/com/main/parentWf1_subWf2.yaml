@@ -1,0 +1,20 @@
+summary: Parallel independent functions execution
+id: parentWf1_subWf2
+tasks:
+  - id: parallel_two_step
+    fn: com.gs.parallel
+    tasks:
+      - id: parallel_fn_1
+        description: parallel_1
+        fn: com.gs.http
+        args:
+          datasource: httpbin
+          params:
+          data: <%inputs%>
+          config:
+            url : /anything
+            method: post      
+      - id: parallel_fn_2
+        fn: com.main.sum
+        args: <%inputs%>
+            

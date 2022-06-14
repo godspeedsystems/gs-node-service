@@ -1,0 +1,48 @@
+# config, inputs, ouputs, vars
+# Environment variables will be loaded in config files via some convention
+summary: Multiplexing create loan for hdfc api calls
+id: create_hdfc_01
+tasks:
+    - id: step1 # the response of this will be accessible within the parent step key, under the step1 sub key
+      description: create account in the bank
+      fn: com.gs.http
+      args:
+        datasource: httpbin
+        params:
+        data:
+            application_id: <% 'PSAM-' + randomString(5, '0123456789') %>
+            mobile_number: "9999888877"
+            personal_email_id: <%std.get(inputs.body, 'alaeforwich', 'ala.eforwich@email.com')%>
+            customer_consent: true
+            gender: <% std.get(mappings.Gender, inputs.body.Gender) %>
+            date_of_birth: "21-06-1991"
+            pan_number: "AZOPB8813Y"
+            customer_name: "Ala Eforwich"
+            code: 200
+
+        config:
+          url : /anything
+          method: post
+
+      retry: #Kestra spec compliant retry mechanism. By default turned off.
+        maxAttempt: 5
+        type: constant
+        interval: PT15M
+
+      on_error:
+        continue: true
+
+    - id: step2
+      fn: com.gs.transform
+      args: |
+          <% if outputs.step1.data.json.code == 200 then {
+              code: 200,
+              success : true,
+              data: outputs.step1.data.json,
+              message: ''
+          } else {
+              code: 500,
+              success : false,
+              message: 'error in step1'
+          } %>
+              

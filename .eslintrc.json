@@ -1,13 +1,56 @@
 {
-  "extends": ["airbnb", "prettier", "plugin:node/recommended"],
-  "plugins": ["prettier"],
+
+  "extends": [  
+    "airbnb",
+    "prettier",
+    "plugin:node/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript",
+    "plugin:jsx-a11y/recommended",
+    "plugin:prettier/recommended"
+    ],
+  "plugins": [
+    "prettier",
+    "@typescript-eslint"
+  ],
+  "env" : {
+    "browser" : true,
+    "node" : true,
+    "es6" : true
+  },  
   "rules": {
     "as-needed": "off",
-    "no-unused-vars": "warn",
+    "no-unused-vars": "off",
+    "@typescript-eslint/no-unused-vars": 0,
+    "@typescript-eslint/no-unused-vars-experimental": 0,
+    
+    "unused-imports/no-unused-imports": 0,
+    "no-new-func":0,
+    "prettier/prettier":0,
+    "guard-for-in":0,
+    "block-scoped-var":0,
+    "no-prototype-builtins":0,
+    "no-redeclare":0,
+    "import/namespace":0,
     "no-nested-ternary": "off",
-    "semi": "error",
+    "semi": [2, "always"],
+    "array-callback-return":0,
+    "no-case-declarations":0,
+    "no-process-exit":0,
+    "no-await-in-loop":0,
+    "no-global-assign":0,
+    "max-classes-per-file":0,
+    "import/no-extraneous-dependencies":0,
+    "node/no-extraneous-import":0,
+    "class-methods-use-this":0,
+    "default-param-last":0,
+    "no-useless-escape":0,
+    "no-continue":0,
     "no-undef": "off",
-    "no-console": "error",
+    "no-console": 0,
+    "no-path-concat":0,
+    "import/no-mutable-exports":0,
     "no-var": "off",
     "consistent-return": "off",
     "no-underscore-dangle": "off",
@@ -29,10 +72,18 @@
     "prefer-destructuring": "off",
     "arrow-body-style": "off",
     "node/no-missing-require": "off",
+    "node/no-missing-import": ["error", {
+      "allowModules": [],
+      "resolvePaths": ["/path/to/a/modules/directory"],
+      "tryExtensions": [".js",".ts", ".json", ".node"]
+  }],
     "node/no-unsupported-features/es-syntax": "off",
     "import/no-unresolved": "off",
     "import/extensions":  "off",
     "lines-around-directive":"off",
+    "import/no-default-export": 0,
+    "import/prefer-default-export": 0,
+
     "default-case":"off",
     "no-unused-expressions":"off",
     "no-fallthrough": "off",
@@ -45,7 +96,18 @@
     "node/no-unpublished-require": "off",
     "strict": "off",
     "no-plusplus": "off", 
-    "no-multi-assign": "off"
+    "no-multi-assign": "off",
+    "node/no-unpublished-import": ["error", {
+      "allowModules": ["chai","mocha"]
+    }]
 
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "ecmaFeatures": {
+        "jsx": true // Allows for the parsing of JSX
+    }
   }
 }

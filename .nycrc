@@ -1,0 +1,21 @@
+{
+  "check-coverage": false,
+  "include": [
+    "**/*.js",
+    "**/*.ts"
+  ],
+  "exclude": [
+    "**/tests/**/*",
+    "coverage/**/*",
+    "**/datasources/generated-clients/*",
+    "**/com/biz/*"
+  ],
+  "sourceMap": true,
+  "reporter": [
+    "html",
+    "text",
+    "text-summary"
+  ],
+  "all": true,
+  "instrument": true
+}
