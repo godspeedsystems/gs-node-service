@@ -191,7 +191,7 @@ export function validateResponseSchema(topic: string, gs_status: GSStatus): GSSt
         {
             if (! ajv_validate(gs_status.data)) {
                 logger.error('ajv_validate failed');
-                status = { success: false, code: 400, message: ajv_validate.errors![0].message, data: ajv_validate.errors![0] };
+                status = { success: false, code: 500, message: ajv_validate.errors![0].message, data: ajv_validate.errors![0] };
                 return status;
             }
             else{

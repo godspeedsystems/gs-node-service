@@ -32,21 +32,26 @@ app.use(fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },
 }));
 
-const jwtConfig = (config.get('jwt') as any);
+let jwtConfig;
+if (config.has('jwt')) {
+  jwtConfig = (config.get('jwt') as any);
+}
 
-passport.use(new JwtStrategy({
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  ...jwtConfig,
-  ignoreExpiration: true,
-  jsonWebTokenOptions: {
-    audience: jwtConfig.audience,
-    issuer: jwtConfig.issuer,
-  }
-}, function(jwtPayload, done) {
-    return done(null);
-}));
+if (jwtConfig) {
+  passport.use(new JwtStrategy({
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    ...jwtConfig,
+    ignoreExpiration: true,
+    jsonWebTokenOptions: {
+      audience: jwtConfig.audience,
+      issuer: jwtConfig.issuer,
+    }
+  }, function(jwtPayload, done) {
+      return done(null);
+  }));  
 
-app.use(passport.authenticate('jwt', { session: false }));
+  app.use(passport.authenticate('jwt', { session: false }));
+}
 
 app.listen(port);
 

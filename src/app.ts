@@ -91,12 +91,8 @@ async function main() {
         if(valid_status.success === false)
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema');
-            responseStructure.error = {
-                code: valid_status.code,
-                message: valid_status.message,
-                errors: [ { message: valid_status.message, location: valid_status.data.schemaPath}]
-            };
-            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(responseStructure);
+            const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message };
+            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
         }
         logger.info(valid_status, 'Request JSON Schema validated successfully');
 
@@ -160,9 +156,9 @@ async function main() {
             if (valid_status.success) {
                 logger.info(valid_status, 'Validate Response JSON Schema Success');
             } else {
-                logger.error(valid_status, 'Validate Response JSON Schema Error');
-                // Reinitialize eventHandlerStatus with data for response validation erro
-                eventHandlerStatus = new GSStatus(false, 500, 'Internal server error. Server created wrong response object, not compatible with the event\'s response schema.');
+                logger.error(valid_status, 'Failed to validate Response JSON Schema');
+                const response_data: PlainObject = { 'message': 'response validation error','error': valid_status.message };
+                return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
             }
           }
         }
