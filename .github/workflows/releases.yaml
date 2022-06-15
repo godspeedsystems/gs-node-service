@@ -23,6 +23,12 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Npm install
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.14.2
+    - run: npm install        
 
     - name: Build and push
       uses: docker/build-push-action@v2

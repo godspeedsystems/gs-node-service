@@ -32,12 +32,9 @@ app.use(fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 },
 }));
 
-let jwtConfig;
 if (config.has('jwt')) {
-  jwtConfig = (config.get('jwt') as any);
-}
+  let jwtConfig: any = config.get('jwt');
 
-if (jwtConfig) {
   passport.use(new JwtStrategy({
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
     ...jwtConfig,
@@ -47,7 +44,7 @@ if (jwtConfig) {
       issuer: jwtConfig.issuer,
     }
   }, function(jwtPayload, done) {
-      return done(null);
+      return done(null, {});
   }));  
 
   app.use(passport.authenticate('jwt', { session: false }));
