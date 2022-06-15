@@ -38,9 +38,9 @@ jobs:
         file: Dockerfile
         tags: adminmindgrep/gs_service:${{ github.ref_name }}
 
-    - uses: ncipollo/release-action@v1
-      with:
-        artifacts: "release.tar.gz"
-        bodyFile: "release.md"
-        token: ${{ secrets.GIT_TOKEN }}        
+    # - uses: ncipollo/release-action@v1
+    #   with:
+    #     artifacts: "release.tar.gz"
+    #     bodyFile: "release.md"
+    #     token: ${{ secrets.GIT_TOKEN }}        
 
