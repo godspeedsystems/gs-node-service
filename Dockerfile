@@ -7,4 +7,5 @@ USER node
 RUN sudo mkdir -p /workspace/development && sudo chown  -R node:node /workspace
 WORKDIR /workspace/development
 COPY --chown=node:node . gs_service/
+RUN cd gs_service && npm install
 
