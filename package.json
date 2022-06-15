@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha './dist/tests/*.test.js' --timeout 10000 | pino-pretty",
+    "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 10000",
+    "test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/*.test.js --timeout 10000 | pino-pretty",
     "test-cov": "nyc --reporter=html --reporter=text npm test",
     "dev": "PORT=3000 nodemon ./dist/app.js",
     "start": "cd dist && node app.js",
