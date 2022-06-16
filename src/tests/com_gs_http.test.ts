@@ -38,7 +38,7 @@ describe(testName, () => {
             logger.debug('result: %o',result);
 
             expect(result.success).to.equal(false);
-            expect(result.code).to.equal(undefined);
+            expect(result.code).to.equal(500);
             expect(result.message).to.equal("Cannot read properties of undefined (reading 'get')");
             expect(result.data).to.have.keys('code','message');
             expect(result.headers).to.equal(undefined);
@@ -65,21 +65,62 @@ describe(testName, () => {
         }
     });
 
-    //This test case needs to be completed with retry mechanism
-    it('baseURL_postWithRetry', async () => {
+    //com.gs.http retry testCase
+    it('baseURL_getWithRetryConstant', async () => {
         try {
-            const testId = 'baseURL_postWithRetry';
+            const testId = 'baseURL_getWithRetryConstant';
             const args = await require(`${fixDir}/${testId}`).default();            
             const result = await com_gs_http(args);
             logger.debug('result: %o',result);
-            //console.log('---result: ',result)
-            /*
+
+            expect(result.success).to.equal(false);
+            expect(result.code).to.equal(503);
+            expect(result.message).to.equal('Request failed with status code 503');
+        } catch(error) {
+            logger.error('error: %s',<Error>error);
+            fail(<Error>error);
+        }
+    });
+    it('baseURL_getWithRetryRandom', async () => {
+        try {
+            const testId = 'baseURL_getWithRetryRandom';
+            const args = await require(`${fixDir}/${testId}`).default();            
+            const result = await com_gs_http(args);
+            logger.debug('result: %o',result);
+
+            expect(result.success).to.equal(false);
+            expect(result.code).to.equal(503);
+            expect(result.message).to.equal('Request failed with status code 503');
+        } catch(error) {
+            logger.error('error: %s',<Error>error);
+            fail(<Error>error);
+        }
+    });
+    it('baseURL_getWithRetryExponential', async () => {
+        try {
+            const testId = 'baseURL_getWithRetryExponential';
+            const args = await require(`${fixDir}/${testId}`).default();            
+            const result = await com_gs_http(args);
+            logger.debug('result: %o',result);
+
+            expect(result.success).to.equal(false);
+            expect(result.code).to.equal(503);
+            expect(result.message).to.equal('Request failed with status code 503');
+        } catch(error) {
+            logger.error('error: %s',<Error>error);
+            fail(<Error>error);
+        }
+    });
+    it('fileUpload', async () => {
+        try {
+            const testId = 'fileUpload';
+            const args = await require(`${fixDir}/${testId}`).default();            
+            const result = await com_gs_http(args);
+            logger.debug('result: %o',result);
+
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
-            expect(result.message).to.equal('OK');
-            expect(result.data.json).to.eql({"TestData":"user1"});
-            expect(result.headers).to.be.an('Object');
-            */
+            expect(result.data).to.have.keys('args','data','files','form','headers','json','method','origin','url');
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);

@@ -5,7 +5,7 @@ import parseDuration from 'parse-duration';
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
-import { prepareJsonnetScript } from './utils'; // eslint-disable-line
+import { prepareJsonnetScript } from './utils';  // eslint-disable-line
 //import R from 'ramda';
 /**
   * SPEC:
