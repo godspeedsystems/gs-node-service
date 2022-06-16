@@ -165,13 +165,14 @@ async function main() {
         
         let code = eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500);
         let data = eventHandlerStatus?.data;
+        let headers = eventHandlerStatus?.headers;
 
         if (Number.isInteger(data)) {
             data = data.toString();
         }
 
-        logger.debug('return value %o %o', data, code);
-        (event.metadata?.http?.express.res as express.Response).status(code).send(data);
+        logger.debug('return value %o %o %o', data, code, headers);
+        (event.metadata?.http?.express.res as express.Response).status(code).header(headers).send(data);
 
         // //Now send the actual response over REST, for both the success and failure scenarios
         // if (eventHandlerStatus?.success) {
