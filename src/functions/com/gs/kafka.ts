@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { logger } from "../../../core/logger";
 
 
-export default async function(args:{[key:string]:any;}) {
+export default async function kafka(args:{[key:string]:any;}) {
     let kafka = args.kafka;
 
     let data = args.data;
@@ -13,7 +13,7 @@ export default async function(args:{[key:string]:any;}) {
 
     let producer = await kafka.producer();
 
-    logger.info('Sending messages to topic %s %o', args.config.topic);
+    logger.info('Sending messages to topic %s', args.config.topic);
     logger.debug('Sending messages to topic %s %o', args.config.topic, data);
 
     return producer.send({

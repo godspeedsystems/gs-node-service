@@ -59,12 +59,12 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
 }
 
 export function prepareJsonnetScript(str: string): string {
-  return str.replace(/\"<%\s*(.*?)\s*%>\"/g, "$1")
+  return str.replace(/\\n/g, '\n')
+    .replace(/"<%\s*(.*?)\s*%>"/g, "$1")
+              .replace(/"[\s\r\n\\n]*<%([\s\S]*?)%>[\s\r\n\\n]*"/g, '$1')
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
-              .replace(/"?\s*<%([\s\S]*?)%>[\s\S]*?"?/g, '$1')
-              .replace(/\\"/g, '"')
-              .replace(/\\n/g, ' ');
+              .replace(/\\"/g, '"');
 }
 
 export function JsonnetSnippet(plugins:any) {
@@ -94,4 +94,25 @@ export function checkFunctionExists(events: PlainObject, functions: PlainObject)
     }
   }
   return new GSStatus(true, undefined);
+}
+
+export function removeNulls (obj: PlainObject) {
+  const isArray = Array.isArray(obj);
+  for (const k of Object.keys(obj)) {
+    if (obj[k] === null) {
+      if (isArray) {
+        //@ts-ignore
+        obj.splice(k, 1);
+      } else {
+        delete obj[k];
+      }
+    } else if (typeof obj[k] === "object") {
+      removeNulls(obj[k]);
+    }
+    //@ts-ignore
+    if (isArray && obj.length === k) {
+      removeNulls(obj);
+    }
+  }
+  return obj;
 }

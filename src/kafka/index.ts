@@ -3,6 +3,8 @@ import axios from 'axios';
 import { GSActor, GSCloudEvent } from '../core/interfaces';
 import { logger } from '../core/logger';
 
+import nodeCleanup from 'node-cleanup';
+
 
 export default class KafkaMessageBus {
     config: Record<string, any>;
@@ -15,12 +17,19 @@ export default class KafkaMessageBus {
 
     async producer() {
         if (!this._producer) {
-            this._producer = this.kafka.producer();
+            let p = this.kafka.producer();
             try {
-              await this._producer.connect();
+              await p.connect();
+              nodeCleanup(function() {
+                console.log('calling kafka producer disconnect...');
+                //@ts-ignore
+                this.disconnect();
+              }.bind(p));
+              this._producer = p;
             } catch(error){
               logger.error(error);
             }
+
         }
 
         return this._producer;
@@ -28,36 +37,60 @@ export default class KafkaMessageBus {
 
     async consumer(groupId: string) {
         if (!this.consumers[groupId]) {
-            this.consumers[groupId] = this.kafka.consumer({ groupId });
-            await  this.consumers[groupId].connect();
+            let fn = this.consumers[groupId] = this.kafka.consumer({ groupId });
+            try {
+              await  this.consumers[groupId].connect();
+            } catch(error){
+              logger.error(error);
+            }
+            nodeCleanup(function() {
+              console.log('calling kafka consumer disconnect...');
+              //@ts-ignore
+              this.disconnect();
+            }.bind(fn));
         }
 
         return this.consumers[groupId];
     }
 
-    async subscribe(topic: string, groupId: string, processEvent:(event: GSCloudEvent)=>Promise<any>, route: string) {
+    async subscribe(topic: string, groupId: string, processEvent:(event: GSCloudEvent)=>Promise<any>) {
+
+        if (this.consumers[groupId]) {
+          logger.info('kafka consumer already setup and running...');
+          return;
+        }
+
         let consumer = await this.consumer(groupId);
 
-        await consumer.subscribe({ topic });
+        try {
+          await consumer.subscribe({ topic });
 
-        const self = this;
-    
-        await consumer.run({
-            eachMessage: async ({ topic, partition, message }) => {
-                //@ts-ignore
-                const data =  JSON.parse(message?.value?.toString());
-                logger.debug('data %o', data);
-                const event = new GSCloudEvent('id', route, new Date(message.timestamp), 'kafka', 
-                    '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
-                return processEvent(event);
-            },
-        });
+          const self = this;
+      
+          await consumer.run({
+              eachMessage: async ({ topic, partition, message }) => {
+                  const data =  JSON.parse(message?.value?.toString() || '');
+                  logger.debug('topic %s partition %o data %o', topic, partition);
+                  const event = new GSCloudEvent('id', `${topic}.kafka.${groupId}`, new Date(message.timestamp), 'kafka', 
+                      '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
+                  return processEvent(event);
+              },
+          });
+        } catch(error){
+          logger.error(error);
+        }
     }
 
     constructor(config: Record<string, any>) {
         this.config = config;
 
         logger.info('Connecting to kafka %o', config);
+
+        let brokers = config.brokers;
+
+        if (typeof(brokers) == 'string') {
+          brokers = brokers.split(',').map(s => s.trim());
+        }
 
         this.kafka = new Kafka({
             clientId: config.client_id,
@@ -86,7 +119,7 @@ export default class KafkaMessageBus {
               },
         });
 
-        //this.producer();
+        this.producer();
     }
 }
 

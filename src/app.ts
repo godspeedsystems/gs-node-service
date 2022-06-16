@@ -3,7 +3,7 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import config from 'config';
 
-import app from './http_listener';
+import app, {router} from './http_listener';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
@@ -19,9 +19,11 @@ import KafkaMessageBus from './kafka';
 
 function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
     
+    //@ts-ignore
+    logger.info('kafka config %o', config?.kafka);
 
     //@ts-ignore
-    let kafka ;
+    let kafka = new KafkaMessageBus(config?.kafka);
     
     for (let route in events) {
         let originalRoute = route;
@@ -34,7 +36,7 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
 
             logger.info('registering http handler %s %s', route, method);
             // @ts-ignore
-            app[method](route, function(req: express.Request, res: express.Response) {
+            router[method](route, function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s', originalRoute, req.params, req.files);
                 logger.debug('req.params: %s', req.params);
                 logger.debug('req.files: %s', req.files);
@@ -52,15 +54,13 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
         } else  if (route.includes('.kafka.')) {
             let [topic, groupId] = route.split('.kafka.');
             logger.info('registering kafka handler %s %s', topic, groupId);
-            if (!kafka) {
-              //@ts-ignore
-              logger.info('Creating to kafka bus %o', config.kafka);
-              //@ts-ignore
-              kafka = new KafkaMessageBus(config?.kafka);
-            }
-            kafka.subscribe(topic, groupId, processEvent, originalRoute);
+            kafka.subscribe(topic, groupId, processEvent);
         }
     }
+
+    //@ts-ignore
+    const baseUrl = config.base_url || '/';
+    app.use(baseUrl, router);
 }
 
 async function main() {
@@ -91,12 +91,8 @@ async function main() {
         if(valid_status.success === false)
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema');
-            responseStructure.error = {
-                code: valid_status.code,
-                message: valid_status.message,
-                errors: [ { message: valid_status.message, location: valid_status.data.schemaPath}]
-            };
-            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(responseStructure);
+            const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message };
+            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
         }
         logger.info(valid_status, 'Request JSON Schema validated successfully');
 
@@ -160,29 +156,39 @@ async function main() {
             if (valid_status.success) {
                 logger.info(valid_status, 'Validate Response JSON Schema Success');
             } else {
-                logger.error(valid_status, 'Validate Response JSON Schema Error');
-                // Reinitialize eventHandlerStatus with data for response validation erro
-                eventHandlerStatus = new GSStatus(false, 500, 'Internal server error. Server created wrong response object, not compatible with the event\'s response schema.');
+                logger.error(valid_status, 'Failed to validate Response JSON Schema');
+                const response_data: PlainObject = { 'message': 'response validation error','error': valid_status.message };
+                return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
             }
           }
         }
         
-        //Now send the actual response over REST, for both the success and failure scenarios
-        if (eventHandlerStatus?.success) {
-            logger.debug(eventHandlerStatus, 'Request Successful End');
-            responseStructure.data = {
-                items: [ eventHandlerStatus?.data ]
-            };
-            (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code || 200).send(responseStructure);
-        } else {
-            logger.error(eventHandlerStatus, 'Response Error End');
-            responseStructure.error = {
-                code: eventHandlerStatus?.code ?? 500,
-                message: eventHandlerStatus?.message,
-                errors: [ eventHandlerStatus?.data ]
-            };
-            (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code ?? 500).send(responseStructure);
+        let code = eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500);
+        let data = eventHandlerStatus?.data;
+
+        if (Number.isInteger(data)) {
+            data = data.toString();
         }
+
+        logger.debug('return value %o %o', data, code);
+        (event.metadata?.http?.express.res as express.Response).status(code).send(data);
+
+        // //Now send the actual response over REST, for both the success and failure scenarios
+        // if (eventHandlerStatus?.success) {
+        //     logger.debug(eventHandlerStatus, 'Request Successful End');
+        //     responseStructure.data = {
+        //         items: [ eventHandlerStatus?.data ]
+        //     };
+        //     (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code || 200).send(responseStructure);
+        // } else {
+        //     logger.error(eventHandlerStatus, 'Response Error End');
+        //     responseStructure.error = {
+        //         code: eventHandlerStatus?.code ?? 500,
+        //         message: eventHandlerStatus?.message,
+        //         errors: [ eventHandlerStatus?.data ]
+        //     };
+        //     (event.metadata?.http?.express.res as express.Response).status(eventHandlerStatus?.code ?? 500).send(responseStructure);
+        // }
     }
 
     const events = await loadEvents(functions,PROJECT_ROOT_DIRECTORY + '/events');
