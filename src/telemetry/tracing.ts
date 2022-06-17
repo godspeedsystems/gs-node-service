@@ -1,3 +1,4 @@
+import { logger } from '../core/logger';
 const opentelemetry = require("@opentelemetry/sdk-node");
 //Disable all autoinstrumentations because they do logging of all express middleware also.
 //const { getNodeAutoInstrumentations } = require("@opentelemetry/auto-instrumentations-node");
@@ -6,9 +7,6 @@ const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { KafkaJsInstrumentation } = require('opentelemetry-instrumentation-kafkajs');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-otlp-grpc');
-
-import { logger } from '../core/logger';
-
 
 const traceExporter = new OTLPTraceExporter();
 
