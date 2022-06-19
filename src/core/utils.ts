@@ -1,7 +1,10 @@
 import { PlainObject } from "./common";
 import { logger } from './logger';
 import { GSStatus } from './interfaces'; // eslint-disable-line
-const { dirname } = require('path');
+import { dirname } from  'path';
+
+import CoffeeScript from 'coffeescript';
+
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
@@ -58,31 +61,23 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
   return new GSStatus(true,undefined);
 }
 
-export function prepareJsonnetScript(str: string): string {
-  return str.replace(/\\n/g, '\n')
+export function prepareScript(str: string): Function {
+  str = str.replace(/\\n/g, '\n')
     .replace(/"<%\s*(.*?)\s*%>"/g, "$1")
               .replace(/"[\s\r\n\\n]*<%([\s\S]*?)%>[\s\r\n\\n]*"/g, '$1')
               .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
               .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
               .replace(/\\"/g, '"');
-}
 
-export function JsonnetSnippet(plugins:any) {
-  let snippet = `local inputs = std.extVar('inputs');
-      local mappings = std.extVar('mappings');
-      local config = std.extVar('config');
-  `;
 
-  for (let fn in plugins) {
-      let f = fn.split('.');
-      fn = f[f.length - 1];
-
-      snippet += `
-          local ${fn} = std.native('${fn}');
-          `;
+  logger.debug('script', str);
+  if (!str.includes('return ')) {
+    str = 'return ' + str;
   }
 
-  return snippet;
+  str = CoffeeScript.compile(str ,{bare: true});
+
+  return Function('config', 'inputs', 'outputs', str);
 }
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {

@@ -1,11 +1,10 @@
-import { Jsonnet } from '@hanazuki/node-jsonnet';
 import { randomUUID } from 'crypto';
 import _ from 'lodash';
 import parseDuration from 'parse-duration';
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
-import { prepareJsonnetScript } from './utils';  // eslint-disable-line
+import {prepareScript } from './utils';  // eslint-disable-line
 //import R from 'ramda';
 /**
   * SPEC:
@@ -54,7 +53,7 @@ export class GSFunction extends Function {
 
   args?: any;
 
-  args_script?: string;
+  args_script?: Function;
 
   summary?: string;
 
@@ -84,7 +83,7 @@ export class GSFunction extends Function {
       args = JSON.stringify(args);
 
       if (_fn && args.includes('<%') && args.includes('%>')) {
-        this.args_script = prepareJsonnetScript(args);
+        this.args_script = prepareScript(args);
       }
     }
 
@@ -95,7 +94,7 @@ export class GSFunction extends Function {
     if (onError && onError.response) {
       const response = JSON.stringify(onError.response);
       if (response.includes('<%') && response.includes('%>')) {
-        this.onError!.response_script = prepareJsonnetScript(response);
+        this.onError!.response_script = prepareScript(response);
       }
     }
 
@@ -122,21 +121,14 @@ export class GSFunction extends Function {
    * Can be called for gsFunction.args, gsFunction.on_error.transform and switch.condition
    * Input an be scalar or object
    */
-  async _evaluateScript(ctx: GSContext, script: string) {
-    logger.info('before _evaluateScript %s', script);
+  async _evaluateScript(ctx: GSContext, script: Function) {
+    logger.debug('before _evaluateScript %s', script);
     if (!script) {
       return;
     }
 
-    let snippet = ctx.jsonnetSnippet;
-
-    snippet += `
-      local outputs = ${JSON.stringify(ctx.outputs).replace(/^"|"$/, '')};
-      ${script}
-    `;
-    logger.debug('snippet: %s',snippet);
     try {
-      return JSON.parse(await ctx.jsonnet.evaluateSnippet(snippet));
+      return script(ctx.config, ctx.inputs.data, ctx.outputs);
     } catch (err: any) {
       logger.error(err);
       ctx.exitWithStatus = new GSStatus(
@@ -146,13 +138,12 @@ export class GSFunction extends Function {
         err.stack
       );
     }
-
   }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     let status: GSStatus; //Final status to return
     try {
-      logger.info('Executing handler %s %o', this.id, this.args);
+      logger.debug('Executing handler %s %o', this.id, this.args);
       let args;
       if (this.args_script) {
         args = await this._evaluateScript(ctx, this.args_script);
@@ -168,7 +159,7 @@ export class GSFunction extends Function {
           for (let key in headers) {
             let script = headers[key];
             if (script.includes('<%') && script.includes('%>')) {
-              script = prepareJsonnetScript(script);
+              script = prepareScript(script);
             }
             args.config.headers[key] = await this._evaluateScript(ctx, script);
             logger.debug(`settings datasource headers key: %s script: %s value: %s`, key, script,  args.config.headers[key]);
@@ -343,13 +334,13 @@ export class GSParallelFunction extends GSFunction {
 }
 
 export class GSSwitchFunction extends GSFunction {
-  condition_script?: string;
+  condition_script?: Function;
 
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     const [condition, cases] = this.args!;
     if (condition.includes('<%') && condition.includes('%>')) {
-      this.condition_script = prepareJsonnetScript(condition);
+      this.condition_script = prepareScript(condition);
     }
   }
 
@@ -473,45 +464,21 @@ export class GSContext { //span executions
 
   datasources: PlainObject; //app config
 
-  jsonnet: Jsonnet;
-
   mappings: any;
-
-  jsonnetSnippet: string;
 
   plugins: PlainObject;
 
   exitWithStatus?: GSStatus;
 
-  constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, jsonnetSnippet:string, plugins: PlainObject) {//_function?: GSFunction
+  constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, plugins: PlainObject) {//_function?: GSFunction
     this.inputs = event;
     this.config = config;
     this.outputs = {};
     this.datasources = datasources;
     this.mappings = mappings;
-    this.jsonnetSnippet = jsonnetSnippet;
     this.plugins = plugins;
 
     logger.debug('inputs for context %s', JSON.stringify(event.data));
-
-    const jsonnet = this.jsonnet = new Jsonnet();
-
-    jsonnet.extCode("inputs", JSON.stringify(event.data));
-    jsonnet.extCode("config", JSON.stringify(this.config));
-    jsonnet.extCode("mappings", JSON.stringify(this.mappings));
-
-    for (let fn in plugins) {
-      let name = fn.split('.').pop();
-      const args = /\((.*?)\)/.exec(plugins[fn].toString());
-
-      if (args) {
-        let argArray = args[1].split(',').map(s => s.trim());
-        logger.info('plugin: %s, %o',name,argArray);
-        jsonnet.nativeCallback(name!, plugins[fn], ...argArray);
-      } else {
-        jsonnet.nativeCallback(name!, plugins[fn]);
-      }
-    }
   }
 
   public cloneWithNewData(data: PlainObject): GSContext {
@@ -520,7 +487,6 @@ export class GSContext { //span executions
         this.datasources,
         this.inputs?.cloneWithNewData(data),
         this.mappings,
-        this.jsonnetSnippet,
         this.plugins
     );
   }
