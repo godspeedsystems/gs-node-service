@@ -4,6 +4,7 @@ import { GSStatus } from './interfaces'; // eslint-disable-line
 import { dirname } from  'path';
 
 import CoffeeScript from 'coffeescript';
+import config from "config";
 
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
@@ -42,7 +43,7 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
 export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
   logger.debug('checkDatasource');
   logger.debug('workflowJson: %o',workflowJson);
-  
+
   for (let task of workflowJson.tasks) {
       if (task.tasks) {
           logger.debug('checking nested tasks');
@@ -62,11 +63,21 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
 }
 
 export function prepareScript(str: string): Function {
+
+  //@ts-ignore
+  let lang = config.lang || 'coffee';
+
+  let langs = (/<(.*?)%/).exec(str);
+
+  if (langs) {
+    lang = langs[1];
+  }
+
   str = str.replace(/\\n/g, '\n')
-    .replace(/"<%\s*(.*?)\s*%>"/g, "$1")
-              .replace(/"[\s\r\n\\n]*<%([\s\S]*?)%>[\s\r\n\\n]*"/g, '$1')
-              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
-              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
+    .replace(/"<.*?%\s*(.*?)\s*%>"/g, "$1")
+              .replace(/"[\s\r\n\\n]*<.*?%([\s\S]*?)%>[\s\r\n\\n]*"/g, '$1')
+              .replace(/^\s*<.*?%\s*(.*?)\s*%>\s*$/g, '$1')
+              .replace(/<.*?%\s*(.*?)\s*%>/g, '" + $1 + "')
               .replace(/\\"/g, '"');
 
 
@@ -75,7 +86,9 @@ export function prepareScript(str: string): Function {
     str = 'return ' + str;
   }
 
-  str = CoffeeScript.compile(str ,{bare: true});
+  if (lang === 'coffee') {
+    str = CoffeeScript.compile(str ,{bare: true});
+  }
 
   return Function('config', 'inputs', 'outputs', str);
 }
