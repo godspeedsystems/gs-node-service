@@ -69,9 +69,8 @@ export function prepareScript(str: string): Function {
 
   let langs = (/<(.*?)%/).exec(str);
 
-  if (langs) {
-    lang = langs[1];
-  }
+  //@ts-ignore
+  lang = langs[1] ||  config.lang || 'coffee';
 
   str = str.replace(/\\n/g, '\n')
     .replace(/"<.*?%\s*(.*?)\s*%>"/g, "$1")
@@ -80,8 +79,7 @@ export function prepareScript(str: string): Function {
               .replace(/<.*?%\s*(.*?)\s*%>/g, '" + $1 + "')
               .replace(/\\"/g, '"');
 
-
-  logger.debug('script', str);
+  logger.debug('script: %s', str);
   if (!str.includes('return ')) {
     str = 'return ' + str;
   }
