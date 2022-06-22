@@ -50,7 +50,7 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
           const status:GSStatus = checkDatasource(task,datasources);
       } else {
           if (task.args?.datasource) {
-              if (!(task.args.datasource in datasources) && !task.args.datasource.match(/<%.+%>/)) {
+              if (!(task.args.datasource in datasources) && !task.args.datasource.match(/<(.*?)%.+%>/)) {
                 //The datasource is neither present in listed datasources and nor is a dynamically evaluated expression, then it is an error
                 logger.error('datasource %s is not present in datasources', task.args.datasource);
                 const msg = `datasource ${task.args.datasource} is not present in datasources`;
@@ -79,6 +79,7 @@ export function prepareScript(str: string): Function {
               .replace(/<.*?%\s*(.*?)\s*%>/g, '" + $1 + "')
               .replace(/\\"/g, '"');
 
+  logger.debug('lang: %s', lang);
   logger.debug('script: %s', str);
   if (!str.includes('return ')) {
     str = 'return ' + str;

@@ -82,7 +82,7 @@ export class GSFunction extends Function {
       }
       args = JSON.stringify(args);
 
-      if (_fn && args.includes('<%') && args.includes('%>')) {
+      if (_fn && args.match(/<(.*?)%/) && args.includes('%>')) {
         this.args_script = prepareScript(args);
       }
     }
@@ -93,7 +93,7 @@ export class GSFunction extends Function {
 
     if (onError && onError.response) {
       const response = JSON.stringify(onError.response);
-      if (response.includes('<%') && response.includes('%>')) {
+      if (response.match(/<(.*?)%/) && response.includes('%>')) {
         this.onError!.response_script = prepareScript(response);
       }
     }
@@ -158,7 +158,7 @@ export class GSFunction extends Function {
           args.config.headers = args.config.headers || {};
           for (let key in headers) {
             let script = headers[key];
-            if (script.includes('<%') && script.includes('%>')) {
+            if (script.match(/<(.*?)%/) && script.includes('%>')) {
               script = prepareScript(script);
             }
             args.config.headers[key] = await this._evaluateScript(ctx, script);
@@ -339,7 +339,7 @@ export class GSSwitchFunction extends GSFunction {
   constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     const [condition, cases] = this.args!;
-    if (condition.includes('<%') && condition.includes('%>')) {
+    if (condition.match(/<(.*?)%/) && condition.includes('%>')) {
       this.condition_script = prepareScript(condition);
     }
   }
