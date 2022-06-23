@@ -81,7 +81,7 @@ export function prepareScript(str: string): Function {
 
   logger.debug('lang: %s', lang);
   logger.debug('script: %s', str);
-  if (!str.includes('return ')) {
+  if (!/\breturn\b/.test(str)) {
     str = 'return ' + str;
   }
 
