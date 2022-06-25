@@ -89,7 +89,37 @@ export function prepareScript(str: string): Function {
     str = CoffeeScript.compile(str ,{bare: true});
   }
 
-  return Function('config', 'inputs', 'outputs', str);
+  return Function('config', 'inputs', 'outputs', 'mappings', str);
+}
+
+export function compileScript(args: any) {
+  if (typeof(args) == 'object') {
+    if (!Array.isArray(args)) {
+      return function(config:any, inputs:any, outputs:any, mappings: any) {
+        let out: PlainObject = {};
+        for (let k in args) {
+          out[k] = compileScript(args[k])(config, inputs, outputs, mappings);
+        }
+        return out;
+      };
+    } else {
+      return function(config:any, inputs:any, outputs:any, mappings: any) {
+        let out:[any] = <any>[];
+        for (let k in <[any]>args) {
+          out[k] = compileScript(args[k])(config, inputs, outputs, mappings);
+        }
+        return out;
+      };
+    }
+  } else if (typeof(args) == 'string') {
+    args = args.replace(/(^|\/):([^\/]+?)(\/|$)/g, '$1<%inputs.params.$2%>$3');
+
+    if (args.match(/<(.*?)%/) && args.includes('%>')) {
+      return prepareScript(args);
+    }
+  }
+
+  return () => args;
 }
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {

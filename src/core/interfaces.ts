@@ -4,7 +4,17 @@ import parseDuration from 'parse-duration';
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
-import {prepareScript } from './utils';  // eslint-disable-line
+import { compileScript } from './utils';  // eslint-disable-line
+import * as plugins from "../plugins";
+
+function importAll(sourceScope: any, targetScope: any) {
+  for (let name in sourceScope) {
+    targetScope[name] = sourceScope[name];
+  }
+}
+
+importAll(plugins, global);
+
 //import R from 'ramda';
 /**
   * SPEC:
@@ -74,16 +84,10 @@ export class GSFunction extends Function {
 
     if (args) {
       this.args = args;
+      const str = JSON.stringify(args);
 
-      if (typeof(args) != 'string') {
-        if (args.config?.url) {
-          args.config.url =  args.config.url.replace(/:([^\/]+)/g, '<%inputs.params.$1%>');
-        }
-      }
-      args = JSON.stringify(args);
-
-      if (_fn && args.match(/<(.*?)%/) && args.includes('%>')) {
-        this.args_script = prepareScript(args);
+      if (_fn && str.match(/<(.*?)%/) && str.includes('%>')) {
+        this.args_script = compileScript(args);
       }
     }
 
@@ -94,7 +98,7 @@ export class GSFunction extends Function {
     if (onError && onError.response) {
       const response = JSON.stringify(onError.response);
       if (response.match(/<(.*?)%/) && response.includes('%>')) {
-        this.onError!.response_script = prepareScript(response);
+        this.onError!.response_script = compileScript(response);
       }
     }
 
@@ -128,7 +132,7 @@ export class GSFunction extends Function {
     }
 
     try {
-      return script(ctx.config, ctx.inputs.data, ctx.outputs);
+      return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings);
     } catch (err: any) {
       logger.error(err);
       ctx.exitWithStatus = new GSStatus(
@@ -156,15 +160,8 @@ export class GSFunction extends Function {
         let headers = ctx.datasources[args.datasource].headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
-          for (let key in headers) {
-            let script = headers[key];
-            if (script.match(/<(.*?)%/) && script.includes('%>')) {
-              script = prepareScript(script);
-            }
-            args.config.headers[key] = await this._evaluateScript(ctx, script);
-            logger.debug(`settings datasource headers key: %s script: %s value: %s`, key, script,  args.config.headers[key]);
-          }
-
+          headers =  await this._evaluateScript(ctx, headers);
+          Object.assign(args.config.headers, headers);
           logger.debug(`settings datasource headers: %o`, args.config.headers);
 
         }
@@ -211,6 +208,7 @@ export class GSFunction extends Function {
         }
       }
     } catch (err: any) {
+      console.error(err);
       status = new GSStatus(
           false,
           500,
@@ -340,7 +338,7 @@ export class GSSwitchFunction extends GSFunction {
     super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
     const [condition, cases] = this.args!;
     if (condition.match(/<(.*?)%/) && condition.includes('%>')) {
-      this.condition_script = prepareScript(condition);
+      this.condition_script = compileScript(condition);
     }
   }
 
