@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 10000",
+    "test-one": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha $* --timeout 10000 | pino-pretty",
     "test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/*.test.js --timeout 10000 | pino-pretty",
     "test-cov": "nyc --reporter=html --reporter=text npm test",
     "start": "cd dist && node app.js",
@@ -54,6 +55,7 @@
     "pino-debug": "^2.0.0",
     "prisma": "^3.14.0",
     "rambda": "^7.0.3",
+    "redis": "^4.1.0",
     "swagger-ui-express": "^4.4.0",
     "yaml": "^2.0.0",
     "yarn": "^1.22.18"

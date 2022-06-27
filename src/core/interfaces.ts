@@ -5,15 +5,7 @@ import parseDuration from 'parse-duration';
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
 import { compileScript } from './utils';  // eslint-disable-line
-import * as plugins from "../plugins";
-
-function importAll(sourceScope: any, targetScope: any) {
-  for (let name in sourceScope) {
-    targetScope[name] = sourceScope[name];
-  }
-}
-
-importAll(plugins, global);
+import evaluateScript from '../scriptRuntime'; // eslint-disable-line
 
 //import R from 'ramda';
 /**
@@ -121,28 +113,6 @@ export class GSFunction extends Function {
     this.isSubWorkflow = isSubWorkflow;
   }
 
-  /**
-   * Can be called for gsFunction.args, gsFunction.on_error.transform and switch.condition
-   * Input an be scalar or object
-   */
-  async _evaluateScript(ctx: GSContext, script: Function) {
-    logger.debug('before _evaluateScript %s', script);
-    if (!script) {
-      return;
-    }
-
-    try {
-      return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings);
-    } catch (err: any) {
-      logger.error(err);
-      ctx.exitWithStatus = new GSStatus(
-        false,
-        undefined,
-        err.message,
-        err.stack
-      );
-    }
-  }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     let status: GSStatus; //Final status to return
@@ -150,7 +120,7 @@ export class GSFunction extends Function {
       logger.debug('Executing handler %s %o', this.id, this.args);
       let args;
       if (this.args_script) {
-        args = await this._evaluateScript(ctx, this.args_script);
+        args = await evaluateScript(ctx, this.args_script);
       } else {
         args = _.cloneDeep(this.args);
       }
@@ -160,7 +130,7 @@ export class GSFunction extends Function {
         let headers = ctx.datasources[args.datasource].headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
-          headers =  await this._evaluateScript(ctx, headers);
+          headers =  await evaluateScript(ctx, headers);
           Object.assign(args.config.headers, headers);
           logger.debug(`settings datasource headers: %o`, args.config.headers);
 
@@ -223,7 +193,7 @@ export class GSFunction extends Function {
     if (this.onError) {
 
       if (this.onError.response_script ) {
-        const res = await this._evaluateScript(ctx, this.onError.response_script);
+        const res = await evaluateScript(ctx, this.onError.response_script);
         if (typeof res === 'object' && res.success !== undefined) {
           let {success, code, data, message, headers} = res;
           status = new GSStatus(success, code, message, data, headers);
@@ -252,7 +222,7 @@ export class GSFunction extends Function {
         logger.info('isSubWorkflow, creating new ctx');
         let args = this.args;
         if (this.args_script) {
-          args = await this._evaluateScript(ctx, this.args_script);
+          args = await evaluateScript(ctx, this.args_script);
         }
         const newCtx = ctx.cloneWithNewData(args);
         await this.fn(newCtx);
@@ -350,7 +320,7 @@ export class GSSwitchFunction extends GSFunction {
     let [value, cases] = this.args!;
     logger.debug('condition: %s' , value);
     if (this.condition_script) {
-      value = await this._evaluateScript(ctx, this.condition_script);
+      value = await evaluateScript(ctx, this.condition_script);
     }
     if (cases[value]) {
       await cases[value](ctx);
