@@ -72,12 +72,11 @@ export function prepareScript(str: string): Function {
   //@ts-ignore
   lang = langs[1] ||  config.lang || 'coffee';
 
-  str = str.replace(/\\n/g, '\n')
-    .replace(/"<.*?%\s*(.*?)\s*%>"/g, "$1")
-              .replace(/"[\s\r\n\\n]*<.*?%([\s\S]*?)%>[\s\r\n\\n]*"/g, '$1')
-              .replace(/^\s*<.*?%\s*(.*?)\s*%>\s*$/g, '$1')
-              .replace(/<.*?%\s*(.*?)\s*%>/g, '" + $1 + "')
-              .replace(/\\"/g, '"');
+  str = str.trim().replace(/^<(.*?)%/, '').replace(/%>$/, '');
+
+  while (str.match(/<(.*?)%/) && str.includes('%>')) {
+    str = str.replace(/(.*)?<(.*?)%(.*?)%>(.*)/, "'$1' + $3 + '$4'");
+  }
 
   logger.debug('lang: %s', lang);
   logger.debug('script: %s', str);
@@ -112,7 +111,7 @@ export function compileScript(args: any) {
       };
     }
   } else if (typeof(args) == 'string') {
-    args = args.replace(/(^|\/):([^\/]+?)(\/|$)/g, '$1<%inputs.params.$2%>$3');
+    args = args.replace(/(^|\/):([^\/]+?)/g, '$1<%inputs.params.$2%>');
 
     if (args.match(/<(.*?)%/) && args.includes('%>')) {
       return prepareScript(args);
