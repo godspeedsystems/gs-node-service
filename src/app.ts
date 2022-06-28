@@ -91,7 +91,7 @@ async function main() {
         if(valid_status.success === false)
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema');
-            const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message };
+            const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message, 'data': valid_status.data};
             return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
         }
         logger.info(valid_status, 'Request JSON Schema validated successfully');
@@ -157,7 +157,7 @@ async function main() {
                 logger.info(valid_status, 'Validate Response JSON Schema Success');
             } else {
                 logger.error(valid_status, 'Failed to validate Response JSON Schema');
-                const response_data: PlainObject = { 'message': 'response validation error','error': valid_status.message };
+                const response_data: PlainObject = { 'message': 'response validation error','error': valid_status.message, 'data': valid_status.data };
                 return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
             }
           }
