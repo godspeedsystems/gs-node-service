@@ -1,7 +1,11 @@
 import { PlainObject } from "./common";
 import { logger } from './logger';
 import { GSStatus } from './interfaces'; // eslint-disable-line
-const { dirname } = require('path');
+import { dirname } from  'path';
+
+import CoffeeScript from 'coffeescript';
+import config from "config";
+
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
@@ -39,14 +43,14 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
 export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
   logger.debug('checkDatasource');
   logger.debug('workflowJson: %o',workflowJson);
-  
+
   for (let task of workflowJson.tasks) {
       if (task.tasks) {
           logger.debug('checking nested tasks');
           const status:GSStatus = checkDatasource(task,datasources);
       } else {
           if (task.args?.datasource) {
-              if (!(task.args.datasource in datasources) && !task.args.datasource.match(/<%.+%>/)) {
+              if (!(task.args.datasource in datasources) && !task.args.datasource.match(/<(.*?)%.+%>/)) {
                 //The datasource is neither present in listed datasources and nor is a dynamically evaluated expression, then it is an error
                 logger.error('datasource %s is not present in datasources', task.args.datasource);
                 const msg = `datasource ${task.args.datasource} is not present in datasources`;
@@ -58,31 +62,66 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
   return new GSStatus(true,undefined);
 }
 
-export function prepareJsonnetScript(str: string): string {
-  return str.replace(/\\n/g, '\n')
-    .replace(/"<%\s*(.*?)\s*%>"/g, "$1")
-              .replace(/"[\s\r\n\\n]*<%([\s\S]*?)%>[\s\r\n\\n]*"/g, '$1')
-              .replace(/^\s*<%\s*(.*?)\s*%>\s*$/g, '$1')
-              .replace(/<%\s*(.*?)\s*%>/g, '" + $1 + "')
-              .replace(/\\"/g, '"');
-}
+export function prepareScript(str: string): Function {
 
-export function JsonnetSnippet(plugins:any) {
-  let snippet = `local inputs = std.extVar('inputs');
-      local mappings = std.extVar('mappings');
-      local config = std.extVar('config');
-  `;
+  //@ts-ignore
+  let lang = config.lang || 'coffee';
 
-  for (let fn in plugins) {
-      let f = fn.split('.');
-      fn = f[f.length - 1];
+  let langs = (/<(.*?)%/).exec(str);
 
-      snippet += `
-          local ${fn} = std.native('${fn}');
-          `;
+  //@ts-ignore
+  lang = langs[1] ||  config.lang || 'coffee';
+
+  str = str.trim().replace(/^<(.*?)%/, '').replace(/%>$/, '');
+
+  while (str.match(/<(.*?)%/) && str.includes('%>')) {
+    str = str.replace(/(.*)?<(.*?)%(.*?)%>(.*)/, "'$1' + $3 + '$4'");
   }
 
-  return snippet;
+  logger.debug('lang: %s', lang);
+  logger.debug('script: %s', str);
+
+  str = str.trim();
+
+  if (!/\breturn\b/.test(str)) {
+    str = 'return ' + str;
+  }
+
+  if (lang === 'coffee') {
+    str = CoffeeScript.compile(str ,{bare: true});
+  }
+
+  return Function('config', 'inputs', 'outputs', 'mappings', str);
+}
+
+export function compileScript(args: any) {
+  if (typeof(args) == 'object') {
+    if (!Array.isArray(args)) {
+      return function(config:any, inputs:any, outputs:any, mappings: any) {
+        let out: PlainObject = {};
+        for (let k in args) {
+          out[k] = compileScript(args[k])(config, inputs, outputs, mappings);
+        }
+        return out;
+      };
+    } else {
+      return function(config:any, inputs:any, outputs:any, mappings: any) {
+        let out:[any] = <any>[];
+        for (let k in <[any]>args) {
+          out[k] = compileScript(args[k])(config, inputs, outputs, mappings);
+        }
+        return out;
+      };
+    }
+  } else if (typeof(args) == 'string') {
+    args = args.replace(/(^|\/):([^\/]+?)/g, '$1<%inputs.params.$2%>');
+
+    if (args.match(/<(.*?)%/) && args.includes('%>')) {
+      return prepareScript(args);
+    }
+  }
+
+  return () => args;
 }
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {

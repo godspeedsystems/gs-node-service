@@ -10,20 +10,14 @@ import { logger } from './core/logger';
 
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
-import { JsonnetSnippet, PROJECT_ROOT_DIRECTORY } from './core/utils';
+import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 
 import {validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
-import KafkaMessageBus from './kafka';
+import { kafka } from './kafka';
 
 function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
-    
-    //@ts-ignore
-    logger.info('kafka config %o', config?.kafka);
-
-    //@ts-ignore
-    let kafka = new KafkaMessageBus(config?.kafka);
     
     for (let route in events) {
         let originalRoute = route;
@@ -76,7 +70,6 @@ async function main() {
     }
 
     const plugins = await loadModules(__dirname + '/plugins', true);
-    const jsonnetSnippet = JsonnetSnippet(plugins);
 
     logger.debug(plugins,'plugins');
 
@@ -105,7 +98,6 @@ async function main() {
             datasources,
             event,
             appConfig.app.mappings,
-            jsonnetSnippet,
             plugins
         );
 

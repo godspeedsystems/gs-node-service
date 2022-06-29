@@ -11,8 +11,7 @@ tasks:
         fn: com.main.parentWf2_subWf2
         args: |
           <%
-          { x: 5, } + 
-          inputs.body
+          { x: 5, ...inputs.body}
           %>
   - id: output_parallel_tasks
     fn: com.gs.transform

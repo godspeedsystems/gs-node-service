@@ -4,7 +4,8 @@ tasks:
   - id: parallel_fn_exec
     fn: com.gs.parallel
     tasks:
-      - id: one
+      
+      - id: parallel_output_task1
         description: parallel_1
         fn: com.gs.http
         args:
@@ -15,24 +16,19 @@ tasks:
           config:
             url : /anything
             method: post      
-      - id: two
+      
+      - id: parallel_output_task2
         description: parallel_2
         fn: com.gs.transform
         args: "parallel task2"    
-      - id: three
+      
+      - id: parallel_output_task3
         fn: com.main.sum
         args:
           x: 5
           y: 7
-  - id: find_parallel_output
-    fn: com.gs.parallel
-    tasks:
-      - id: parallel_output_task1
+
+      - id: parallel_output_task4
         fn: com.gs.transform
-        args: <% outputs['one'] %>
-      - id: parallel_output_task2
-        fn: com.gs.transform
-        args: <% outputs['two'] %>
-      - id: parallel_output_task3
-        fn: com.gs.transform
-        args: <% outputs['three'] %>
+        args: |
+          <js% {...inputs.body, x:5} %>

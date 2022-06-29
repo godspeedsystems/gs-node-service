@@ -4,10 +4,9 @@ import { PlainObject } from '../../../core/common';
 import loadModules from '../../../core/codeLoader';
 import loadDatasources from '../../../core/datasourceLoader';
 import { loadFunctions } from '../../../core/functionLoader';
-import { JsonnetSnippet } from '../../../core/utils';
-import loadYaml from '../../../core/yamlLoader';
 import { logger } from '../../../core/logger';
 import { GSCloudEvent, GSActor, GSContext, GSSeriesFunction, GSStatus } from '../../../core/interfaces';
+import loadYaml from '../../../core/yamlLoader';
 
 let functions:PlainObject;
 let events:PlainObject;
@@ -28,7 +27,6 @@ async function loadInputs() {
     }
 
     const plugins = await loadModules(__dirname + '/plugins', true);
-    const jsonnetSnippet = JsonnetSnippet(plugins);
     events = await loadYaml(__dirname + '/events', true);
 
     //Creating GSCloudEvent
@@ -48,7 +46,6 @@ async function loadInputs() {
         datasources,
         event,
         mappings,
-        jsonnetSnippet,
         plugins
     );
 }

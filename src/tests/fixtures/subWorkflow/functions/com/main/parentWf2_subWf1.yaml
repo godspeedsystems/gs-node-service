@@ -20,6 +20,5 @@ tasks:
         fn: com.main.sum
         args: |
           <%
-          { x: 5, } + 
-          inputs.body
+          { x: 5, ...inputs.body}
           %>
