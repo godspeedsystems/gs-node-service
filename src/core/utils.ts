@@ -80,6 +80,9 @@ export function prepareScript(str: string): Function {
 
   logger.debug('lang: %s', lang);
   logger.debug('script: %s', str);
+
+  str = str.trim();
+
   if (!/\breturn\b/.test(str)) {
     str = 'return ' + str;
   }

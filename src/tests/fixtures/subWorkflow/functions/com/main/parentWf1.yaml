@@ -14,8 +14,7 @@ tasks:
         fn: com.main.parentWf1_subWf2
         args: |
           <%
-          { x: 5, } + 
-          inputs.body
+          { x: 5, ...inputs.body }
           %>
       default:
         id: switch_case_step3

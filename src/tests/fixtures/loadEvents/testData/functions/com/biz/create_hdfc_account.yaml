@@ -24,18 +24,11 @@ tasks:
           url : /anything
           method: post
 
-      retry: #Kestra spec compliant retry mechanism. By default turned off.
-        maxAttempt: 5
-        type: constant
-        interval: PT15M
-
-      on_error:
-        continue: true
-
     - id: step2
       fn: com.gs.transform
       args: |
-          <% if outputs.step1.data.json.code == 200 then {
+        <%
+          if outputs.step1.data.json.code == 200 then {
               code: 200,
               success : true,
               data: outputs.step1.data.json,
@@ -44,5 +37,6 @@ tasks:
               code: 500,
               success : false,
               message: 'error in step1'
-          } %>
+          }
+        %>
               
