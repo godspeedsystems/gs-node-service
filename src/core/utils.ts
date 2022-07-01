@@ -72,10 +72,12 @@ export function prepareScript(str: string): Function {
   //@ts-ignore
   lang = langs[1] ||  config.lang || 'coffee';
 
-  str = str.trim().replace(/^<(.*?)%/, '').replace(/%>$/, '');
+  str = str.trim().replace(/^<(.*?)%(.*?)%>$/, '$2');
+
+  logger.debug('lang: %s', str);
 
   while (str.match(/<(.*?)%/) && str.includes('%>')) {
-    str = str.replace(/(.*)?<(.*?)%(.*?)%>(.*)/, "'$1' + $3 + '$4'");
+    str = str.replace(/^(.*)?<(.*?)%(.*?)%>(.*)$/, "'$1' + $3 + '$4'");
   }
 
   logger.debug('lang: %s', lang);

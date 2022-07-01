@@ -15,9 +15,9 @@ tasks:
             personal_email_id: <%inputs.body['alaeforwich'] || 'ala.eforwich@email.com'%>
             customer_consent: true
             gender: <%mappings.Gender[inputs.body.Gender]%>
-            date_of_birth: "21-06-1991"
-            pan_number: "AZOPB8813Y"
-            customer_name: "Ala Eforwich"
+            date_of_birth: <%"2"%>1-06-1991"
+            pan_number: AZOPB8813<%'Y'%>
+            customer_name: Ala <%'Efo'%>rwich
             code: 200
 
         config:
