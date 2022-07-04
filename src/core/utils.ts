@@ -72,12 +72,20 @@ export function prepareScript(str: string): Function {
   //@ts-ignore
   lang = langs[1] ||  config.lang || 'coffee';
 
-  str = str.trim().replace(/^<(.*?)%(.*?)%>$/, '$2');
+  str = str.trim();
 
-  logger.debug('lang: %s', str);
+  if (str.match(/^<(.*?)%/) && str.match(/%>$/)) {
+    let temp = str.replace(/^<(.*?)%/, '').replace(/%>$/, '')
+    if (!temp.includes('%>')) {
+      str = temp;
+    }
+  }
+
+  logger.debug('script before while: %s', str);
 
   while (str.match(/<(.*?)%/) && str.includes('%>')) {
     str = str.replace(/^(.*)?<(.*?)%(.*?)%>(.*)$/, "'$1' + $3 + '$4'");
+    logger.debug('script inside while: %s', str);
   }
 
   logger.debug('lang: %s', lang);
