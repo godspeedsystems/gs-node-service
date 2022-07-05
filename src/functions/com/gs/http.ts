@@ -5,6 +5,8 @@ import fs from 'fs';
 
 import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
+import _ from "lodash";
+import { PlainObject } from "../../../core/common";
 
 function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
@@ -27,10 +29,12 @@ export default async function(args:{[key:string]:any;}) {
             logger.debug('invoking wihout schema args: %o', args);
             let form;
 
-            if (args.files) {
+            if (args.files.length) {
                 form = new FormData();
 
-                for (let file of args.files) {
+                let files:PlainObject[] = _.flatten(args.files);
+
+                for (let file of files) {
                     form.append(args.file_key || 'files', fs.createReadStream(file.tempFilePath), {
                         filename: file.name,
                         contentType: file.mimetype,

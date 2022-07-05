@@ -75,7 +75,7 @@ export function prepareScript(str: string): Function {
   str = str.trim();
 
   if (str.match(/^<(.*?)%/) && str.match(/%>$/)) {
-    let temp = str.replace(/^<(.*?)%/, '').replace(/%>$/, '')
+    let temp = str.replace(/^<(.*?)%/, '').replace(/%>$/, '');
     if (!temp.includes('%>')) {
       str = temp;
     }

@@ -6,7 +6,7 @@
   "scripts": {
     "semantic-release": "semantic-release",
     "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 15000",
-    "test-one": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/GSSeriesFunction.test.js --timeout 15000 | pino-pretty",
+    "test-one": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/loadEvents.test.js --timeout 15000 | pino-pretty",
     "test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/*.test.js --timeout 15000 | pino-pretty",
     "test-cov": "nyc --reporter=html --reporter=text npm test",
     "start": "cd dist && node app.js",

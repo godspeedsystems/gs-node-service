@@ -31,8 +31,7 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
             logger.info('registering http handler %s %s', route, method);
             // @ts-ignore
             router[method](route, function(req: express.Request, res: express.Response) {
-                logger.debug('originalRoute: %s', originalRoute, req.params, req.files);
-                logger.debug('req.params: %s', req.params);
+                logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
 
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
