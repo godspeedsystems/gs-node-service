@@ -10,20 +10,14 @@ import { logger } from './core/logger';
 
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
-import { JsonnetSnippet, PROJECT_ROOT_DIRECTORY } from './core/utils';
+import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 
 import {validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
-import KafkaMessageBus from './kafka';
+import { kafka } from './kafka';
 
 function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
-    
-    //@ts-ignore
-    logger.info('kafka config %o', config?.kafka);
-
-    //@ts-ignore
-    let kafka = new KafkaMessageBus(config?.kafka);
     
     for (let route in events) {
         let originalRoute = route;
@@ -37,9 +31,7 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
             logger.info('registering http handler %s %s', route, method);
             // @ts-ignore
             router[method](route, function(req: express.Request, res: express.Response) {
-                logger.debug('originalRoute: %s', originalRoute, req.params, req.files);
-                logger.debug('req.params: %s', req.params);
-                logger.debug('req.files: %s', req.files);
+                logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
 
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
                     body: req.body,
@@ -77,7 +69,6 @@ async function main() {
     }
 
     const plugins = await loadModules(__dirname + '/plugins', true);
-    const jsonnetSnippet = JsonnetSnippet(plugins);
 
     logger.debug(plugins,'plugins');
 
@@ -91,7 +82,7 @@ async function main() {
         if(valid_status.success === false)
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema');
-            const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message };
+            const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message, 'data': valid_status.data};
             return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
         }
         logger.info(valid_status, 'Request JSON Schema validated successfully');
@@ -106,7 +97,6 @@ async function main() {
             datasources,
             event,
             appConfig.app.mappings,
-            jsonnetSnippet,
             plugins
         );
 
@@ -157,7 +147,7 @@ async function main() {
                 logger.info(valid_status, 'Validate Response JSON Schema Success');
             } else {
                 logger.error(valid_status, 'Failed to validate Response JSON Schema');
-                const response_data: PlainObject = { 'message': 'response validation error','error': valid_status.message };
+                const response_data: PlainObject = { 'message': 'response validation error','error': valid_status.message, 'data': valid_status.data };
                 return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
             }
           }
@@ -165,13 +155,14 @@ async function main() {
         
         let code = eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500);
         let data = eventHandlerStatus?.data;
+        let headers = eventHandlerStatus?.headers;
 
         if (Number.isInteger(data)) {
             data = data.toString();
         }
 
-        logger.debug('return value %o %o', data, code);
-        (event.metadata?.http?.express.res as express.Response).status(code).send(data);
+        logger.debug('return value %o %o %o', data, code, headers);
+        (event.metadata?.http?.express.res as express.Response).status(code).header(headers).send(data);
 
         // //Now send the actual response over REST, for both the success and failure scenarios
         // if (eventHandlerStatus?.success) {

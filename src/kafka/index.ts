@@ -1,10 +1,11 @@
 import { Consumer, Kafka, Producer }  from 'kafkajs';
 import axios from 'axios';
+import config from 'config';
+
 import { GSActor, GSCloudEvent } from '../core/interfaces';
 import { logger } from '../core/logger';
 
 import nodeCleanup from 'node-cleanup';
-
 
 export default class KafkaMessageBus {
     config: Record<string, any>;
@@ -12,8 +13,8 @@ export default class KafkaMessageBus {
     kafka: Kafka;
 
     consumers: Record<string, Consumer> = {};
-    
-    _producer?: Producer;    
+
+    _producer?: Producer;
 
     async producer() {
         if (!this._producer) {
@@ -66,12 +67,12 @@ export default class KafkaMessageBus {
           await consumer.subscribe({ topic });
 
           const self = this;
-      
+
           await consumer.run({
               eachMessage: async ({ topic, partition, message }) => {
                   const data =  JSON.parse(message?.value?.toString() || '');
                   logger.debug('topic %s partition %o data %o', topic, partition);
-                  const event = new GSCloudEvent('id', `${topic}.kafka.${groupId}`, new Date(message.timestamp), 'kafka', 
+                  const event = new GSCloudEvent('id', `${topic}.kafka.${groupId}`, new Date(message.timestamp), 'kafka',
                       '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
                   return processEvent(event);
               },
@@ -101,20 +102,20 @@ export default class KafkaMessageBus {
                     Accept:  'application/vnd.api+json',
                   }
                 });
-                
+
                 const clusterUrl = clusterResponse.data[0].links.self;
-            
+
                 const brokersResponse = await axios(`${clusterUrl}/brokers`, {
                   headers: {
                     Accept: 'application/vnd.api+json',
                   }
                 });
-    
+
                 const brokers = brokersResponse.data.map((broker: any) => {
                   const { host, port } = broker.attributes;
                   return `${host}:${port}`;
                 });
-            
+
                 return brokers;
               },
         });
@@ -123,3 +124,13 @@ export default class KafkaMessageBus {
     }
 }
 
+export let kafka: KafkaMessageBus;
+
+ //@ts-ignore
+if (config?.kafka) {
+    //@ts-ignore
+    logger.info('kafka config %o', config?.kafka);
+
+    //@ts-ignore
+    kafka = new KafkaMessageBus(config?.kafka);
+}

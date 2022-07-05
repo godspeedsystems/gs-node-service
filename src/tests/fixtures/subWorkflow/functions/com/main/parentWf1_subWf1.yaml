@@ -18,8 +18,7 @@ tasks:
         fn: com.main.sum
         args: |
           <%
-          { x: 5, } + 
-          inputs.body
+          { x: 5, ...inputs.body}
           %>
   - id: find_parallel_output
     fn: com.gs.parallel

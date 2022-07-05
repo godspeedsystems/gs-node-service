@@ -6,6 +6,7 @@ import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
+import { compileScript } from './utils';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
@@ -86,6 +87,11 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
 async function loadHttpDatasource(
   datasource: PlainObject
 ): Promise<PlainObject> {
+
+  if (datasource.headers) {
+    datasource.headers = compileScript(datasource.headers);
+  }
+
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();

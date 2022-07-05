@@ -61,7 +61,6 @@ describe(testName, () => {
             'name': 'Kushal Chauhan',
             'designation': 'Software Enginner',
             'education': {
-
             }
         };
 
@@ -74,10 +73,9 @@ describe(testName, () => {
         // path of the value to be set
         const path = 'education.college';
         try {
-            const result = setAtPath(object, path, collegeEducation);
-            logger.debug('result: %s', result);
-            /*
-            expect(result).to.be.equal({
+            setAtPath(object, path, collegeEducation);
+            logger.debug('result: %o',object);
+            expect(object).to.be.eql({
                 "name": "Kushal Chauhan",
                 "designation": "Software Enginner",
                 "education": {
@@ -86,7 +84,7 @@ describe(testName, () => {
                         "yop": 2021
                     }
                 }
-            });*/
+            });
         } catch (error) {
             fail(<Error>error);
         }
@@ -110,7 +108,7 @@ describe(testName, () => {
                 "com.biz.test": "GSFunction"
               };
             const result = checkFunctionExists(events, functions);
-            logger.debug('result: %s', result);
+            logger.debug('result: %o', result);
             expect(result.success).to.be.equal(true);
         } catch (error) {
             fail(<Error>error);
@@ -134,7 +132,7 @@ describe(testName, () => {
                 "com.biz.test": "GSFunction"
               };
             const result = checkFunctionExists(events, functions);
-            logger.debug('result: %s', result);
+            logger.debug('result: %o', result);
             expect(result.success).to.be.equal(false);
             expect(result.code).to.be.equal(500);
             expect(result.message).to.be.equal('function com.biz.sum-workflow of event /sum.http.get is not present in functions');

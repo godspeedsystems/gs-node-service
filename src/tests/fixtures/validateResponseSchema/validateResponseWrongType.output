@@ -1,5 +1,5 @@
 {
-    "code": 400,
+    "code": 500,
     "data": {
         "instancePath": "/lender_response_code",
         "keyword": "type",
