@@ -3,11 +3,11 @@ import { PlainObject } from '../core/common';
 import { logger } from "../core/logger";
 import * as fs from 'fs';
 import { removeNulls } from "../core/utils";
-const swaggerCommanPart: PlainObject = require('./basic-spec.json');
+import swaggerCommonPart from "./basic-spec";
 
 export default async function generateSchema(eventsFolderPath: string): Promise<PlainObject> {
   const eventsSchema: PlainObject = await loadEventsYaml(eventsFolderPath);
-  const finalSpec = JSON.parse(JSON.stringify(swaggerCommanPart)); //Make a deep clone copy
+  const finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart)); //Make a deep clone copy
 
   Object.keys(eventsSchema).forEach((event:any) => {
     let apiEndPoint = event.split('.')[0];
