@@ -15,7 +15,8 @@
     "fix-lint": "eslint . --ext .ts --fix",
     "service-build": "mkdir -p build && cp -r src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' dist/ && npm install && ./node_modules/typescript/bin/tsc",
     "build": "mkdir -p build project/src && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "gen-testsuite":"openapi2postmanv2 -s docs/api-doc.json -o docs/testsuite.json -p -O folderStrategy=Tags,includeAuthInfoInExample=false"
   },
   "author": "",
   "license": "ISC",
@@ -69,6 +70,7 @@
     "@types/express": "^4.17.13",
     "@types/express-fileupload": "^1.2.2",
     "@types/express-pino-logger": "^4.0.3",
+    "@types/fs-extra": "^9.0.13",
     "@types/glob": "^7.2.0",
     "@types/js-yaml": "^4.0.5",
     "@types/lodash": "^4.14.182",

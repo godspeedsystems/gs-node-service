@@ -7,11 +7,15 @@ import passport from 'passport';
 import {Strategy as JwtStrategy, ExtractJwt} from 'passport-jwt';
 import config  from 'config';
 import jwt from 'jsonwebtoken';
-
+import fs from 'fs-extra';
 import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
+//File Path for api-docs
+
+const file =PROJECT_ROOT_DIRECTORY.split("/");
+file.pop();
 const { countAllRequests } = require("./telemetry/monitoring");
 
 const loggerExpress = expressPinoLogger({
@@ -57,6 +61,13 @@ generateSchema(eventPath)
   .then((schema) => {
     logger.debug("api-schema generated at /api-docs");
     app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(schema));
+    fs.outputFile(file.join("/")+"/docs/api-doc.json",JSON.stringify(schema), (err) => {
+      if (err) {
+        logger.error('Error in saving api-doc file %o', err);
+      } else {
+        console.log('The file was saved!');
+      }
+    });
   })
   .catch((e) => {
     logger.error('Error in generating API schema %o', e);
