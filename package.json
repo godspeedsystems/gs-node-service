@@ -5,10 +5,6 @@
   "main": "index.js",
   "scripts": {
     "semantic-release": "semantic-release",
-    "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 15000",
-    "test-one": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/loadEvents.test.js --timeout 15000 | pino-pretty",
-    "test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/*.test.js --timeout 15000 | pino-pretty",
-    "test-cov": "nyc --reporter=html --reporter=text npm test",
     "start": "cd dist && node app.js",
     "clean": "rm -rf project build dist coverage",
     "lint": "eslint . --ext .ts --format table",
@@ -16,7 +12,10 @@
     "service-build": "mkdir -p build && cp -r src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' dist/ && npm install && ./node_modules/typescript/bin/tsc",
     "build": "mkdir -p build project/src && cp -r project/src/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && ./node_modules/typescript/bin/tsc",
     "prepare": "husky install",
-    "gen-testsuite":"openapi2postmanv2 -s docs/api-doc.json -o docs/testsuite.json -p -O folderStrategy=Tags,includeAuthInfoInExample=false"
+    "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 15000",
+    "test-one": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/loadEvents.test.js --timeout 15000 | pino-pretty",
+    "test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/*.test.js --timeout 15000 | pino-pretty",
+    "test-cov": "nyc --reporter=html --reporter=text npm test"
   },
   "author": "",
   "license": "ISC",
