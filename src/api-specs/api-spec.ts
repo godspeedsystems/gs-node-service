@@ -1,13 +1,13 @@
 import loadYaml from "../core/yamlLoader";
 import { PlainObject } from '../core/common';
 import { logger } from "../core/logger";
-import * as fs from 'fs';
-import { removeNulls } from "../core/utils";
-const swaggerCommanPart: PlainObject = require('./basic-spec.json');
+import fs from 'fs-extra';
+import { removeNulls, PROJECT_ROOT_DIRECTORY } from "../core/utils";
+import swaggerCommonPart from "./basic-spec";
 
 export default async function generateSchema(eventsFolderPath: string): Promise<PlainObject> {
   const eventsSchema: PlainObject = await loadEventsYaml(eventsFolderPath);
-  const finalSpec = JSON.parse(JSON.stringify(swaggerCommanPart)); //Make a deep clone copy
+  const finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart)); //Make a deep clone copy
 
   Object.keys(eventsSchema).forEach((event:any) => {
     let apiEndPoint = event.split('.')[0];
@@ -30,7 +30,6 @@ export default async function generateSchema(eventsFolderPath: string): Promise<
     };
   });
   removeNulls(finalSpec);
-  // fs.writeFileSync('/tmp/t.json', JSON.stringify(finalSpec));
   return finalSpec;
 }
 async function loadEventsYaml(path:string){
@@ -43,12 +42,18 @@ async function loadEventsYaml(path:string){
 }
 
 if (require.main === module) {
-  generateSchema('/home/kushal/mindgrep/gs_project_template/gs_service/dist/events')
+ const eventPath = '/workspace/development/app/src/events';
+ generateSchema(eventPath)
   .then((schema) => {
-    fs.writeFileSync('/tmp/t.json', JSON.stringify(schema));
-    console.log('done');
+        fs.outputFile("/workspace/development/app/docs/api-doc.json",JSON.stringify(schema), (err) => {
+      if (err) {
+        logger.error('Error in generating /workspace/development/app/docs/api-doc.json file %o', err);
+      } else {
+        logger.info('/workspace/development/app/docs/api-doc.json file is saved!');
+      }
+    });
   })
   .catch((e) => {
-    console.log('Error', e);
+    logger.error('Error: %o', e);
   });
 }
