@@ -40,10 +40,10 @@ jobs:
       with:
         image-ref: 'adminmindgrep/gs_service:stable'
         format: 'table'
-        exit-code: '1'
+        exit-code: '0'
         ignore-unfixed: true
         vuln-type: 'os,library'
-        severity: 'MEDIUM,CRITICAL,HIGH'      
+        severity: 'LOW,MEDIUM,CRITICAL,HIGH'      
 
     - name: Setup Node.js v14
       uses: actions/setup-node@v2
