@@ -7,6 +7,7 @@ import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
 import _ from "lodash";
 import { PlainObject } from "../../../core/common";
+import expandVariables from '../../../core/expandVariables';
 
 function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
@@ -27,6 +28,7 @@ export default async function(args:{[key:string]:any;}) {
         } else {
             logger.info('invoking wihout schema');
             logger.debug('invoking wihout schema args: %o', args);
+            logger.debug('datasource.base_url: %s',expandVariables(ds.base_url));
             let form;
 
             if (args.files?.length) {
