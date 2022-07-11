@@ -1,4 +1,5 @@
 import loadYaml from "../core/yamlLoader";
+import yaml from 'yaml';
 import { PlainObject } from '../core/common';
 import { logger } from "../core/logger";
 import fs from 'fs-extra';
@@ -45,11 +46,11 @@ if (require.main === module) {
  const eventPath = '/workspace/development/app/src/events';
  generateSchema(eventPath)
   .then((schema) => {
-        fs.outputFile("/workspace/development/app/docs/api-doc.json",JSON.stringify(schema), (err) => {
+        fs.outputFile("/workspace/development/app/docs/api-doc.yaml",yaml.stringify(schema), (err) => {
       if (err) {
-        logger.error('Error in generating /workspace/development/app/docs/api-doc.json file %o', err);
+        logger.error('Error in generating /workspace/development/app/docs/api-doc.yaml file %o', err);
       } else {
-        logger.info('/workspace/development/app/docs/api-doc.json file is saved!');
+        logger.info('/workspace/development/app/docs/api-doc.yaml file is saved!');
       }
     });
   })
