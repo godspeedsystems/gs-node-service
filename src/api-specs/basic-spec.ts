@@ -1,4 +1,6 @@
-{
+const port = process.env.PORT || 3000;
+
+const swaggerCommonPart={
     "openapi": "3.0.0",
     "info": {
         "version": "0.0.1",
@@ -16,7 +18,9 @@
         }
     },
     "servers": [{
-        "url": "http://localhost:3000"
+        "url": `http://localhost:${port}`
     }],
     "paths": {}
-  }
+};
+
+export default swaggerCommonPart;

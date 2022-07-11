@@ -18,7 +18,8 @@ jobs:
     - name: Npm install
       uses: actions/setup-node@v3
       with:
-        node-version: 16.14.2
+        node-version: 16.15.1
+        
     - run: npm install
             
     - name: Login to DockerHub
@@ -35,9 +36,25 @@ jobs:
         file: Dockerfile
         tags: adminmindgrep/gs_service:stable
 
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'adminmindgrep/gs_service:stable'
+        format: 'table'
+        exit-code: '0'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'LOW,MEDIUM,CRITICAL,HIGH'      
+
+    - name: Setup Node.js v16
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16.15.1
+
     - name: Setup dependencies
       run: |
         npm install @semantic-release/git @semantic-release/exec --no-save
+
     - name: Create Release
       env:
         GH_TOKEN: ${{ secrets.GIT_TOKEN }}

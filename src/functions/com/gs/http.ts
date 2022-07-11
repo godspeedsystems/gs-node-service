@@ -29,7 +29,7 @@ export default async function(args:{[key:string]:any;}) {
             logger.debug('invoking wihout schema args: %o', args);
             let form;
 
-            if (args.files.length) {
+            if (args.files?.length) {
                 form = new FormData();
 
                 let files:PlainObject[] = _.flatten(args.files);
