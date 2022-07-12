@@ -178,7 +178,7 @@ export class GSFunction extends Function {
         }
       }
     } catch (err: any) {
-      console.error(err);
+      logger.error('Caught error from execution in task id: %s, error: %o',this.id, err);
       status = new GSStatus(
           false,
           500,
@@ -186,24 +186,37 @@ export class GSFunction extends Function {
           `Caught error from execution in task id ${this.id}`
         );
     }
+    
     return this.handleError(ctx, status); //In acvse there is error, this.on_error will be considered for further action
   }
 
   async handleError (ctx: GSContext, status: GSStatus): Promise<GSStatus> {
-    if (this.onError) {
+    //Default value of success is true, if left undefined. //TODO add to the docs. 
+    if (this.onError && status.success === false) {
 
       if (this.onError.response_script ) {
+        //The script may need the output of the task so far, for the transformation logic.
+        //So set the status in outputs, against this task's id
+        ctx.outputs[this.id] = status;
         const res = await evaluateScript(ctx, this.onError.response_script);
-        if (typeof res === 'object' && res.success !== undefined) {
+        if (typeof res === 'object' && !(res.success === undefined && res.code === undefined)) { //Meaning the script is returning GS Status compatible response
           let {success, code, data, message, headers} = res;
           status = new GSStatus(success, code, message, data, headers);
+        } else {
+          //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
+          status = new GSStatus(
+            true,
+            200, //Default code be 200 for now
+            undefined,
+            res
+          );
         }
 
       } else if (this.onError.response) {
           status.data = this.onError.response;
       }
 
-      if (!status.success && this.onError.continue === false) {
+      if (this.onError.continue === false) {
         ctx.exitWithStatus = status;
       }
     }

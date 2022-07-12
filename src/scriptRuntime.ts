@@ -32,7 +32,7 @@ export default async function evaluateScript(ctx: GSContext, script: Function) {
     try {
         return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings);
     } catch (err: any) {
-        logger.error(err);
+        logger.error('Error in parsing script: %o',err);
         ctx.exitWithStatus = new GSStatus(
             false,
             undefined,
