@@ -73,7 +73,6 @@ export function prepareScript(str: string): Function {
   lang = langs[1] ||  config.lang || 'coffee';
 
   str = str.trim();
-
   if (str.match(/^<(.*?)%/) && str.match(/%>$/)) {
     let temp = str.replace(/^<(.*?)%/, '').replace(/%>$/, '');
     if (!temp.includes('%>')) {
@@ -81,11 +80,8 @@ export function prepareScript(str: string): Function {
     }
   }
 
-  logger.debug('script before while: %s', str);
-
-  while (str.match(/<(.*?)%/) && str.includes('%>')) {
-    str = str.replace(/^(.*)?<(.*?)%(.*?)%>(.*)$/, "'$1' + $3 + '$4'");
-    logger.debug('script inside while: %s', str);
+  if (str.match(/<(.*?)%/) && str.match(/%>/)) {
+    str = "'" + str.replace(/<(.*?)%/g, "' + ").replace(/%>/g, " + '") + "'";
   }
 
   logger.debug('lang: %s', lang);
@@ -124,7 +120,9 @@ export function compileScript(args: any) {
       };
     }
   } else if (typeof(args) == 'string') {
-    args = args.replace(/(^|\/):([^\/]+?)/g, '$1<%inputs.params.$2%>');
+    logger.debug('before replacing path params %s', args);
+    args = args.replace(/(^|\/):([^/]+)/g, '$1<%inputs.params.$2%>');
+    logger.debug('after replacing path params %s', args);
 
     if (args.match(/<(.*?)%/) && args.includes('%>')) {
       return prepareScript(args);
