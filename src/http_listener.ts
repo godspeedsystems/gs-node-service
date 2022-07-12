@@ -53,6 +53,7 @@ if (config.has('jwt')) {
 app.listen(port);
 
 const eventPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/events');
+
 generateSchema(eventPath)
   .then((schema) => {
     logger.debug("api-schema generated at /api-docs");

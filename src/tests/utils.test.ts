@@ -202,7 +202,6 @@ describe(testName, () => {
               };
               
             const result = checkDatasource(workflowJson, datasources);
-            console.log("checkDatasource result: ",result.success);
             logger.debug('result: %o', result);
             expect(result.success).to.be.equal(false);
 
@@ -218,7 +217,6 @@ describe(testName, () => {
                 three: null,
               };
             const result = removeNulls(obj);
-            console.log("checkDatasource result: ",result.success);
             logger.debug('result: %o', result);
             expect(JSON.stringify(result)).to.be.equal(JSON.stringify({ two: 2}));
 
@@ -226,4 +224,5 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
+    
 });
