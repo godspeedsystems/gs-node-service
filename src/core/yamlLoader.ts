@@ -13,11 +13,11 @@ export default function loadYaml(pathString: string, global: boolean = false):Pl
 
     let api: PlainObject = {};
 
-    logger.info('Loading %s from %s', basePath, pathString);
+    logger.info('loadYaml - Loading %s from %s', basePath, pathString);
 
     return new Promise((resolve, reject) => {
       glob(pathString + '/**/*.?(yaml|yml)', function (err:Error|null, res: string[]) {
-        logger.debug('parsing files: %s',res);
+        logger.debug('loadYaml - parsing files: %s',res);
         if (err) {
             reject(err);
         } else {

@@ -22,7 +22,7 @@ export default class KafkaMessageBus {
             try {
               await p.connect();
               nodeCleanup(function() {
-                console.log('calling kafka producer disconnect...');
+                logger.info('calling kafka producer disconnect...');
                 //@ts-ignore
                 this.disconnect();
               }.bind(p));
@@ -45,7 +45,7 @@ export default class KafkaMessageBus {
               logger.error(error);
             }
             nodeCleanup(function() {
-              console.log('calling kafka consumer disconnect...');
+              logger.info('calling kafka consumer disconnect...');
               //@ts-ignore
               this.disconnect();
             }.bind(fn));

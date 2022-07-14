@@ -6,10 +6,13 @@ import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
-import { compileScript } from './utils';
+import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
+import loadPluginsDatasources from './datasourcePluginsLoader';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
+  let pluginsDatasources = await loadPluginsDatasources(PROJECT_ROOT_DIRECTORY + '/datasources/plugins');
+  logger.debug('pluginsDatasources: %o',pluginsDatasources);
 
   let yamlDatasources = await loadYaml(
     pathString,
@@ -21,6 +24,7 @@ export default async function loadDatasources(pathString:string) {
   const datasources = {
     ...yamlDatasources,
     ...prismaDatasources,
+    ...pluginsDatasources
   };
   logger.debug(
     'Loaded datasources yaml %o prisma %o',
@@ -28,7 +32,6 @@ export default async function loadDatasources(pathString:string) {
     prismaDatasources
   );
   logger.info('Loaded datasources: %s', Object.keys(datasources));
-
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
@@ -36,6 +39,8 @@ export default async function loadDatasources(pathString:string) {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
+    } else if (datasources[ds].type === undefined) {
+      loadedDatasources[ds] = datasources[ds];
     } else {
       logger.error(
         'Found invalid datasource type %s for the datasource %s. Exiting.',
@@ -45,7 +50,7 @@ export default async function loadDatasources(pathString:string) {
       process.exit(1);
     }
   }
-  logger.info('Finally loaded datasources: %s', Object.keys(datasources));
+  logger.info('Finally loaded datasources: %s', Object.keys(loadedDatasources));
   return loadedDatasources;
 }
 async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
@@ -127,7 +132,6 @@ async function loadHttpDatasource(
               );
               logger.debug('Adding header %s: %s', securityScheme.name, value);
             } catch (ex) {
-              //console.error(ex);
               logger.error(ex);
             }
           }
