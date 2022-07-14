@@ -1,4 +1,4 @@
-name: Dev App Build
+name: Datasource Build
 
 on:
   push:
