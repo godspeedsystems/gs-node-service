@@ -1,0 +1,69 @@
+'/kycTrueWithoutRes.http.post': # event id. Will include path params. For ex. com.abc.do_kyc/{bank_id}/process/{user_id}
+  fn: com.main.kycTrueWithoutRes
+  data: 
+    examples: # <string, ExampleObject>
+    schema:
+      body: 
+        description:
+        required: # default value is false
+        content:
+          application/json: # For ex. application/json application/xml
+            schema: 
+              type: object
+              properties:
+                Gender: 
+                  type: string
+              #additionalProperties: false
+              required: [Gender]
+            examples: # <string, ExampleObject>
+              '{example_name}':
+                summary:
+                description:
+                value: # anyGSCLoudEvent
+                external_value:
+            encoding:
+  responses: 
+    200:
+      examples: # <string, ExampleObject>
+      schema:
+        data: 
+          description:
+          required: # default value is false
+          content:
+            application/json: # For ex. application/json application/xml
+              schema: 
+                type: object
+                properties:
+                  application_id: 
+                    type: string
+                additionalProperties: false
+                required: []
+              examples: # <string, ExampleObject>
+                example1:
+                  summary:
+                  description:
+                  value: 
+                    application_id: PRM20478956N
+                  external_value:
+              encoding:
+    400:
+      examples: # <string, ExampleObject>
+      schema:
+        data: 
+          description:
+          required: # default value is false
+          content:
+            application/json: # For ex. application/json application/xml
+              schema: 
+                type: object
+                properties:
+                  error_code: 
+                    type: string
+              examples: # <string, ExampleObject>
+                example1:
+                  summary:
+                  description:
+                  value: 
+                    lender_response_code: E001
+                  external_value:
+              encoding:
