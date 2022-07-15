@@ -11,8 +11,6 @@ import loadPluginsDatasources from './datasourcePluginsLoader';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
-  let pluginsDatasources = await loadPluginsDatasources(PROJECT_ROOT_DIRECTORY + '/datasources/plugins');
-  logger.debug('pluginsDatasources: %o',pluginsDatasources);
 
   let yamlDatasources = await loadYaml(
     pathString,
@@ -24,7 +22,6 @@ export default async function loadDatasources(pathString:string) {
   const datasources = {
     ...yamlDatasources,
     ...prismaDatasources,
-    ...pluginsDatasources
   };
   logger.debug(
     'Loaded datasources yaml %o prisma %o',
@@ -32,15 +29,13 @@ export default async function loadDatasources(pathString:string) {
     prismaDatasources
   );
   logger.info('Loaded datasources: %s', Object.keys(datasources));
-  const loadedDatasources: PlainObject = {};
+  let loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
     if (datasources[ds].type === 'api') {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
-    } else if (datasources[ds].type === undefined) {
-      loadedDatasources[ds] = datasources[ds];
     } else {
       logger.error(
         'Found invalid datasource type %s for the datasource %s. Exiting.',
@@ -50,6 +45,15 @@ export default async function loadDatasources(pathString:string) {
       process.exit(1);
     }
   }
+
+  logger.info('Loading Plugins Datasources');
+  let pluginsDatasources = await loadPluginsDatasources(PROJECT_ROOT_DIRECTORY + '/datasources/plugins');
+  logger.debug('Loaded Plugins Datasources: %o',pluginsDatasources);
+  loadedDatasources = {
+    ...loadedDatasources,
+    ...pluginsDatasources
+  };
+
   logger.info('Finally loaded datasources: %s', Object.keys(loadedDatasources));
   return loadedDatasources;
 }

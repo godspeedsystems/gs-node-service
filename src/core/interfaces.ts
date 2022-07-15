@@ -568,6 +568,22 @@ export class GSActor {
   };
 }
 
+/*
+  Interface to implement datasource as plugins
+    - fileExtension
+      file extension of the datasource files which will use this datasource plugins
+    - loadClients
+      Loading function for the file extension. It takes path as input and return a promise of PlainObject 
+      which means it returns an object with following key/value pair:
+        {'name of the datasource': 'client of this datasource'}
+        E.g. If datasource file is kafka1.kafka then it returns => {'kafka1': 'message_bus client'}
+*/
+export interface GSDatasource {
+  fileExtension: string;
+
+  loadClients(path: string): Promise<PlainObject>;
+}
+
 if (require.main === module) {
   let sum = (a: number, b: number):  number => {
     // ctx.addEvent(new GSEvent());

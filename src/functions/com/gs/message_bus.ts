@@ -1,8 +1,8 @@
 import { randomUUID } from "crypto";
 import { logger } from "../../../core/logger";
 
-export default async function kafka(args:{[key:string]:any;}) {
-    logger.debug('com.gs.kafka args: %o',args);
+export default async function message_bus(args:{[key:string]:any;}) {
+    logger.debug('com.gs.message_bus args: %o',args);
 
     let ds = args.datasource;
 

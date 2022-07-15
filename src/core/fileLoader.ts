@@ -7,18 +7,18 @@ import {readFileSync} from 'fs';
 import { PlainObject } from "./common";
 import { logger } from "./logger";
 
-export default async function loadDatasourceFiles(pathString: string, file_extension: string, global: boolean = false): Promise<PlainObject> {
+export default async function loadFiles(pathString: string, file_extension: string, global: boolean = false): Promise<PlainObject> {
 
   let basePath = path.basename(pathString);
 
   let api: PlainObject = {};
 
-  logger.info('loadDatasourceFiles - Loading %s files from %s', basePath, pathString);
+  logger.info('loadFiles - Loading %s files from %s', basePath, pathString);
   file_extension=file_extension.slice(1);
 
   return new Promise((resolve, reject) => {  
     glob(`${pathString}/**/*.?(${file_extension})`, function (err:Error|null, res: string[]) {
-      logger.debug('loadDatasourceFiles - parsing files: %s',res);
+      logger.debug('loadFiles - parsing files: %s',res);
       if (err) {
           reject(err);
       } else {
@@ -52,7 +52,7 @@ export default async function loadDatasourceFiles(pathString: string, file_exten
 if (require.main === module) {
    (async () => {
     try {
-        await loadDatasourceFiles('../../dist/datasources', '.kafka' , true).then(console.log);
+        await loadFiles('../../dist/datasources', '.kafka' , true).then(console.log);
     } catch(ex) {
       logger.error(ex);
     }
