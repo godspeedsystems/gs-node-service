@@ -17,6 +17,8 @@ import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
 import { kafka } from './kafka';
 
+let datasources: PlainObject;
+
 function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
     
     for (let route in events) {
@@ -43,7 +45,13 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
                 }, 'REST', new GSActor('user'),  {http: {express:{res}}});
                 processEvent(event);
             });
-        } else  if (route.includes('.kafka.')) {
+        } else if (route.includes('.message_bus.')) {
+            let [topic, datasrcGrpId] = route.split('.message_bus.');
+            let [datasourceName, groupId] = datasrcGrpId.split('.');
+            logger.info('registering message_bus handler for datasource %s on topic %s and groupId %s', datasourceName, topic, groupId);
+            const messageBusClient = datasources[datasourceName];
+            messageBusClient.subscribe(topic, groupId, processEvent);
+        } else if (route.includes('.kafka.')) {
             let [topic, groupId] = route.split('.kafka.');
             logger.info('registering kafka handler %s %s', topic, groupId);
             kafka.subscribe(topic, groupId, processEvent);
@@ -59,7 +67,7 @@ async function main() {
     logger.info('Main execution');
     let functions:PlainObject;
 
-    const datasources = await loadDatasources(PROJECT_ROOT_DIRECTORY + '/datasources');
+    datasources = await loadDatasources(PROJECT_ROOT_DIRECTORY + '/datasources');
     const loadFnStatus = await loadFunctions(datasources,PROJECT_ROOT_DIRECTORY + '/functions');
     if (loadFnStatus.success) {
         functions = loadFnStatus.functions;
