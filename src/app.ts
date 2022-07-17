@@ -48,9 +48,9 @@ function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Prom
         } else if (route.includes('.message_bus.')) {
             let [topic, datasrcGrpId] = route.split('.message_bus.');
             let [datasourceName, groupId] = datasrcGrpId.split('.');
-            logger.info('registering message_bus handler for datasource %s on topic %s and groupId %s', datasourceName, topic, groupId);
+            logger.info('registering message_bus handler %s , datasource %s , topic %s , groupId %s', route, datasourceName, topic, groupId);
             const messageBusClient = datasources[datasourceName];
-            messageBusClient.subscribe(topic, groupId, processEvent);
+            messageBusClient.subscribe(datasourceName, topic, groupId, processEvent);
         } else if (route.includes('.kafka.')) {
             let [topic, groupId] = route.split('.kafka.');
             logger.info('registering kafka handler %s %s', topic, groupId);
