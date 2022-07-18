@@ -6,6 +6,7 @@ import loadFiles from '../../core/fileLoader';
 import { Consumer, Kafka, Producer }  from 'kafkajs';
 import axios from 'axios';
 import nodeCleanup from 'node-cleanup';
+import { reject } from "lodash";
 
 class KafkaMessageBus {
   config: Record<string, any>;
@@ -147,14 +148,22 @@ class KafkaDatasource implements GSDatasource {
     logger.info('Loading clients of all the files for kafka');
     for (let ds in datasourceFiles) {
       kafkaDatasources[ds] = await this.client(datasourceFiles[ds]);
+      if(!kafkaDatasources[ds]) {
+        logger.error('Error in loading datasource %s, client not found. Exiting.',ds);
+        process.exit(1);
+      }
     }
     logger.debug('Loaded clients of all the files for kafka: %o', kafkaDatasources);
     return kafkaDatasources;
   };
 
   client = async function(config: PlainObject) {
-    logger.debug('Configuration to load client for kafka: %o', config);
-    return new KafkaMessageBus(config);
+    if(config) {
+      logger.debug('Configuration to load client for kafka: %o', config);
+      return new KafkaMessageBus(config);  
+    } else {
+      return undefined;
+    }
   };
 
 }
