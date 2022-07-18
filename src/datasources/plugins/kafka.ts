@@ -135,6 +135,10 @@ class KafkaMessageBus {
     which means it returns an object with following key/value pair:
      {'name of the datasource': 'client of this datasource'}
       E.g. If datasource file is kafka1.kafka then it returns => {'kafka1': 'message_bus client'}
+
+  Sample file src/datasources/kafka1.kafka of gs_project_template:
+    client_id: kafka_proj
+    brokers: [ "kafka:9092" ]
 */
 class KafkaDatasource implements GSDatasource {
   fileExtension: string = '.kafka';
