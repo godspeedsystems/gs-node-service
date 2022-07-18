@@ -17,7 +17,6 @@ describe(testName, () => {
             const testId = 'onErrorTest';
             const result = await require(`${fixDir}/${testId}`).default();
             logger.debug('result: %o',result);
-            console.log("onErrorTest:result: ", result);
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
             expect(result.data.message).to.equal('getaddrinfo ENOTFOUND httpbinabc.org');
@@ -34,7 +33,6 @@ describe(testName, () => {
             const testId = 'onErrorTestFalse';
             const result = await require(`${fixDir}/${testId}`).default();
             logger.debug('result: %o',result);
-            console.log("onErrorTestFalse:result: ", result);
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
             expect(result.data.message).to.equal('getaddrinfo ENOTFOUND httpbinabc.org');
@@ -53,7 +51,6 @@ describe(testName, () => {
             const testId = 'onErrorWithoutRes';
             const result = await require(`${fixDir}/${testId}`).default();
             logger.debug('result: %o',result);
-            console.log("onErrorWithoutRes:result: ", result);
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
             expect(result.data.data.message).to.equal('getaddrinfo ENOTFOUND httpbinabc.org');

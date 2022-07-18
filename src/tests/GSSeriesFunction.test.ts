@@ -12,6 +12,8 @@ import { logger } from '../core/logger';
 const testName = path.basename(__filename).split('.')[0];
 const fixDir = path.join(__dirname, 'fixtures', testName);
 
+
+
 describe(testName, () => {
     it('seriesSingleFnSuccess', async () => {
         try {
@@ -19,7 +21,6 @@ describe(testName, () => {
             const result = await require(`${fixDir}/${testId}`).default();
             //const result = await com_gs_http(args);
             logger.debug('result: %o',result);
-
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
             expect(result.message).to.equal('OK');

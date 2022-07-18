@@ -30,11 +30,11 @@ describe(testName, () => {
         try {
             const testId = 'onErrorWithRes';
             const result = await require(`${fixDir}/${testId}`).default();
-            console.log("onErrorWithRes:result:",result);
+            console.log("onErrorWithRes:result:", result);
             logger.debug('result: %o',result);
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
-            expect(result.data.data).to.equal('Some error happened');
+            expect(result.data.data.url).to.equal('https://httpbin.org/anything');
            
 
         } catch(error) {
@@ -46,7 +46,6 @@ describe(testName, () => {
         try {
             const testId = 'onErrorWithoutRes';
             const result = await require(`${fixDir}/${testId}`).default();
-            console.log("onErrorWithoutRes:result:",result);
             logger.debug('result: %o',result);
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
