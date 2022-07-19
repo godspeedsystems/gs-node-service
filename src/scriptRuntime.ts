@@ -7,15 +7,13 @@ import * as plugins from "./plugins";
 import { GSContext, GSStatus } from "./core/interfaces"; // eslint-disable-line
 import { logger } from "./core/logger";
 
-function importAll(sourceScope: any, targetScope: any) {
+export function importAll(sourceScope: any, targetScope: any) {
     for (let name in sourceScope) {
         targetScope[name] = sourceScope[name];
     }
 }
 
 importAll(plugins, global);
-
-let kafka; let redis;
 
 /**
  * Can be called for gsFunction.args, gsFunction.on_error.transform and switch.condition
