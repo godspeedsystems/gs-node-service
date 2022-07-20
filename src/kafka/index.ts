@@ -54,7 +54,7 @@ export default class KafkaMessageBus {
         return this.consumers[groupId];
     }
 
-    async subscribe(topic: string, groupId: string, processEvent:(event: GSCloudEvent)=>Promise<any>) {
+    async subscribe(topic: string, groupId: string, datasourceName: string,  processEvent:(event: GSCloudEvent)=>Promise<any>) {
 
         if (this.consumers[groupId]) {
           logger.info('kafka consumer already setup and running...');
@@ -71,8 +71,8 @@ export default class KafkaMessageBus {
           await consumer.run({
               eachMessage: async ({ topic, partition, message }) => {
                   const data =  JSON.parse(message?.value?.toString() || '');
-                  logger.debug('topic %s partition %o data %o', topic, partition);
-                  const event = new GSCloudEvent('id', `${topic}.kafka.${groupId}`, new Date(message.timestamp), 'kafka',
+                  logger.debug('topic %s partition %o datasourceName %s groupId %s data %o', topic, partition, datasourceName, groupId, data);
+                  const event = new GSCloudEvent('id', `${topic}.${datasourceName}.${groupId}`, new Date(message.timestamp), 'kafka',
                       '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
                   return processEvent(event);
               },
@@ -133,4 +133,5 @@ if (config?.kafka) {
 
     //@ts-ignore
     kafka = new KafkaMessageBus(config?.kafka);
+    console.log('********** kafka client: ',kafka);
 }

@@ -6,7 +6,8 @@ import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
-import { compileScript } from './utils';
+import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
+import KafkaMessageBus from '../kafka';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
@@ -36,10 +37,22 @@ export default async function loadDatasources(pathString:string) {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
+    } else if (datasources[ds].type === 'kafka') {
+      loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
+    } else if (datasources[ds].type) { //some other type
+      //check if loader is present in the datasource YAML
+      if(datasources[ds].loadFn) {
+        const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
+        const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
+        loadedDatasources[ds] = await loadFn.default(datasources[ds]);
+      } else {
+        logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);  
+        process.exit(1);
+      }
+      loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
     } else {
       logger.error(
-        'Found invalid datasource type %s for the datasource %s. Exiting.',
-        datasources[ds].type,
+        'Found datasource without any type for the datasource %s. Must specify type in the datasource. Exiting.',
         ds
       );
       process.exit(1);
@@ -169,4 +182,12 @@ async function loadPrismaClient(pathString: string): Promise<PlainObject> {
     client: prisma,
     //any other config params
   };
+}
+
+async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
+  const ds = {
+    ...datasource,
+    client: new KafkaMessageBus(datasource)
+  };
+  return ds;
 }
