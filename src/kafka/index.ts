@@ -133,5 +133,4 @@ if (config?.kafka) {
 
     //@ts-ignore
     kafka = new KafkaMessageBus(config?.kafka);
-    console.log('********** kafka client: ',kafka);
 }
