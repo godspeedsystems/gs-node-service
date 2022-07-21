@@ -8,6 +8,7 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
+import config from 'config';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
@@ -42,14 +43,17 @@ export default async function loadDatasources(pathString:string) {
     } else if (datasources[ds].type) { //some other type
       //check if loader is present in the datasource YAML
       if(datasources[ds].loadFn) {
-        const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
+        // Create a script of the datasources to expand the variables then execute the script by passing config
+        // so that dynamic variables can be computed.
+        const datasourceScript: Function = compileScript(datasources[ds]);
+        const evaluatedDatasources = datasourceScript(config, {}, {}, {});
+        const fnPath = evaluatedDatasources[ds].loadFn.replace(/\./g,'/');
         const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
-        loadedDatasources[ds] = await loadFn.default(datasources[ds]);
+        loadedDatasources[ds] = await loadFn.default(evaluatedDatasources[ds]);
       } else {
         logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);  
         process.exit(1);
       }
-      loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
     } else {
       logger.error(
         'Found datasource without any type for the datasource %s. Must specify type in the datasource. Exiting.',
