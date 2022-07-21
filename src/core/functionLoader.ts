@@ -67,6 +67,9 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
         }
     }
 
+    if (workflowJson?.on_error?.tasks) {
+        workflowJson.on_error.tasks = createGSFunction(workflowJson.on_error.tasks, workflows, nativeFunctions);
+    }
     return new GSFunction(workflowJson.id, fn, workflowJson.args,
         workflowJson.summary, workflowJson.description, workflowJson.on_error, workflowJson.retry, subwf);
 }
