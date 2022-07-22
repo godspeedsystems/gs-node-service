@@ -127,20 +127,12 @@ export class GSFunction extends Function {
 
       logger.debug(`args after evaluation: ${this.id} ${JSON.stringify(args)}. Retry logic is ${this.retry}`);
       if (args?.datasource) {
-
-        // Here we are loading the datasource object, if datasource container <% %> then create datasourceScript and
-        // evaluate the variables else do not create datasourceScript.
-        let datasourceScript;
-        const datasource = JSON.stringify(ctx.datasources[args.datasource]);
-
-        if (datasource.match(/<(.*?)%/) && datasource.includes('%>')) {
-          datasourceScript = compileScript(ctx.datasources[args.datasource]);
-          logger.debug('datasourceScript: %s',datasourceScript);
-        }
-        if (datasourceScript) {
-          args.datasource = await evaluateScript(ctx, datasourceScript);
+        // If datasource is a script then evaluate it else load ctx.datasources as it is.
+        const datasource: any = ctx.datasources[args.datasource];
+        if (datasource instanceof Function) {
+          args.datasource = await evaluateScript(ctx, datasource);
         } else {
-          args.datasource = ctx.datasources[args.datasource];
+          args.datasource = datasource;
         }
 
         // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level

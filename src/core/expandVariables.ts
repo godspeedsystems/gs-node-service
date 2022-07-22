@@ -1,9 +1,9 @@
 import { logger } from './logger';
 import config from 'config';
 export default function (value: string): any {
+  const originalValue: string = value;
   try {
     if ((value as string).match(/<(.*?)%/)) {
-      const originalValue: string = value;
       value = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
 
       if (value.startsWith('config')) {
@@ -12,8 +12,7 @@ export default function (value: string): any {
         logger.debug('value inter %s', value);
         value = Function('config', 'return ' + value)(config);
         logger.debug('value after %s', value);
-      } else {
-        value = originalValue;
+        return value;
       }
     }
   } catch (ex) {
@@ -21,5 +20,5 @@ export default function (value: string): any {
     logger.error(ex);
   }
 
-  return value;
+  return originalValue;
 }

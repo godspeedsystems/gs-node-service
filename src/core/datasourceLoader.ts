@@ -46,9 +46,24 @@ export default async function loadDatasources(pathString:string) {
         for (let key in datasources[ds]) {
           datasources[ds][key] = expandVariables(datasources[ds][key]);
         }
+
         const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
         const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
-        loadedDatasources[ds] = await loadFn.default(datasources[ds]);
+        const finalDatasource = await loadFn.default(datasources[ds]);
+        
+        // Here we are going to check the datasource object, if it contains <% %> then create datasourceScript
+        // and load the datasourceScript else just load the datasource object.
+        let datasourceScript;
+        const strDatasource = JSON.stringify(finalDatasource);
+
+        if (strDatasource.match(/<(.*?)%/) && strDatasource.includes('%>')) {
+          datasourceScript = compileScript(finalDatasource);
+          logger.debug('datasourceScript: %s',datasourceScript);
+          loadedDatasources[ds] = datasourceScript;
+        } else {
+          loadedDatasources[ds] = finalDatasource;
+        }
+        logger.debug('Loaded non core datasource: %o',loadedDatasources[ds]);
       } else {
         logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);  
         process.exit(1);
