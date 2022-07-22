@@ -258,8 +258,6 @@ export class GSFunction extends Function {
     if (!ctx.outputs[this.id].success) {
       ctx.addLogEvent(new GSLogEvent('ERROR', ctx.outputs));
     }
-
-    return ctx.outputs[this.id];
   };
 }
 
