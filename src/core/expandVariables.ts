@@ -5,9 +5,9 @@ export default function (value: string): any {
     if ((value as string).match(/<(.*?)%/)) {
       logger.debug('value before %s', value);
 
-      value = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
+      let script = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
       //TODO: pass other context variables
-      value = Function('config', 'return ' + value)(config);
+      value = Function('config', 'return ' + script)(config);
       logger.debug('value after %s', value);
     }
   } catch (ex) {
