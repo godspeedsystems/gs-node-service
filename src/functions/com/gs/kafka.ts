@@ -3,7 +3,13 @@ import { logger } from "../../../core/logger";
 
 
 export default async function kafka(args:{[key:string]:any;}) {
-    let kafka = args.kafka;
+    logger.debug('com.gs.kafka args: %o',args);
+    let kafka;
+    if(args.datasource) {
+        kafka = args.datasource.client;
+    } else {
+        kafka = args.kafka;
+    }
 
     let data = args.data;
 

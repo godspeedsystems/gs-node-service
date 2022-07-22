@@ -6,7 +6,9 @@ import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
-import { compileScript } from './utils';
+import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
+import KafkaMessageBus from '../kafka';
+import config from 'config';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
@@ -36,10 +38,39 @@ export default async function loadDatasources(pathString:string) {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
+    } else if (datasources[ds].type === 'kafka') {
+      loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
+    } else if (datasources[ds].type) { //some other type
+      if (datasources[ds].loadFn) { //check if loadFn is present in the datasource YAML
+        // Expand config variables
+        for (let key in datasources[ds]) {
+          datasources[ds][key] = expandVariables(datasources[ds][key]);
+        }
+
+        const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
+        const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
+        const finalDatasource = await loadFn.default(datasources[ds]);
+        
+        // Here we are going to check the datasource object, if it contains <% %> then create datasourceScript
+        // and load the datasourceScript else just load the datasource object.
+        let datasourceScript;
+        const strDatasource = JSON.stringify(finalDatasource);
+
+        if (strDatasource.match(/<(.*?)%/) && strDatasource.includes('%>')) {
+          datasourceScript = compileScript(finalDatasource);
+          logger.debug('datasourceScript: %s',datasourceScript);
+          loadedDatasources[ds] = datasourceScript;
+        } else {
+          loadedDatasources[ds] = finalDatasource;
+        }
+        logger.debug('Loaded non core datasource: %o',loadedDatasources[ds]);
+      } else {
+        logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);  
+        process.exit(1);
+      }
     } else {
       logger.error(
-        'Found invalid datasource type %s for the datasource %s. Exiting.',
-        datasources[ds].type,
+        'Found datasource without any type for the datasource %s. Must specify type in the datasource. Exiting.',
         ds
       );
       process.exit(1);
@@ -87,10 +118,6 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
 async function loadHttpDatasource(
   datasource: PlainObject
 ): Promise<PlainObject> {
-
-  if (datasource.headers) {
-    datasource.headers = compileScript(datasource.headers);
-  }
 
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
@@ -169,4 +196,12 @@ async function loadPrismaClient(pathString: string): Promise<PlainObject> {
     client: prisma,
     //any other config params
   };
+}
+
+async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
+  const ds = {
+    ...datasource,
+    client: new KafkaMessageBus(datasource)
+  };
+  return ds;
 }
