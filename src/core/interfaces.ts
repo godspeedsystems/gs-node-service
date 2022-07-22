@@ -127,22 +127,15 @@ export class GSFunction extends Function {
 
       logger.debug(`args after evaluation: ${this.id} ${JSON.stringify(args)}. Retry logic is ${this.retry}`);
       if (args?.datasource) {
-        // If datasource is a script then evaluate it else load ctx.datasources as it is.
-        const datasource: any = ctx.datasources[args.datasource];
-        if (datasource instanceof Function) {
-          args.datasource = await evaluateScript(ctx, datasource);
-        } else {
-          args.datasource = datasource;
-        }
-
-        // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
-        // so that datasource headers are passed to all the workflows using this datasource]
-        let headers = args.datasource.headers;
+        let headers = ctx.datasources[args.datasource].headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
+          headers =  await evaluateScript(ctx, headers);
           Object.assign(args.config.headers, headers);
           logger.debug(`settings datasource headers: %o`, args.config.headers);
+
         }
+        args.datasource = ctx.datasources[args.datasource]; //here we are loading the datasource object
       }
 
       if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
@@ -579,22 +572,6 @@ export class GSActor {
       sendReport?:string;
     }[];
   };
-}
-
-/*
-  Interface to implement datasource as plugins
-    - fileExtension
-      file extension of the datasource files which will use this datasource plugins
-    - loadClients
-      Loading function for the file extension. It takes path as input and return a promise of PlainObject 
-      which means it returns an object with following key/value pair:
-        {'name of the datasource': 'client of this datasource'}
-        E.g. If datasource file is kafka1.kafka then it returns => {'kafka1': 'message_bus client'}
-*/
-export interface GSDatasource {
-  fileExtension: string;
-
-  loadClients(path: string): Promise<PlainObject>;
 }
 
 if (require.main === module) {

@@ -17,7 +17,7 @@ import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
 import { kafka } from './kafka';
 
-function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(event: GSCloudEvent)=>Promise<any>) {
+function subscribeToEvents(events: any, processEvent:(event: GSCloudEvent)=>Promise<any>) {
     
     for (let route in events) {
         let originalRoute = route;
@@ -46,26 +46,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
         } else  if (route.includes('.kafka.')) {
             let [topic, groupId] = route.split('.kafka.');
             logger.info('registering kafka handler %s %s', topic, groupId);
-            kafka.subscribe(topic, groupId, 'kafka', processEvent);
-        } else {
-            // for kafka event source like {topic}.kafka1.{groupid}
-            // here we are assuming that various event sources for kafka are defined in the above format.
-            let [topic, kafkaDatasource, groupId] = route.split('.',3); 
-
-            // find the client corresponding to kafkaDatasource from the datasources
-            if(kafkaDatasource in datasources) {
-                try{
-                    const kafkaClient = datasources[kafkaDatasource].client;
-                    logger.info('registering %s handler, topic %s, groupId %s', route, topic, groupId);
-                    kafkaClient.subscribe(topic, groupId, kafkaDatasource, processEvent);    
-                } catch(err: any) {
-                    logger.error('Caught error in registering handler: %s, error: %o',route, err);
-                    process.exit(1);
-                }
-            } else {
-                logger.error('Client not found for %s in datasources. Exiting.', kafkaDatasource);
-                process.exit(1);
-            }
+            kafka.subscribe(topic, groupId, processEvent);
         }
     }
 
@@ -202,7 +183,7 @@ async function main() {
     }
 
     const events = await loadEvents(functions,PROJECT_ROOT_DIRECTORY + '/events');
-    subscribeToEvents(events, datasources, processEvent);
+    subscribeToEvents(events, processEvent);
 }
 
 main();
