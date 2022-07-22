@@ -230,7 +230,7 @@ export class GSFunction extends Function {
    * @param instruction
    * @param ctx
    */
-  async _call(ctx: GSContext) {
+  async _call(ctx: GSContext): Promise<GSStatus> {
 
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
@@ -265,7 +265,7 @@ export class GSFunction extends Function {
 
 export class GSSeriesFunction extends GSFunction {
 
-  override async _call(ctx: GSContext) {
+  override async _call(ctx: GSContext): Promise<GSStatus> {
     logger.debug(`GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
     let finalId;
 
@@ -275,19 +275,20 @@ export class GSSeriesFunction extends GSFunction {
       finalId = child.id;
       if (ctx.exitWithStatus) {
         ctx.outputs[this.id] = ctx.exitWithStatus;
-        return;
+        return ctx.exitWithStatus;
       }
 
       logger.debug('finalID: %s',finalId);
     }
     logger.debug('this.id: %s, finalId: %s', this.id, finalId);
     ctx.outputs[this.id] = ctx.outputs[finalId];
+    return ctx.outputs[this.id];
   }
 }
 
 export class GSParallelFunction extends GSFunction {
 
-  override async _call(ctx: GSContext) {
+  override async _call(ctx: GSContext): Promise<GSStatus> {
     logger.debug(`GSParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
     const promises = [];
@@ -315,6 +316,7 @@ export class GSParallelFunction extends GSFunction {
     }
 
     ctx.outputs[this.id] = status;
+    return status;
   }
 }
 
@@ -329,7 +331,7 @@ export class GSSwitchFunction extends GSFunction {
     }
   }
 
-  override async _call(ctx: GSContext) {
+  override async _call(ctx: GSContext): Promise<GSStatus> {
     logger.info('GSSwitchFunction');
     logger.debug('inside switch executor: %o',this.args);
     //logger.debug(ctx,'ctx')
@@ -352,6 +354,8 @@ export class GSSwitchFunction extends GSFunction {
         ctx.outputs[this.id] = new GSStatus(false, undefined, `case ${value} is missing and no default found in switch`);
       }
     }
+
+    return ctx.outputs[this.id];
   }
 }
 
