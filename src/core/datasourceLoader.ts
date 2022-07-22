@@ -41,15 +41,14 @@ export default async function loadDatasources(pathString:string) {
     } else if (datasources[ds].type === 'kafka') {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
     } else if (datasources[ds].type) { //some other type
-      //check if loader is present in the datasource YAML
-      if(datasources[ds].loadFn) {
-        // Create a script of the datasources to expand the variables then execute the script by passing config
-        // so that dynamic variables can be computed.
-        const datasourceScript: Function = compileScript(datasources[ds]);
-        const evaluatedDatasources = datasourceScript(config, {}, {}, {});
-        const fnPath = evaluatedDatasources[ds].loadFn.replace(/\./g,'/');
+      if (datasources[ds].loadFn) { //check if loadFn is present in the datasource YAML
+        // Expand config variables
+        for (let key in datasources[ds]) {
+          datasources[ds][key] = expandVariables(datasources[ds][key]);
+        }
+        const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
         const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
-        loadedDatasources[ds] = await loadFn.default(evaluatedDatasources[ds]);
+        loadedDatasources[ds] = await loadFn.default(datasources[ds]);
       } else {
         logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);  
         process.exit(1);
@@ -104,10 +103,6 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
 async function loadHttpDatasource(
   datasource: PlainObject
 ): Promise<PlainObject> {
-
-  if (datasource.headers) {
-    datasource.headers = compileScript(datasource.headers);
-  }
 
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
