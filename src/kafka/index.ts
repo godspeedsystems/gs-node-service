@@ -2,7 +2,7 @@ import { Consumer, Kafka, Producer }  from 'kafkajs';
 import axios from 'axios';
 import config from 'config';
 
-import { GSActor, GSCloudEvent } from '../core/interfaces';
+import { GSActor, GSCloudEvent, GSStatus } from '../core/interfaces';
 import { logger } from '../core/logger';
 
 import nodeCleanup from 'node-cleanup';
@@ -70,7 +70,15 @@ export default class KafkaMessageBus {
 
           await consumer.run({
               eachMessage: async ({ topic, partition, message }) => {
-                  const data =  JSON.parse(message?.value?.toString() || '');
+                  let data;
+                  let msgValue;
+                  try{
+                    msgValue = message?.value?.toString();
+                    data =  JSON.parse(msgValue || '');
+                  } catch(ex) {
+                    logger.error('Error in parsing kafka event data %s . Error message: %s .',msgValue, ex);
+                    return new GSStatus(false, 500, `Error in parsing kafka event data ${msgValue}`,ex);
+                  }
                   logger.debug('topic %s partition %o datasourceName %s groupId %s data %o', topic, partition, datasourceName, groupId, data);
                   const event = new GSCloudEvent('id', `${topic}.${datasourceName}.${groupId}`, new Date(message.timestamp), 'kafka',
                       '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
