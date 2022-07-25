@@ -96,18 +96,43 @@ async function main() {
         logger.info('Processing event %s',event.type);
         const responseStructure:GSResponse = { apiVersion: (config as any).api_version || "1.0" };
 
+        // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
+        let eventHandlerWorkflow:GSSeriesFunction;
         let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
 
         if(valid_status.success === false)
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema');
             const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message, 'data': valid_status.data};
-            return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
-        }
-        logger.info(valid_status, 'Request JSON Schema validated successfully');
 
-         // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
-        const eventHandlerWorkflow:GSSeriesFunction = <GSSeriesFunction>functions[events[event.type].fn];
+            if (!(events[event.type].on_validation_error)) {
+                // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
+                if (event.channel !== 'REST') {
+                    return;
+                }
+                return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
+            } else {
+                logger.debug('on_validation_error: %s',events[event.type].on_validation_error);
+
+                const validationError = {
+                    success: false,
+                    code: valid_status.code,
+                    ...response_data
+                };
+                event.data = {
+                    ...event.data,
+                    event_validation_error: validationError
+                };
+
+                // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
+                eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].on_validation_error];   
+            }
+        } else {
+            logger.info(valid_status, 'Request JSON Schema validated successfully');
+
+            // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
+            eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].fn];
+        }
 
         logger.info('calling processevent, type of handler is %s',typeof(eventHandlerWorkflow));
 
