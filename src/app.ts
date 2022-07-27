@@ -102,6 +102,10 @@ async function main() {
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema');
             const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message, 'data': valid_status.data};
+            // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
+            if (event.channel !== 'REST') {
+                return;
+            }
             return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
         }
         logger.info(valid_status, 'Request JSON Schema validated successfully');
