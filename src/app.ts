@@ -119,10 +119,7 @@ async function main() {
                     code: valid_status.code,
                     ...response_data
                 };
-                event.data = {
-                    ...event.data,
-                    event_validation_error: validationError
-                };
+                event.data = { "event": event.data, "validation_error": validationError };
 
                 // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
                 eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].on_validation_error];   
