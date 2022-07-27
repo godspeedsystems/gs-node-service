@@ -5,7 +5,7 @@ import { compileScript } from '../../../core/utils';
 //Creating GSCloudEvent
 const event = new GSCloudEvent('id', '/kyc', new Date(), 'http', '1.0', {
     body: {
-        "Gender": "Others",
+        "Gender": "Male",
         "name": "Kushal"
     },
     params: {},
@@ -15,14 +15,7 @@ const event = new GSCloudEvent('id', '/kyc', new Date(), 'http', '1.0', {
 }, 'REST', new GSActor('user'),  {});
 
 const ctx = new GSContext({}, {}, event, {}, {});
-const args = `<js% inputs.body.name + inputs.body.Gender%>`;
-
-
-
-//const args = `data: <%inputs.body.Gender %> <%inputs.body.name%>`;
-// const args = `data: <%inputs.body.Gender %>
-//         success: <% outputs.test.success %> 
-//         `;
+const args = `<js% inputs.body.name +' '+ inputs.body.Gender%>`;
 
 const script1 = compileScript(args);
 logger.debug('script1',script1 );

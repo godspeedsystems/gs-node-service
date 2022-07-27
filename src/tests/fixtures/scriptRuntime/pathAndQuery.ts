@@ -9,15 +9,23 @@ const event = new GSCloudEvent('id', '/kyc', new Date(), 'http', '1.0', {
         "Gender": "Male",
         "name": "Kushal"
     },
-    params: {},
-    query: {},
+    path:{
+      "lender_loan_application_id":"1234"
+    },
+    query:{
+      "bank_id":"ABC"
+    },
     headers: {},
     files: {},
 }, 'REST', new GSActor('user'),  {});
 
 const ctx = new GSContext({}, {}, event, mappings, {});
-const args = `<%mappings.Gender[inputs.body.Gender]%>`;
-const script1 = compileScript(args);
+const args1 = `<coffee% 'bank_id: ' + inputs.query.bank_id %>`;
+const args2 = `<coffee% 'lender_loan_application_id: ' + inputs.path.lender_loan_application_id %>`;
+
+const script1 = compileScript(args1);
+const script2 = compileScript(args2);
+
 logger.debug('script1',script1 );
 
-export { ctx, script1 };
+export { ctx, script1, script2 };

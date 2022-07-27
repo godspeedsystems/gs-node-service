@@ -33,7 +33,7 @@ const args = `<js% if(outputs.output_task1.data.json.code == 200) {
     return {
       code: outputs.output_task1.code,
       success: outputs.output_task1.success,
-      data: outputs.output_task1.data.json,
+      data: inputs.body.Gender,
       headers: outputs.output_task1.data.headers
     };
   } else {
