@@ -6,17 +6,26 @@ const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
 const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { KafkaJsInstrumentation } = require('opentelemetry-instrumentation-kafkajs');
+const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-otlp-grpc');
 
 const traceExporter = new OTLPTraceExporter();
+
+const tracerProvider = new NodeTracerProvider({
+  // be sure to disable old plugin
+  plugins: {
+    kafkajs: { enabled: false, path: 'opentelemetry-plugin-kafkajs' }
+  }
+});
 
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 const sdk = new opentelemetry.NodeSDK({
+  tracerProvider,
   traceExporter,//: new opentelemetry.tracing.ConsoleSpanExporter(),
-  instrumentations: [HttpInstrumentation, ExpressInstrumentation, new KafkaJsInstrumentation({ }) ],
-  ignoreLayers: true
+  instrumentations: [HttpInstrumentation, ExpressInstrumentation, new KafkaJsInstrumentation({})],
+  ignoreLayers: true 
 });
 
 sdk.start()
