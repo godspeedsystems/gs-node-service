@@ -15,7 +15,7 @@ diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 const sdk = new opentelemetry.NodeSDK({
   traceExporter,//: new opentelemetry.tracing.ConsoleSpanExporter(),
-  instrumentations: [HttpInstrumentation, ExpressInstrumentation, KafkaJsInstrumentation],
+  instrumentations: [HttpInstrumentation, ExpressInstrumentation, new KafkaJsInstrumentation({ }) ],
   ignoreLayers: true
 });
 
