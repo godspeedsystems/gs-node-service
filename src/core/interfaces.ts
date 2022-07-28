@@ -78,7 +78,7 @@ export class GSFunction extends Function {
       this.args = args;
       const str = JSON.stringify(args);
 
-      if (_fn && str.match(/<(.*?)%/) && str.includes('%>')) {
+      if (_fn && (str.match(/<(.*?)%/) && str.includes('%>')) || str.match(/(^|\/):([^/]+)/)) {
         this.args_script = compileScript(args);
       }
     }
