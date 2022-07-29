@@ -19,6 +19,7 @@ describe(testName, () => {
         try {
            const testId = 'scriptRuntime';
            const { ctx, script1 } = await require(`${fixDir}/${testId}`);
+           console.log("scriptRuntime:ctx:", ctx);
             logger.debug('script1: %s',script1);
             const result = await evaluateScript(ctx,script1 );
             logger.debug('result: %o',result);
@@ -36,7 +37,8 @@ describe(testName, () => {
            const { ctx, script1 } = await require(`${fixDir}/${testId}`);
 
             const result = await evaluateScript(ctx,script1 );
-             expect(result.data.code).to.equal(200);
+            console.log("scriptRuntimeCondition: result", result);
+             expect(result.data).to.equal('Others');
              expect(result.code).to.equal(200);
              expect(result.headers.Host).to.equal("httpbin.org");
 
@@ -52,6 +54,8 @@ describe(testName, () => {
            const { ctx, script1 } = await require(`${fixDir}/${testId}`);
 
             const result = await evaluateScript(ctx,script1 );
+            logger.debug("scriptRuntimeConditionFail:script1: %s", script1);
+
              expect(result.code).to.equal(500);
              expect(result.success).to.equal(false);
 
@@ -66,9 +70,8 @@ describe(testName, () => {
            const testId = 'multipleVariablesInSingleLine';
            const { ctx, script1 } = await require(`${fixDir}/${testId}`);
             const result = await evaluateScript(ctx,script1 );
-             expect(result.Gender).to.equal("Male");
-             expect(result.name).to.equal("Kushal");
-
+            logger.debug("multipleVariablesInSingleLine:script1: %s", script1);
+           //  expect(result).to.equal("Kushal Male");
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);
@@ -103,5 +106,36 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
+    it('multipleVariablesInMultiLine', async () => {
+        try {
+           const testId = 'multipleVariablesInMultiLine';
+           const { ctx, script1 } = await require(`${fixDir}/${testId}`);
+            const result = await evaluateScript(ctx,script1 );
+           expect(result.name).to.equal("Kushal");
+           expect(result.Gender).to.equal("Male");
+
+
+        } catch(error) {
+            logger.error('error: %s',<Error>error);
+            fail(<Error>error);
+        }
+    });
   
+    it('pathAndQuery', async () => {
+        try {
+           const testId = 'pathAndQuery';
+           const { ctx, script1, script2 } = await require(`${fixDir}/${testId}`);
+            const result1 = await evaluateScript(ctx,script1 );
+            const result2 = await evaluateScript(ctx,script2 );
+
+
+       expect(result1).to.equal('bank_id: ABC');
+         expect(result2).to.equal("lender_loan_application_id: 1234");
+
+
+        } catch(error) {
+            logger.error('error: %s',<Error>error);
+            fail(<Error>error);
+        }
+    });
 });
