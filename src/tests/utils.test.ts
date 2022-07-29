@@ -1,7 +1,8 @@
 import { describe, it, expect, glob, path, fs, expectObj } from './common';
-import { getAtPath, setAtPath, checkFunctionExists, checkDatasource, removeNulls } from '../core/utils';
+import { getAtPath, setAtPath, checkFunctionExists, checkDatasource, removeNulls, compileScript, prepareScript } from '../core/utils';
 import { fail } from 'assert';
 import { logger } from '../core/logger';
+import { GSActor, GSCloudEvent } from '../core/interfaces';
 
 /*
  For all the functions which doesn't return JSON output and return some specific
@@ -224,5 +225,61 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
+  it('compileScript ', async () => {
+    try {
+       const testId = 'compileScript';
+       const {  result } = await require(`${fixDir}/${testId}`);
+        logger.debug('result: %s',result);
+         expect(result).to.equal("M");
+    } catch(error) {
+        logger.error('error: %s',<Error>error);
+        fail(<Error>error);
+    }
+});
+it('compileScript -When args is str', async () => {
+  try {
+     const testId = 'argsAsStr';
+     const {  result } = await require(`${fixDir}/${testId}`);
+      logger.debug('result: %s',result);
+       expect(result.code).to.equal(200);
+       expect(result.success).to.equal(true);
+       expect(result.data.code).to.equal(200);
+
+
+  } catch(error) {
+      logger.error('error: %s',<Error>error);
+      fail(<Error>error);
+  }
+});
+
+it('compileScript -str fail case', async () => {
+  try {
+     const testId = 'argsAsStrFail';
+     const {  result } = await require(`${fixDir}/${testId}`);
+      logger.debug('argsAsStrFail: result: %o',result);
+       expect(result.code).to.equal(500);
+       expect(result.success).to.equal(false);
+      expect(result.message).to.equal('error in output_task1');
+
+
+  } catch(error) {
+      logger.error('error: %s',<Error>error);
+      fail(<Error>error);
+  }
+});
+it('compileScript -When args is obj', async () => {
+  try {
+     const testId = 'argsAsObj';
+     const {  result } = await require(`${fixDir}/${testId}`);
+      logger.debug('result: %o',result);
+       expect(result.name).to.equal("Kushal");
+       expect(result.Gender).to.equal("Male");
+
+
+  } catch(error) {
+      logger.error('error: %s',<Error>error);
+      fail(<Error>error);
+  }
+});
     
 });
