@@ -1,4 +1,5 @@
 import { logger } from '../core/logger';
+import { PrismaInstrumentation } from '@prisma/instrumentation';
 const opentelemetry = require("@opentelemetry/sdk-node");
 //Disable all autoinstrumentations because they do logging of all express middleware also.
 //const { getNodeAutoInstrumentations } = require("@opentelemetry/auto-instrumentations-node");
@@ -12,7 +13,6 @@ const { OTLPTraceExporter } = require('@opentelemetry/exporter-otlp-grpc');
 const traceExporter = new OTLPTraceExporter();
 
 const tracerProvider = new NodeTracerProvider({
-  // be sure to disable old plugin
   plugins: {
     kafkajs: { enabled: false, path: 'opentelemetry-plugin-kafkajs' }
   }
@@ -24,7 +24,7 @@ diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 const sdk = new opentelemetry.NodeSDK({
   tracerProvider,
   traceExporter,//: new opentelemetry.tracing.ConsoleSpanExporter(),
-  instrumentations: [HttpInstrumentation, ExpressInstrumentation, new KafkaJsInstrumentation({})],
+  instrumentations: [HttpInstrumentation, ExpressInstrumentation, new KafkaJsInstrumentation({}), new PrismaInstrumentation()],
   ignoreLayers: true 
 });
 
