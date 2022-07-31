@@ -14,6 +14,8 @@ export default class KafkaMessageBus {
 
     consumers: Record<string, Consumer> = {};
 
+    subscribers: Record<string, boolean> = {};
+
     _producer?: Producer;
 
     async producer() {
@@ -56,7 +58,7 @@ export default class KafkaMessageBus {
 
     async subscribe(topic: string, groupId: string, datasourceName: string,  processEvent:(event: GSCloudEvent)=>Promise<any>) {
 
-        if (this.consumers[groupId]) {
+        if (this.subscribers[topic]) {
           logger.info('kafka consumer already setup and running...');
           return;
         }
@@ -85,6 +87,7 @@ export default class KafkaMessageBus {
                   return processEvent(event);
               },
           });
+          this.subscribers[topic] = true;
         } catch(error){
           logger.error(error);
         }
