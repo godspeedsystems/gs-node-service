@@ -8,7 +8,6 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
-import config from 'config';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
@@ -38,6 +37,7 @@ export default async function loadDatasources(pathString:string) {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
+      loadedDatasources[ds].type = 'datastore';
     } else if (datasources[ds].type === 'kafka') {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
     } else if (datasources[ds].type) { //some other type

@@ -1,11 +1,13 @@
 import { logger } from '../core/logger';
+import { Span, diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import { Message } from 'kafkajs';
+import { KafkaJsInstrumentation } from 'opentelemetry-instrumentation-kafkajs';
+
 const opentelemetry = require("@opentelemetry/sdk-node");
 //Disable all autoinstrumentations because they do logging of all express middleware also.
 //const { getNodeAutoInstrumentations } = require("@opentelemetry/auto-instrumentations-node");
-const { diag, DiagConsoleLogger, DiagLogLevel } = require('@opentelemetry/api');
 const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
-const { KafkaJsInstrumentation } = require('opentelemetry-instrumentation-kafkajs');
 const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-otlp-grpc');
 
@@ -24,18 +26,26 @@ const sdk = new opentelemetry.NodeSDK({
   tracerProvider,
   traceExporter,//: new opentelemetry.tracing.ConsoleSpanExporter(),
   instrumentations: [ new HttpInstrumentation({
-                        requestHook: (span: any, request: any) => {
-                          if (span.attributes.span_operation === 'INCOMING' ) {
-                            span.updateName(span.name + " (Server)");
-                        } else {
-                            span.updateName(span.name + " (Client)");
+                          requestHook: (span: any, request: any) => {
+                            if (span.attributes.span_operation === 'INCOMING' ) {
+                              span.updateName(span.name + " (Client)");
+                          } else {
+                              span.updateName(span.name + " (Server)");
+                            }
+                          },
+                          startIncomingSpanHook: (request: any) => {
+                            return { span_operation: 'INCOMING' };
                           }
-                        },
-                        startIncomingSpanHook: (request: any) => {
-                          return { span_operation: 'INCOMING' };
-                        }
                       }),
-                      ExpressInstrumentation, new KafkaJsInstrumentation({})
+                      ExpressInstrumentation, 
+                      new KafkaJsInstrumentation({
+                        producerHook: (span: Span, topic: string, message: Message) => {
+                          span.updateName('Producer: ' + topic);
+                        },
+                        consumerHook: (span: Span, topic: string, message: Message) => {
+                          span.updateName('Consumer: ' + topic);
+                        }
+                      })
                     ],
                     ignoreLayers: true 
 });
@@ -51,3 +61,4 @@ process.on('SIGTERM', () => {
     .catch((error: any) => logger.error('Error terminating tracing', error))
     .finally(() => process.exit(0));
 });
+

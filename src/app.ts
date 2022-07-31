@@ -69,6 +69,20 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
         }
     }
 
+    // Expose metrics for all prisma clients on /metrics
+    app.get('/metrics', async (req: express.Request, res: express.Response) => {
+        let prismaMetrics;
+        for (let ds in datasources) {
+            if (datasources[ds].type === 'datastore') {
+                const prismaClient = datasources[ds].client;            
+                prismaMetrics += await prismaClient.$metrics.prometheus({
+                                    globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
+                                });
+            }
+        }
+        res.end(prismaMetrics);
+    });              
+
     //@ts-ignore
     const baseUrl = config.base_url || '/';
     app.use(baseUrl, router);
