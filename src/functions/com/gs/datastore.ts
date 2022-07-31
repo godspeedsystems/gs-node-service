@@ -1,6 +1,8 @@
-import {getAtPath} from '../../../core/utils';
 import {GSStatus} from '../../../core/interfaces';
 import { logger } from '../../../core/logger';
+import { trace } from "@opentelemetry/api";
+const tracer = trace.getTracer('name');
+
 /**
  * 
  * @param args 
@@ -12,25 +14,31 @@ export default async function(args:{[key:string]:any;}) {
   logger.debug('args %o', args.data);
   
   const ds = args.datasource;
-  //const prismaMethod = <Function>getAtPath(ds.client, args.config.method); 
   const [entityType, method] = args.config.method.split('.');
   let prismaMethod = ds.client[entityType][method];
+
+  const datastoreSpan = tracer.startSpan(`datastore: ${args.datasource.gsName} ${entityType} ${method}`);
+  datastoreSpan.setAttribute('method', method);
+  datastoreSpan.setAttribute('model', entityType);
+
   if (!prismaMethod) { //Oops!
     
     //Check whether the entityType specified is wrong or the method
     if (!ds.client[entityType]) {
+      datastoreSpan.end();
       return new GSStatus(false, 400, `Invalid entity type "${entityType}" in query`);
     }
     //If not the entity type, the method specified must be wrong.
+    datastoreSpan.end();
     return new GSStatus(false, 500, `Invalid CRUD method "${entityType}" "${method}" called`);
   }
   try {
     const res = await prismaMethod.bind(ds.client)(args.data);
-    //logger.info('prisma res %o', res);{success, code, data, message, headers} 
+    datastoreSpan.end();
     return new GSStatus(true, responseCode(method), undefined, res);
-  } catch (err) {
+  } catch (err: any) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
-    //@ts-ignore
+    datastoreSpan.end();
     return new GSStatus(false, 400, err.message || 'Error in query!', JSON.stringify(err.stack));
   }
 }

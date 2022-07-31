@@ -75,8 +75,9 @@ export default async function loadDatasources(pathString:string) {
       );
       process.exit(1);
     }
+    loadedDatasources[ds].gsName = ds;
   }
-  logger.info('Finally loaded datasources: %s', Object.keys(datasources));
+  logger.info('Finally loaded datasources: %s', Object.keys(loadedDatasources));
   return loadedDatasources;
 }
 async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {

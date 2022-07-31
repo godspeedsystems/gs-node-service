@@ -1,5 +1,4 @@
 import { logger } from '../core/logger';
-import { PrismaInstrumentation } from '@prisma/instrumentation';
 const opentelemetry = require("@opentelemetry/sdk-node");
 //Disable all autoinstrumentations because they do logging of all express middleware also.
 //const { getNodeAutoInstrumentations } = require("@opentelemetry/auto-instrumentations-node");
@@ -24,8 +23,21 @@ diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 const sdk = new opentelemetry.NodeSDK({
   tracerProvider,
   traceExporter,//: new opentelemetry.tracing.ConsoleSpanExporter(),
-  instrumentations: [HttpInstrumentation, ExpressInstrumentation, new KafkaJsInstrumentation({}), new PrismaInstrumentation()],
-  ignoreLayers: true 
+  instrumentations: [ new HttpInstrumentation({
+                        requestHook: (span: any, request: any) => {
+                          if (span.attributes.span_operation === 'INCOMING' ) {
+                            span.updateName(span.name + " (Server)");
+                        } else {
+                            span.updateName(span.name + " (Client)");
+                          }
+                        },
+                        startIncomingSpanHook: (request: any) => {
+                          return { span_operation: 'INCOMING' };
+                        }
+                      }),
+                      ExpressInstrumentation, new KafkaJsInstrumentation({})
+                    ],
+                    ignoreLayers: true 
 });
 
 sdk.start()
