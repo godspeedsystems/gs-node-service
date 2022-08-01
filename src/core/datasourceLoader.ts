@@ -1,6 +1,8 @@
 import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 import path from 'path';
+import soap from 'soap';
+
 import { logger } from './logger';
 import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
@@ -40,6 +42,8 @@ export default async function loadDatasources(pathString:string) {
       loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
     } else if (datasources[ds].type === 'kafka') {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
+    }  else if (datasources[ds].type === 'soap') {
+      loadedDatasources[ds] = await loadSoapClient(datasources[ds]);
     } else if (datasources[ds].type) { //some other type
       if (datasources[ds].loadFn) { //check if loadFn is present in the datasource YAML
         // Expand config variables
@@ -50,7 +54,7 @@ export default async function loadDatasources(pathString:string) {
         const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
         const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
         const finalDatasource = await loadFn.default(datasources[ds]);
-        
+
         // Here we are going to check the datasource object, if it contains <% %> then create datasourceScript
         // and load the datasourceScript else just load the datasource object.
         let datasourceScript;
@@ -65,7 +69,7 @@ export default async function loadDatasources(pathString:string) {
         }
         logger.debug('Loaded non core datasource: %o',loadedDatasources[ds]);
       } else {
-        logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);  
+        logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);
         process.exit(1);
       }
     } else {
@@ -203,5 +207,16 @@ async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
     ...datasource,
     client: new KafkaMessageBus(datasource)
   };
+  return ds;
+}
+
+async function loadSoapClient(datasource: PlainObject): Promise<PlainObject> {
+  let client = await soap.createClientAsync(datasource.url, datasource.options);
+
+  const ds = {
+    ...datasource,
+    client
+  };
+
   return ds;
 }

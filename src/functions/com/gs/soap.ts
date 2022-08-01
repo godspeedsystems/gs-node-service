@@ -1,0 +1,17 @@
+import { GSStatus } from "../../../core/interfaces";
+import { logger } from "../../../core/logger";
+
+
+export default async function soap(args:{[key:string]:any;}) {
+    logger.debug('com.gs.soap args: %o', args);
+    const ds = args.datasource;
+    
+    let method = ds.client[args.config.method + 'Async'];
+
+    try {
+      const res = await method.bind(ds.client)(args.data);
+      return new GSStatus(true, 200, undefined, res);
+    } catch (err) {
+      return new GSStatus(false, 400, err.message || 'Error in query!', JSON.stringify(err.stack));
+    }
+}
