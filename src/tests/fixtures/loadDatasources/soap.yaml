@@ -1,0 +1,25 @@
+type: soap
+url: http://example.com/wsdl?wsdl
+options: 
+    endpoint (string): Override the host specified by the SOAP service in the WSDL file.
+    envelopeKey (string): Set a custom envelope key. (Default: 'soap')
+    preserveWhitespace (boolean): Preserve any leading and trailing whitespace characters in text and cdata.
+    escapeXML (boolean): Escape special XML characters (e.g. &, >, < etc) in SOAP messages. (Default: true)
+    returnFault (boolean): Return an Invalid XML SOAP fault upon a bad request. (Default: false)
+    forceSoap12Headers (boolean): Enable SOAP 1.2 compliance.
+    wsdl_headers (Object): Set HTTP headers with values to be sent on WSDL requests.
+    wsdl_options (Object): Set options for the request module on WSDL requests. If using the default request module, see Request Config | Axios Docs.
+    disableCache (boolean): Prevents caching WSDL files and option objects.
+    normalizeNames (boolean): Replace non-identifier characters ([^a-z$_0-9]) with _ in WSDL operation names. Note: Clients using WSDLs with two operations like soap:method and soap-method will be overwritten. In this case, you must use bracket notation instead (client['soap:method']()).
+    namespaceArrayElements (boolean): Support non-standard array semantics. JSON arrays of the form {list: [{elem: 1}, {elem: 2}]} will be marshalled into XML as <list><elem>1</elem></list> <list><elem>2</elem></list>. If false, it would be marshalled into <list> <elem>1</elem> <elem>2</elem> </list>. (Default: true)
+    parseReponseAttachments (boolean): Treat response as multipart/related response with MTOM attachment. Reach attachments on the lastResponseAttachments property of SoapClient. (Default: false)
+
+security:
+  type: basic | bearer | clientcert | ws | wscert
+  username (string): 
+  password (string):
+  pfx (string):
+  privateKey (string):
+  publicKey (string):
+  passphrase (string):
+  options (Object): # Please refer https://github.com/vpulim/node-soap#security
