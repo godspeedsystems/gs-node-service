@@ -1,6 +1,7 @@
 import {GSStatus} from '../../../core/interfaces';
 import { logger } from '../../../core/logger';
 import { trace } from "@opentelemetry/api";
+import { datastoreCounter, datastoreHistogram } from '../../../telemetry/monitoring';
 const tracer = trace.getTracer('name');
 
 /**
@@ -17,9 +18,15 @@ export default async function(args:{[key:string]:any;}) {
   const [entityType, method] = args.config.method.split('.');
   let prismaMethod = ds.client[entityType][method];
 
+  // Start a datastore span
   const datastoreSpan = tracer.startSpan(`datastore: ${args.datasource.gsName} ${entityType} ${method}`);
   datastoreSpan.setAttribute('method', method);
   datastoreSpan.setAttribute('model', entityType);
+
+  // Record metrics to export for datastore
+  const attributes = { hostname: process.env.HOSTNAME, datastore: args.datasource.gsName, model: entityType, method: method };
+  datastoreCounter.add(1, attributes);
+  datastoreHistogram.record(Math.random(), attributes);
 
   if (!prismaMethod) { //Oops!
     

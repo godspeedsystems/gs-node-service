@@ -14,7 +14,6 @@ import generateSchema from './api-specs/api-spec';
 
 const file =PROJECT_ROOT_DIRECTORY.split("/");
 file.pop();
-const { countAllRequests } = require("./telemetry/monitoring");
 
 const loggerExpress = expressPinoLogger({
     logger: logger,
@@ -25,7 +24,6 @@ const app:express.Express = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(countAllRequests());
 app.use(loggerExpress);
 
 const port = process.env.PORT || 3000;
