@@ -2,6 +2,7 @@ import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 import path from 'path';
 import soap from 'soap';
+import fs from 'fs';
 
 import { logger } from './logger';
 import loadYaml from './yamlLoader';
@@ -36,6 +37,8 @@ export default async function loadDatasources(pathString:string) {
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
+    datasources[ds] = expandVariables(datasources[ds]);
+
     if (datasources[ds].type === 'api') {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
@@ -46,11 +49,6 @@ export default async function loadDatasources(pathString:string) {
       loadedDatasources[ds] = await loadSoapClient(datasources[ds]);
     } else if (datasources[ds].type) { //some other type
       if (datasources[ds].loadFn) { //check if loadFn is present in the datasource YAML
-        // Expand config variables
-        for (let key in datasources[ds]) {
-          datasources[ds][key] = expandVariables(datasources[ds][key]);
-        }
-
         const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
         const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
         const finalDatasource = await loadFn.default(datasources[ds]);
@@ -135,7 +133,7 @@ async function loadHttpDatasource(
     const ds = {
       ...datasource,
       client: axios.create({
-        baseURL: expandVariables(datasource.base_url),
+        baseURL: datasource.base_url,
       }),
       schema: false,
     };
@@ -152,7 +150,6 @@ async function loadHttpDatasource(
         if (securityScheme.type == 'apiKey') {
           if (securityScheme.in == 'header') {
             try {
-              value = expandVariables(value as string);
               ds.client.defaults.headers.common[securityScheme.name] = <any>(
                 value
               );
@@ -166,24 +163,22 @@ async function loadHttpDatasource(
           if (securityScheme.scheme == 'basic') {
             let auth = { username: '', password: '' };
             if (Array.isArray(value)) {
-              auth.username = expandVariables(value[0]);
-              auth.password = expandVariables(value[1]);
+              auth.username = value[0];
+              auth.password = value[1];
             } else {
               //@ts-ignore
-              auth.username = expandVariables(value.username);
+              auth.username = value.username;
               //@ts-ignore
-              auth.password = expandVariables(value.password);
+              auth.password = value.password;
             }
 
             ds.client.defaults.auth = auth;
           } else if (securityScheme.scheme == 'bearer') {
-            ds.client.defaults.headers.common.Authorization = `Bearer ${expandVariables(
-              value as string
-            )}`;
+            ds.client.defaults.headers.common.Authorization = `Bearer ${value as string}`;
           } else {
             ds.client.defaults.headers.common.Authorization = `${
               securityScheme.scheme
-            } ${expandVariables(value as string)}`;
+            } ${value as string}`;
           }
         }
       }
@@ -211,12 +206,66 @@ async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
 }
 
 async function loadSoapClient(datasource: PlainObject): Promise<PlainObject> {
-  let client = await soap.createClientAsync(datasource.url, datasource.options);
+  let options = datasource.options || {
+    suppressStack: process.env.NODE_ENV == 'production',
+
+  }
+  let client = await soap.createClientAsync(datasource.url, options);
 
   const ds = {
     ...datasource,
     client
   };
+
+  if (datasource.security) {
+    let security = datasource.security
+    switch(security.type) {
+      case 'basic':
+        client.setSecurity(new soap.BasicAuthSecurity(security.username, security.password));
+        break;
+
+      case 'bearer':
+        client.setSecurity(new soap.BearerSecurity(security.token));
+        break;
+
+      case 'clientcert':
+        if (security.pfx) {
+          client.setSecurity(new soap.ClientSSLSecurityPFX(
+            security.pfx,
+            security.passphrase,
+            security.options
+          ));
+        } else {
+          client.setSecurity(new soap.ClientSSLSecurity(
+            security.key,
+            security.cert,
+            security.caCert,
+            security.options
+          ));
+        }
+        break;
+
+      case 'ws':
+        {
+          let wsSecurity = new soap.WSSecurity(security.username, security.password, security.options)
+          client.setSecurity(wsSecurity);
+        }
+        break;
+
+      case 'wscert':
+        {
+          let privateKey = fs.readFileSync(security.privateKey);
+          let publicKey = fs.readFileSync(security.publicKey);
+          let wsSecurity = new soap.WSSecurityCert(privateKey, publicKey, security.password, security.options);
+          client.setSecurity(wsSecurity);
+        }
+        break;
+
+      default:
+        logger.error('Invalid Security Sheme for soap data source');
+        process.exit(1);
+    }
+  }
 
   return ds;
 }
