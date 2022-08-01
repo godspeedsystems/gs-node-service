@@ -6,6 +6,7 @@ import { GSActor, GSCloudEvent, GSStatus } from '../core/interfaces';
 import { logger } from '../core/logger';
 
 import nodeCleanup from 'node-cleanup';
+import { PlainObject } from '../core/common';
 
 export default class KafkaMessageBus {
     config: Record<string, any>;
@@ -72,11 +73,13 @@ export default class KafkaMessageBus {
 
           await consumer.run({
               eachMessage: async ({ topic, partition, message }) => {
-                  let data;
+                  let data: PlainObject;
                   let msgValue;
                   try{
                     msgValue = message?.value?.toString();
-                    data =  JSON.parse(msgValue || '');
+                    data =  { 
+                        "body": JSON.parse(msgValue || '') 
+                      };
                   } catch(ex) {
                     logger.error('Error in parsing kafka event data %s . Error message: %s .',msgValue, ex);
                     return new GSStatus(false, 500, `Error in parsing kafka event data ${msgValue}`,ex);
