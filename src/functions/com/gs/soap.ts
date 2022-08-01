@@ -18,6 +18,6 @@ export default async function soap(args:{[key:string]:any;}) {
       const res = await method.bind(ds.client)(args.data);
       return new GSStatus(true, 200, undefined, res);
     } catch (err) {
-      return new GSStatus(false, 400, err.message || 'Error in query!', JSON.stringify(err.stack));
+      return new GSStatus(false, 400, err.message || 'Error in soap method', JSON.stringify(err.stack));
     }
 }
