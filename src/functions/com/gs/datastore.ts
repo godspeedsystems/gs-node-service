@@ -22,6 +22,7 @@ export default async function(args:{[key:string]:any;}) {
   const datastoreSpan = tracer.startSpan(`datastore: ${args.datasource.gsName} ${entityType} ${method}`);
   datastoreSpan.setAttribute('method', method);
   datastoreSpan.setAttribute('model', entityType);
+  datastoreSpan.setAttribute('db.system', 'prisma');
 
   // Record metrics to export for datastore
   const attributes = { hostname: process.env.HOSTNAME, datastore: args.datasource.gsName, model: entityType, method: method };

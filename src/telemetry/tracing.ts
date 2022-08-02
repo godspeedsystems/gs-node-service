@@ -20,7 +20,7 @@ const tracerProvider = new NodeTracerProvider({
 });
 
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
 
 const sdk = new opentelemetry.NodeSDK({
   tracerProvider,
@@ -28,9 +28,9 @@ const sdk = new opentelemetry.NodeSDK({
   instrumentations: [ new HttpInstrumentation({
                           requestHook: (span: any, request: any) => {
                             if (span.attributes.span_operation === 'INCOMING' ) {
-                              span.updateName(span.name + " (Client)");
+                              span.updateName(span.name + " (Incoming)");
                           } else {
-                              span.updateName(span.name + " (Server)");
+                              span.updateName(span.name + " (Outgoing)");
                             }
                           },
                           startIncomingSpanHook: (request: any) => {
@@ -40,13 +40,13 @@ const sdk = new opentelemetry.NodeSDK({
                       ExpressInstrumentation, 
                       new KafkaJsInstrumentation({
                         producerHook: (span: Span, topic: string, message: Message) => {
-                          span.updateName('Producer: ' + topic);
+                          span.updateName('Kafka producer: ' + topic);
                         },
                         consumerHook: (span: Span, topic: string, message: Message) => {
-                          span.updateName('Consumer: ' + topic);
+                          span.updateName('Kafka consumer: ' + topic);
                         }
                       })
-                    ],
+                  ],
                     ignoreLayers: true 
 });
 
