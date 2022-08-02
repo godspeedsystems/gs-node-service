@@ -1,0 +1,95 @@
+{
+    "$id": "event_schema",
+    "type": "object",
+    "properties": {
+        "eventName": {
+            "type": "string",
+            "pattern": "^/([a-zA-Z0-9-_])"
+        },
+        "eventType": {
+            "enum": [
+                "http"
+            ]
+        },
+        "eventMethod": {
+            "enum": [
+                "get",
+                "post",
+                "put",
+                "delete",
+                "patch"
+            ]
+        },
+        "event": {
+            "$ref": "#/definitions/event"
+        }
+    },
+    "definitions": {
+        "event": {
+            "type": "object",
+            "properties": {
+                "fn": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "object",
+                    "properties": {
+                        "content": {
+                            "type": "object"
+                        }
+                    }
+                },
+                "params": {
+                    "$ref": "#/definitions/params"
+                },
+                "responses": {
+                    "type": "object"
+                }
+            },
+            "additionalProperties": false
+        },
+        "params": {
+            "type": "array",
+            "items": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "in": {
+                            "enum": [
+                                "cookie",
+                                "path",
+                                "query",
+                                "header"
+                            ]
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "required": {
+                            "type": "boolean"
+                        },
+                        "schema": {
+                            "type": "object"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "allow_empty_value": {
+                            "type": "boolean"
+                        }
+                    },
+                    "required": [
+                        "in",
+                        "schema"
+                    ]
+                }
+            ]
+        }
+    }
+}
