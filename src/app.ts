@@ -32,15 +32,11 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             // @ts-ignore
             router[method](route, function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
-
-                const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', {
-                    body: req.body,
-                    params: req.params,
-                    query: req.query,
-                    headers: req.headers,
-                    //@ts-ignore
-                    files: Object.values(req.files || {}),
-                }, 'REST', new GSActor('user'),  {http: {express:{res}}});
+                //passing all properties of req
+                let data = JSON.parse(JSON.stringify(req));
+                //@ts-ignore
+                data.files = Object.values(req.files || {});
+                const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', data, 'REST', new GSActor('user'),  {http: {express:{res}}});
                 processEvent(event);
             });
         } else  if (route.includes('.kafka.')) {
