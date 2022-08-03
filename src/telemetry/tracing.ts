@@ -1,7 +1,8 @@
-import { logger } from '../core/logger';
 import { Span, diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 import { Message } from 'kafkajs';
 import { KafkaJsInstrumentation } from 'opentelemetry-instrumentation-kafkajs';
+import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
+import { config } from '../core/loader';  // eslint-disable-line
 
 const opentelemetry = require("@opentelemetry/sdk-node");
 //Disable all autoinstrumentations because they do logging of all express middleware also.
@@ -20,7 +21,8 @@ const tracerProvider = new NodeTracerProvider({
 });
 
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
-diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
+const configLogLevel: DiagLogLevel = config.app.config.telemetry?.log_level || DiagLogLevel.DEBUG;
+diag.setLogger(new DiagConsoleLogger(), configLogLevel);
 
 const sdk = new opentelemetry.NodeSDK({
   tracerProvider,
@@ -45,11 +47,13 @@ const sdk = new opentelemetry.NodeSDK({
                         consumerHook: (span: Span, topic: string, message: Message) => {
                           span.updateName('Kafka consumer: ' + topic);
                         }
-                      })
-                  ],
+                      }),
+                      new PinoInstrumentation({})
+                    ],
                     ignoreLayers: true 
 });
 
+const { logger } = require('../core/logger');
 sdk.start()
   .then(() => logger.info('Tracing initialized'))
   .catch((error: any) => logger.error('Error initializing tracing', error));
