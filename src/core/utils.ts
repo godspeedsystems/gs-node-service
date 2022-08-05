@@ -105,18 +105,27 @@ export function prepareScript(str: string): Function {
 export function compileScript(args: any) {
   if (typeof(args) == 'object') {
     if (!Array.isArray(args)) {
+      let out: PlainObject = {};
+
+      for (let k in args) {
+        out[k] = compileScript(args[k]);
+      }
+
       return function(config:any, inputs:any, outputs:any, mappings: any) {
-        let out: PlainObject = {};
-        for (let k in args) {
-          out[k] = compileScript(args[k])(config, inputs, outputs, mappings);
+        for (let k in out) {
+          out[k] = out[k](config, inputs, outputs, mappings);
         }
         return out;
       };
     } else {
-      return function(config:any, inputs:any, outputs:any, mappings: any) {
         let out:[any] = <any>[];
-        for (let k in <[any]>args) {
-          out[k] = compileScript(args[k])(config, inputs, outputs, mappings);
+        for (let k in args) {
+          out[k] = compileScript(args[k]);
+        }
+
+      return function(config:any, inputs:any, outputs:any, mappings: any) {
+        for (let k in out) {
+          out[k] = out[k](config, inputs, outputs, mappings);
         }
         return out;
       };

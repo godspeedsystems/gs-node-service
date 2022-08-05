@@ -16,6 +16,7 @@ import {validateRequestSchema, validateResponseSchema} from './core/jsonSchemaVa
 import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
 import { kafka } from './kafka';
+import _ from 'lodash';
 
 function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(event: GSCloudEvent)=>Promise<any>) {
     
@@ -33,7 +34,11 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             router[method](route, function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
                 //passing all properties of req
-                let data = JSON.parse(JSON.stringify(req));
+                let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip',
+                                    'ips', 'method', 'originalUrl', 'params', 'path', 'protocol', 'query',
+                                    'route', 'secure', 'signedCookies', 'stale', 'subdomains', 'xhr', 'headers']);
+
+                logger.info('inputs %o', data);
                 //@ts-ignore
                 data.files = Object.values(req.files || {});
                 const event = new GSCloudEvent('id', originalRoute, new Date(), 'http', '1.0', data, 'REST', new GSActor('user'),  {http: {express:{res}}});
