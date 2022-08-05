@@ -63,9 +63,14 @@ export default async function loadDatasources(pathString:string) {
       process.exit(1);
     }
 
-    let datasourceScript = compileScript(loadedDatasources[ds]);
-    logger.debug('datasourceScript: %v', datasourceScript);
-    loadedDatasources[ds] = datasourceScript;
+    let datasourceScript;
+    const strDatasource = JSON.stringify(loadedDatasources[ds]);
+
+    if (strDatasource.match(/<(.*?)%/) && strDatasource.includes('%>')) {
+      datasourceScript = compileScript(loadedDatasources[ds]);
+      logger.debug('datasourceScript: %s',datasourceScript);
+      loadedDatasources[ds] = datasourceScript;
+    }
   }
 
   logger.info('Finally loaded datasources: %s', Object.keys(datasources));
