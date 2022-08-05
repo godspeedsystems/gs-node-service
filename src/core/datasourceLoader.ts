@@ -8,18 +8,13 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
-import config from 'config';
+import loadRedisDatasource from '../redis';
 
-export default async function loadDatasources(pathString:string) {
+export default async function loadDatasources(pathString: string) {
   logger.info('Loading datasources');
 
-  let yamlDatasources = await loadYaml(
-    pathString,
-    false
-  );
-  const prismaDatasources = await loadPrismaDsFileNames(
-    pathString
-  );
+  let yamlDatasources = await loadYaml(pathString, false);
+  const prismaDatasources = await loadPrismaDsFileNames(pathString);
   const datasources = {
     ...yamlDatasources,
     ...prismaDatasources,
@@ -37,20 +32,31 @@ export default async function loadDatasources(pathString:string) {
     if (datasources[ds].type === 'api') {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
-      loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
+      loadedDatasources[ds] = await loadPrismaClient(
+        pathString + '/generated-clients/' + ds
+      );
     } else if (datasources[ds].type === 'kafka') {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
-    } else if (datasources[ds].type) { //some other type
-      if (datasources[ds].loadFn) { //check if loadFn is present in the datasource YAML
+    } else if (datasources[ds].type === 'redis') {
+      loadedDatasources[ds] = await loadRedisDatasource(datasources[ds]);
+    } else if (datasources[ds].type) {
+      //some other type
+      if (datasources[ds].loadFn) {
+        //check if loadFn is present in the datasource YAML
         // Expand config variables
         for (let key in datasources[ds]) {
           datasources[ds][key] = expandVariables(datasources[ds][key]);
         }
 
-        const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
-        const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
+        const fnPath = datasources[ds].loadFn.replace(/\./g, '/');
+        const loadFn = await import(
+          path.relative(
+            __dirname,
+            PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath
+          )
+        );
         const finalDatasource = await loadFn.default(datasources[ds]);
-        
+
         // Here we are going to check the datasource object, if it contains <% %> then create datasourceScript
         // and load the datasourceScript else just load the datasource object.
         let datasourceScript;
@@ -58,14 +64,18 @@ export default async function loadDatasources(pathString:string) {
 
         if (strDatasource.match(/<(.*?)%/) && strDatasource.includes('%>')) {
           datasourceScript = compileScript(finalDatasource);
-          logger.debug('datasourceScript: %s',datasourceScript);
+          logger.debug('datasourceScript: %s', datasourceScript);
           loadedDatasources[ds] = datasourceScript;
         } else {
           loadedDatasources[ds] = finalDatasource;
         }
-        logger.debug('Loaded non core datasource: %o',loadedDatasources[ds]);
+        logger.debug('Loaded non core datasource: %o', loadedDatasources[ds]);
       } else {
-        logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);  
+        logger.error(
+          'No loader found for datasource %s and type %s',
+          ds,
+          datasources[ds].type
+        );
         process.exit(1);
       }
     } else {
@@ -118,7 +128,6 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
 async function loadHttpDatasource(
   datasource: PlainObject
 ): Promise<PlainObject> {
-
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
@@ -201,7 +210,7 @@ async function loadPrismaClient(pathString: string): Promise<PlainObject> {
 async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
   const ds = {
     ...datasource,
-    client: new KafkaMessageBus(datasource)
+    client: new KafkaMessageBus(datasource),
   };
   return ds;
 }
