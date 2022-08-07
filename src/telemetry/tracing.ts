@@ -21,8 +21,8 @@ const tracerProvider = new NodeTracerProvider({
 });
 
 // For troubleshooting, set the log level to DiagLogLevel.DEBUG
-const configLogLevel: DiagLogLevel = config.app.config.telemetry?.log_level || DiagLogLevel.DEBUG;
-diag.setLogger(new DiagConsoleLogger(), configLogLevel);
+//const configLogLevel: DiagLogLevel = config.app.config.telemetry?.log_level || DiagLogLevel.DEBUG;
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 
 const sdk = new opentelemetry.NodeSDK({
   tracerProvider,
