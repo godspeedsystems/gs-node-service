@@ -56,13 +56,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             // find the client corresponding to kafkaDatasource from the datasources
             if(kafkaDatasource in datasources) {
                 try{
-                    let evaluatedDatasources;
-                    if (datasources[kafkaDatasource] instanceof Function) {
-                        evaluatedDatasources = datasources[kafkaDatasource](config, {}, {}, appConfig.app.mappings);
-                    } else {
-                        evaluatedDatasources = datasources[kafkaDatasource];
-                    }
-
+                    const evaluatedDatasources = datasources[kafkaDatasource](config, {}, {}, appConfig.app.mappings);
                     logger.debug('evaluatedDatasources: %o',evaluatedDatasources);
                     const kafkaClient = evaluatedDatasources.client;
                     logger.info('registering %s handler, topic %s, groupId %s', route, topic, groupId);
