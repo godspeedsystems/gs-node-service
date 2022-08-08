@@ -9,6 +9,8 @@ import config from "config";
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
+export const isPlainObject = value => value?.constructor === Object;
+
 //like Lodash _.get method
 export function getAtPath(obj: PlainObject, path: string) {
   const keys = path.split('.');
@@ -104,7 +106,7 @@ export function prepareScript(str: string): Function {
 
 export function compileScript(args: any) {
   if (typeof(args) == 'object') {
-    if (!Array.isArray(args)) {
+    if (isPlainObject(args)) {
       return function(config:any, inputs:any, outputs:any, mappings: any) {
         let out: PlainObject = {};
         for (let k in args) {
@@ -112,7 +114,7 @@ export function compileScript(args: any) {
         }
         return out;
       };
-    } else {
+    } else if (Array.isArray(args)) {
       return function(config:any, inputs:any, outputs:any, mappings: any) {
         let out:[any] = <any>[];
         for (let k in <[any]>args) {
@@ -120,6 +122,8 @@ export function compileScript(args: any) {
         }
         return out;
       };
+    } else {
+      return () => args;
     }
   } else if (typeof(args) == 'string') {
     logger.debug('before replacing path params %s', args);

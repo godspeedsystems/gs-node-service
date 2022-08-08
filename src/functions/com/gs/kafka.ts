@@ -24,9 +24,12 @@ export default async function kafka(args:{[key:string]:any;}) {
 
     return producer.send({
         topic: args.config.topic,
-        messages: data.map((value:any) => ({
-            key: randomUUID(),
-            value: JSON.stringify(value)
+        messages: data.map((message:any) => ({
+            key: message.key,
+            value: JSON.stringify(message.value),
+            partition: message.partition,
+            timestamp: message.timestamp,
+            headers: message.headers
         })),
     });
 }

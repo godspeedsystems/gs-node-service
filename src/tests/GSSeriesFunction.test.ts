@@ -33,4 +33,16 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
+    it('pathParam', async () => {
+        try {
+            const testId = 'pathParam';
+            const result = await require(`${fixDir}/${testId}`).default();
+            logger.debug('result: %o',result);
+            expect(result.data.config.method).to.equal("employee.create");
+            expect(result.code).to.equal(200);
+        } catch(error) {
+            logger.error('error: %s',<Error>error);
+            fail(<Error>error);
+        }
+    });
 });
