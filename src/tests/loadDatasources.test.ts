@@ -18,7 +18,7 @@ describe(testName, () => {
             logger.debug('pathString: %s',pathString);
             const result = await loadDatasources(pathString);
             logger.debug('keys of result: %s',Object.keys(result));
-            const datasource = result.idfc;
+            const datasource = result.idfc();
 
             expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security');
             expect(datasource.client).to.have.keys('request','getUri','delete','get','head','options','post','put','patch','defaults','interceptors','create');

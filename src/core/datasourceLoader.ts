@@ -34,6 +34,9 @@ export default async function loadDatasources(pathString:string) {
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
+      // Expand config variables
+    datasources[ds] = expandVariables(datasources[ds]);
+
     if (datasources[ds].type === 'api') {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
@@ -42,30 +45,14 @@ export default async function loadDatasources(pathString:string) {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
     } else if (datasources[ds].type) { //some other type
       if (datasources[ds].loadFn) { //check if loadFn is present in the datasource YAML
-        // Expand config variables
-        for (let key in datasources[ds]) {
-          datasources[ds][key] = expandVariables(datasources[ds][key]);
-        }
 
         const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
         const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
-        const finalDatasource = await loadFn.default(datasources[ds]);
-        
-        // Here we are going to check the datasource object, if it contains <% %> then create datasourceScript
-        // and load the datasourceScript else just load the datasource object.
-        let datasourceScript;
-        const strDatasource = JSON.stringify(finalDatasource);
+        loadedDatasources[ds] = await loadFn.default(datasources[ds]);
 
-        if (strDatasource.match(/<(.*?)%/) && strDatasource.includes('%>')) {
-          datasourceScript = compileScript(finalDatasource);
-          logger.debug('datasourceScript: %s',datasourceScript);
-          loadedDatasources[ds] = datasourceScript;
-        } else {
-          loadedDatasources[ds] = finalDatasource;
-        }
         logger.debug('Loaded non core datasource: %o',loadedDatasources[ds]);
       } else {
-        logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);  
+        logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);
         process.exit(1);
       }
     } else {
@@ -75,7 +62,17 @@ export default async function loadDatasources(pathString:string) {
       );
       process.exit(1);
     }
+
+    let datasourceScript;
+    const strDatasource = JSON.stringify(loadedDatasources[ds]);
+
+    if (strDatasource.match(/<(.*?)%/) && strDatasource.includes('%>')) {
+      datasourceScript = compileScript(loadedDatasources[ds]);
+      logger.debug('datasourceScript: %s',datasourceScript);
+      loadedDatasources[ds] = datasourceScript;
+    }
   }
+
   logger.info('Finally loaded datasources: %s', Object.keys(datasources));
   return loadedDatasources;
 }
@@ -131,7 +128,7 @@ async function loadHttpDatasource(
     const ds = {
       ...datasource,
       client: axios.create({
-        baseURL: expandVariables(datasource.base_url),
+        baseURL: datasource.base_url,
       }),
       schema: false,
     };
@@ -148,7 +145,6 @@ async function loadHttpDatasource(
         if (securityScheme.type == 'apiKey') {
           if (securityScheme.in == 'header') {
             try {
-              value = expandVariables(value as string);
               ds.client.defaults.headers.common[securityScheme.name] = <any>(
                 value
               );
@@ -162,24 +158,24 @@ async function loadHttpDatasource(
           if (securityScheme.scheme == 'basic') {
             let auth = { username: '', password: '' };
             if (Array.isArray(value)) {
-              auth.username = expandVariables(value[0]);
-              auth.password = expandVariables(value[1]);
+              auth.username = value[0];
+              auth.password = value[1];
             } else {
               //@ts-ignore
-              auth.username = expandVariables(value.username);
+              auth.username = value.username;
               //@ts-ignore
-              auth.password = expandVariables(value.password);
+              auth.password = value.password;
             }
 
             ds.client.defaults.auth = auth;
           } else if (securityScheme.scheme == 'bearer') {
-            ds.client.defaults.headers.common.Authorization = `Bearer ${expandVariables(
-              value as string
-            )}`;
+            ds.client.defaults.headers.common.Authorization = `Bearer ${
+              value
+            }`;
           } else {
             ds.client.defaults.headers.common.Authorization = `${
               securityScheme.scheme
-            } ${expandVariables(value as string)}`;
+            } ${value}`;
           }
         }
       }
