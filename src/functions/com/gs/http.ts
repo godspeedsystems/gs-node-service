@@ -28,7 +28,7 @@ export default async function(args:{[key:string]:any;}) {
         } else {
             logger.info('invoking wihout schema');
             logger.debug('invoking wihout schema args: %o', args);
-            logger.debug('datasource.base_url: %s',expandVariables(ds.base_url));
+            //logger.debug('datasource.base_url: %s',expandVariables(ds.base_url));
             let form;
 
             if (args.files?.length) {
@@ -95,7 +95,7 @@ export default async function(args:{[key:string]:any;}) {
         logger.debug('res: %o', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex) {
-        //logger.error(ex);
+        logger.error(ex);
         //@ts-ignore
         let res = ex.response;
 

@@ -135,6 +135,8 @@ export class GSFunction extends Function {
           args.datasource = datasource;
         }
 
+        logger.info('datasource %o', args.datasource);
+
         // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
         // so that datasource headers are passed to all the workflows using this datasource]
         let headers = args.datasource.headers;
