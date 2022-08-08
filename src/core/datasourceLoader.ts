@@ -8,7 +8,7 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
-import loadRedisDatasource from '../redis';
+import loadRedisClient from '../redis';
 
 export default async function loadDatasources(pathString: string) {
   logger.info('Loading datasources');
@@ -41,7 +41,7 @@ export default async function loadDatasources(pathString: string) {
     } else if (datasources[ds].type === 'kafka') {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
     } else if (datasources[ds].type === 'redis') {
-      loadedDatasources[ds] = await loadRedisDatasource(datasources[ds]);
+      loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
     } else if (datasources[ds].type) {
       //some other type
       if (datasources[ds].loadFn) {
