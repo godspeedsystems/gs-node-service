@@ -9,6 +9,8 @@ import config from "config";
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
+export const isPlainObject = value => value?.constructor === Object;
+
 //like Lodash _.get method
 export function getAtPath(obj: PlainObject, path: string) {
   const keys = path.split('.');
@@ -104,31 +106,24 @@ export function prepareScript(str: string): Function {
 
 export function compileScript(args: any) {
   if (typeof(args) == 'object') {
-    if (!Array.isArray(args)) {
-      let out: PlainObject = {};
-
-      for (let k in args) {
-        out[k] = compileScript(args[k]);
-      }
-
+    if (isPlainObject(args)) {
       return function(config:any, inputs:any, outputs:any, mappings: any) {
-        for (let k in out) {
-          out[k] = out[k](config, inputs, outputs, mappings);
+        let out: PlainObject = {};
+        for (let k in args) {
+          out[k] = compileScript(args[k])(config, inputs, outputs, mappings);
+        }
+        return out;
+      };
+    } else if (Array.isArray(args)) {
+      return function(config:any, inputs:any, outputs:any, mappings: any) {
+        let out:[any] = <any>[];
+        for (let k in <[any]>args) {
+          out[k] = compileScript(args[k])(config, inputs, outputs, mappings);
         }
         return out;
       };
     } else {
-        let out:[any] = <any>[];
-        for (let k in args) {
-          out[k] = compileScript(args[k]);
-        }
-
-      return function(config:any, inputs:any, outputs:any, mappings: any) {
-        for (let k in out) {
-          out[k] = out[k](config, inputs, outputs, mappings);
-        }
-        return out;
-      };
+      return () => args;
     }
   } else if (typeof(args) == 'string') {
     logger.debug('before replacing path params %s', args);
