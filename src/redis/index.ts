@@ -6,11 +6,12 @@ import { logger } from '../core/logger';
 let client;
 
 export default async function (datasource: PlainObject) {
-  const { type, ...connectionProps } = datasource;
   // @ts-ignore
   if (!datasource) {
     return;
   }
+
+  const { type, ...connectionProps } = datasource;
 
   client = createClient({
     ...connectionProps,
