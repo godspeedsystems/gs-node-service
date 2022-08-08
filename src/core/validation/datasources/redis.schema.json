@@ -1,0 +1,82 @@
+{
+    "$id": "redis_datasource_schema",
+    "type": "object",
+    "additionalPropseties": false,
+    "properties": {
+        "type": {
+            "const": "redis"
+        },
+        "url": {
+            "type": "string"
+        },
+        "socket": {
+            "$ref": "#/definitions/socket"
+        },
+        "username": {
+            "type": "string"
+        },
+        "password": {
+            "type": "string"
+        },
+        "name": {
+            "type": "string"
+        },
+        "database": {
+            "type": "number"
+        },
+        "disableOfflineQueue": {
+            "type": "boolean"
+        },
+        "readonly": {
+            "type": "boolean"
+        },
+        "legacyMode": {
+            "type": "boolean"
+        },
+        "isolationPoolOptions": {
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": true,
+    "definitions": {
+        "socket": {
+            "type": "object",
+            "properties": {
+                "port": {
+                    "type": "string"
+                },
+                "host": {
+                    "type": "string"
+                },
+                "family": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "connectTimeout": {
+                    "type": "number"
+                },
+                "noDelay": {
+                    "type": "boolean"
+                },
+                "keepAlive": {
+                    "anyOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "const": "false"
+                        }
+                    ]
+                },
+                "tls": {
+                    "type": "boolean"
+                },
+                "reconnectStrategy": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

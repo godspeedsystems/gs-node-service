@@ -20,7 +20,7 @@
             ]
         }
     },
-    "additionalProperties": false,
+    "additionalProperties": true,
     "definitions": {
         "task": {
             "type": "object",

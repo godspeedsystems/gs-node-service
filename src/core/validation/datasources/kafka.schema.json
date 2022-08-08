@@ -1,0 +1,28 @@
+{
+    "$id": "kafka_datasource_schema",
+    "type": "object",
+    "additionalPropseties": false,
+    "properties": {
+        "type": {
+            "const": "kafka"
+        },
+        "client_id": {
+            "type": "string"
+        },
+        "brokers": {
+            "type": "array",
+            "items": [
+                {
+                    "type": "string"
+                }
+            ],
+            "minItems": 1
+        },
+        "producer": {
+            "type": "object"
+        },
+        "consumer": {
+            "type": "object"
+        }
+    }
+}

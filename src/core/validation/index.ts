@@ -17,7 +17,8 @@ export const isValidEvent = (eventInfo: {
 }): boolean => {
   let { eventKey, event } = eventInfo;
 
-  let eventType; let eventMethod;
+  let eventType;
+  let eventMethod;
   if (eventKey.includes('.http.')) {
     eventType = 'http';
     [, eventMethod] = eventKey.split('.http.');

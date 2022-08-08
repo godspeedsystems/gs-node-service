@@ -52,7 +52,7 @@
                     "type": "object"
                 }
             },
-            "additionalProperties": false
+            "additionalProperties": true
         },
         "params": {
             "type": "array",
