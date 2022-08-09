@@ -27,7 +27,7 @@ export default async function (datasource: PlainObject) {
     function () {
       logger.info('calling redis disconnect...');
       // @ts-ignore
-      this.disconnect();
+      this.quit();
     }.bind(client)
   );
 
