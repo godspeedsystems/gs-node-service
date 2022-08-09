@@ -160,7 +160,7 @@ export async function loadFunctions(
   logger.info('Creating workflows: %s', Object.keys(functions));
 
   for (let f in functions) {
-    if (isValidWorkflow({ workflowKey: f, workflow: functions[f] })) {
+    if (isValidWorkflow(functions[f], f)) {
       if (!(functions[f] instanceof GSFunction)) {
         functions[f] = createGSFunction(functions[f], functions, code);
       }

@@ -15,7 +15,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
     const eventObjTopic = eventObj[topic];
 
     // validation of event structure
-    if (isValidEvent({ eventKey: topic, event: eventObjTopic })) {
+    if (isValidEvent(eventObjTopic, topic)) {
       //Object.keys(eventObjTopic).forEach(function(topic) {
       const body_content =
         eventObjTopic?.body?.content || //just like OpenAPI Spec but with body instead of requestBody

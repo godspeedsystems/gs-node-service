@@ -4,55 +4,75 @@ import { PlainObject } from '../common';
 import { logger } from '../logger';
 import eventSchema from './event.schema.json';
 import workflowSchema from './workflow.schema.json';
+import apiDsSchema from './datasources/api.schema.json';
+import redisDsSchema from './datasources/redis.schema.json';
+import kafkaDsSchema from './datasources/kafka.schema.json';
 
-const ajvInstance = new Ajv();
+const ajvInstance = new Ajv({ allErrors: true });
 addFormats(ajvInstance);
+require('ajv-errors')(ajvInstance);
 
 const validateEvent = ajvInstance.compile(eventSchema);
 const validateWorkflow = ajvInstance.compile(workflowSchema);
+const validateApiDs = ajvInstance.compile(apiDsSchema);
+const validateRedisDs = ajvInstance.compile(redisDsSchema);
+const validateKafkaDs = ajvInstance.compile(kafkaDsSchema);
 
-export const isValidEvent = (eventInfo: {
-  eventKey: string;
-  event: any;
-}): boolean => {
-  let { eventKey, event } = eventInfo;
-
-  let eventType;
-  let eventMethod;
-  if (eventKey.includes('.http.')) {
-    eventType = 'http';
-    [, eventMethod] = eventKey.split('.http.');
-
-    let eventForValidation = {
-      eventType,
-      eventMethod,
-      event,
-    };
-
-    if (!validateEvent(eventForValidation)) {
-      logger.error(validateEvent.errors);
-      return false;
-    }
-  } else if (eventKey.includes('.kafka.')) {
-    // TODO: need to handle this case also
-    return true;
+export const isValidEvent = (event: PlainObject, eventKey: string): boolean => {
+  if (!validateEvent(event)) {
+    logger.error('Event validation failed for %s', eventKey);
+    logger.error(validateEvent.errors);
+    return false;
   }
   return true;
 };
 
-export const isValidWorkflow = (workFlowInfo: {
-  workflowKey: string;
-  workflow: PlainObject;
-}): boolean => {
-  let { workflowKey, workflow } = workFlowInfo;
-  logger.info('WorkflowKey %s', workflowKey);
-  logger.info('Workflow %o', workflow);
+export const isValidWorkflow = (
+  workflow: PlainObject,
+  workflowKey: string
+): boolean => {
   if (!validateWorkflow(workflow)) {
+    logger.error('Workflow validation failed for %s', workflowKey);
     logger.error(validateWorkflow.errors);
     return false;
-  } else {
-    return true;
   }
+  return true;
+};
+
+export const isValidApiDatasource = (datasource: PlainObject): boolean => {
+  if (!validateApiDs(datasource)) {
+    logger.error(
+      'Datasource validation failed for %s datasource',
+      JSON.stringify(datasource)
+    );
+    logger.error(validateApiDs.errors);
+    return false;
+  }
+  return true;
+};
+
+export const isValidRedisDatasource = (datasource: PlainObject): boolean => {
+  if (!validateRedisDs(datasource)) {
+    logger.error(
+      'Datasource validation failed for %s datasource',
+      JSON.stringify(datasource)
+    );
+    logger.error(validateRedisDs.errors);
+    return false;
+  }
+  return true;
+};
+
+export const isValidKafkaDatasource = (datasource: PlainObject): boolean => {
+  if (!validateKafkaDs(datasource)) {
+    logger.error(
+      'Datasource validation failed for %s datasource',
+      JSON.stringify(datasource)
+    );
+    logger.error(validateKafkaDs.errors);
+    return false;
+  }
+  return true;
 };
 
 export default ajvInstance;

@@ -1,7 +1,6 @@
 {
     "$id": "redis_datasource_schema",
     "type": "object",
-    "additionalPropseties": false,
     "properties": {
         "type": {
             "const": "redis"
@@ -37,7 +36,10 @@
             "type": "boolean"
         }
     },
-    "additionalProperties": true,
+    "required": [
+        "type",
+        "url"
+    ],
     "definitions": {
         "socket": {
             "type": "object",
@@ -78,5 +80,6 @@
                 }
             }
         }
-    }
+    },
+    "errorMessage": "It's not a valid redis datasource definition. Refer above error for more detail."
 }
