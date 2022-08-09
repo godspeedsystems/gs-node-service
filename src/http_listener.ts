@@ -10,8 +10,12 @@ import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
-//File Path for api-docs
+import promBundle from 'express-prom-bundle';
+import prometheusClient from 'prom-client';
 
+export const register = new prometheusClient.Registry();
+
+//File Path for api-docs
 const file =PROJECT_ROOT_DIRECTORY.split("/");
 file.pop();
 
@@ -51,6 +55,17 @@ if (config.has('jwt')) {
 }
 
 app.listen(port);
+
+prometheusClient.collectDefaultMetrics({ register });
+app.use(
+  promBundle({
+      autoregister: false,
+      includeMethod: true,
+      includeStatusCode: true,
+      includePath: true,
+      promRegistry: register,
+  }),
+);
 
 const eventPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/events');
 
