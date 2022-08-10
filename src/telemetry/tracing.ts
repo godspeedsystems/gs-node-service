@@ -1,4 +1,4 @@
-import { Span, diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import { Span, SpanContext, diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
 import { Message } from 'kafkajs';
 import { KafkaJsInstrumentation } from 'opentelemetry-instrumentation-kafkajs';
 import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
@@ -29,11 +29,23 @@ const sdk = new opentelemetry.NodeSDK({
   traceExporter,//: new opentelemetry.tracing.ConsoleSpanExporter(),
   instrumentations: [ new HttpInstrumentation({
                           requestHook: (span: any, request: any) => {
-                            if (span.attributes.span_operation === 'INCOMING' ) {
-                              span.updateName(span.name + " (Incoming)");
-                          } else {
-                              span.updateName(span.name + " (Outgoing)");
-                            }
+                              if (span.attributes.span_operation === 'INCOMING' ) {
+                                span.updateName(span.name + " (Incoming)");
+
+                                const spanCtx: SpanContext = span.spanContext();
+                                span.setAttributes({
+                                  'traceId': spanCtx.traceId,
+                                  'spanId': spanCtx.spanId
+                                });
+                            } else {
+                                span.updateName(span.name + " (Outgoing)");
+                                
+                                const spanCtx: SpanContext = span.spanContext();
+                                span.setAttributes({
+                                  'traceId': spanCtx.traceId,
+                                  'spanId': spanCtx.spanId
+                                });
+                              }
                           },
                           startIncomingSpanHook: (request: any) => {
                             return { span_operation: 'INCOMING' };
@@ -43,9 +55,21 @@ const sdk = new opentelemetry.NodeSDK({
                       new KafkaJsInstrumentation({
                         producerHook: (span: Span, topic: string, message: Message) => {
                           span.updateName('Kafka producer: ' + topic);
+
+                          const spanCtx: SpanContext = span.spanContext();
+                          span.setAttributes({
+                            'traceId': spanCtx.traceId,
+                            'spanId': spanCtx.spanId
+                          });
                         },
                         consumerHook: (span: Span, topic: string, message: Message) => {
                           span.updateName('Kafka consumer: ' + topic);
+
+                          const spanCtx: SpanContext = span.spanContext();
+                          span.setAttributes({
+                            'traceId': spanCtx.traceId,
+                            'spanId': spanCtx.spanId
+                          });
                         }
                       }),
                       new PinoInstrumentation({})
@@ -65,4 +89,3 @@ process.on('SIGTERM', () => {
     .catch((error: any) => logger.error('Error terminating tracing', error))
     .finally(() => process.exit(0));
 });
-

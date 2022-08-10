@@ -1,6 +1,6 @@
 import {GSStatus} from '../../../core/interfaces';
 import { logger } from '../../../core/logger';
-import { trace, Span, SpanStatusCode } from "@opentelemetry/api";
+import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
 import { datastoreCounter, datastoreHistogram } from '../../../telemetry/monitoring';
 import { PlainObject } from '../../../core/common';
 
@@ -24,9 +24,16 @@ export default async function(args:{[key:string]:any;}) {
 
   // Start a datastore span
   datastoreSpan = tracer.startSpan(`datastore: ${args.datasource.gsName} ${entityType} ${method}`);
-  datastoreSpan.setAttribute('method', method);
-  datastoreSpan.setAttribute('model', entityType);
-  datastoreSpan.setAttribute('db.system', 'prisma');
+
+  const spanCtx: SpanContext = datastoreSpan.spanContext();
+  datastoreSpan.setAttributes({
+    'traceId': spanCtx.traceId,
+    'spanId': spanCtx.spanId,
+    'method': method,
+    'model': entityType,
+    'db.system': 'prisma'
+  });
+
 
   // Record metrics to export for datastore
   const attributes: PlainObject = { hostname: process.env.HOSTNAME, datastore: args.datasource.gsName, model: entityType, method: method };
