@@ -20,7 +20,7 @@ describe(testName, () => {
             logger.debug('keys of result: %s',Object.keys(result));
             const datasource = result.idfc;
 
-            expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security');
+            expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security', 'gsName');
             expect(datasource.client).to.have.keys('request','getUri','delete','get','head','options','post','put','patch','defaults','interceptors','create');
             expect(datasource.client.defaults.baseURL).to.be.equal('https://partner-uat.idfc.com');
             expect(datasource.client.defaults.headers.common).to.have.keys('Accept','api-key','api-token','Authorization');
@@ -40,7 +40,7 @@ describe(testName, () => {
             logger.debug('keys of result: %s',Object.keys(result));
             const datasource = result.growthsource;
 
-            expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security');
+            expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security','gsName');
             expect(datasource.client).to.have.keys('request','getUri','delete','get','head','options','post','put','patch','defaults','interceptors','create');
             expect(datasource.client.defaults.baseURL).to.be.equal('https://partner-uat.growthsourceft.com');
             expect(datasource.client.defaults.headers.common).to.have.keys('Accept','x-api-key','Authorization');

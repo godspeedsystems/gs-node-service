@@ -1,7 +1,6 @@
 import {GSStatus} from '../../../core/interfaces';
 import { logger } from '../../../core/logger';
 import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
-import { datastoreCounter, datastoreHistogram } from '../../../telemetry/monitoring';
 import { PlainObject } from '../../../core/common';
 
 const tracer = trace.getTracer('name');
@@ -37,8 +36,6 @@ export default async function(args:{[key:string]:any;}) {
 
   // Record metrics to export for datastore
   const attributes: PlainObject = { hostname: process.env.HOSTNAME, datastore: args.datasource.gsName, model: entityType, method: method };
-  datastoreCounter.add(1, attributes);
-  datastoreHistogram.record(Math.random(), attributes);
 
   try {
     prismaMethod = ds.client[entityType][method];
@@ -50,14 +47,14 @@ export default async function(args:{[key:string]:any;}) {
         attributes.status_code = 400;
         status_message = `Invalid entity type "${entityType}" in query`;
         datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
-        cleanupTracesMetrics(attributes);
+        cleanupTraces(attributes);
         return new GSStatus(false, attributes.status_code, undefined, status_message);
       }
       //If not the entity type, the method specified must be wrong.
       attributes.status_code = 500;
       status_message = `Invalid CRUD method "${entityType}" "${method}" called`;
       datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
-      cleanupTracesMetrics(attributes);
+      cleanupTraces(attributes);
       return new GSStatus(false, attributes.status_code, undefined, status_message);
     }  
   }
@@ -65,24 +62,22 @@ export default async function(args:{[key:string]:any;}) {
   try {
     const res = await prismaMethod.bind(ds.client)(args.data);
     attributes.status_code = responseCode(method);
-    cleanupTracesMetrics(attributes);
+    cleanupTraces(attributes);
     return new GSStatus(true, attributes.status_code, undefined, res);
   } catch (err: any) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
     attributes.status_code = 400;
     status_message = err.message || 'Error in query!';
     datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
-    cleanupTracesMetrics(attributes);
+    cleanupTraces(attributes);
     return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
   }
 
 }
 
-function cleanupTracesMetrics(attributes: PlainObject) {
+function cleanupTraces(attributes: PlainObject) {
   datastoreSpan.setAttribute('status_code', attributes.status_code);
   datastoreSpan.end();
-  datastoreCounter.add(1, attributes);
-  datastoreHistogram.record(Math.random(), attributes);
 }
 
 function responseCode (method: string): number {

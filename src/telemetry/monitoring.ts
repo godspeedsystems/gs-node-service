@@ -13,14 +13,4 @@ meterProvider.addMetricReader(new PeriodicExportingMetricReader({
 }));
 const meter = meterProvider.getMeter('gs-exporter-collector');
 
-// Create counter and histogram for datastore metrics
-const datastoreCounter = meter.createCounter('datastore_requests', {
-  description: 'Counter of datastore requests',
-});
-const datastoreHistogram = meter.createHistogram('datastore_histogram', {
-  description: 'Histogram of datastore requests',
-});
-
 require('opentelemetry-node-metrics')(meterProvider);
-
-export { datastoreCounter, datastoreHistogram };

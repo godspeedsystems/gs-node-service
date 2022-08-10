@@ -77,15 +77,27 @@ const sdk = new opentelemetry.NodeSDK({
                     ignoreLayers: true 
 });
 
-const { logger } = require('../core/logger');
+//const { logger } = require('../core/logger');
+// sdk.start()
+//   .then(() => logger.info('Tracing initialized'))
+//   .catch((error: any) => logger.error('Error initializing tracing', error));
+
+// // gracefully shut down the SDK on process exit
+// process.on('SIGTERM', () => {
+//   sdk.shutdown()
+//     .then(() => logger.info('Tracing terminated'))
+//     .catch((error: any) => logger.error('Error terminating tracing', error))
+//     .finally(() => process.exit(0));
+// });
+
 sdk.start()
-  .then(() => logger.info('Tracing initialized'))
-  .catch((error: any) => logger.error('Error initializing tracing', error));
+  .then(() => console.log('Tracing initialized'))
+  .catch((error: any) => console.error('Error initializing tracing', error));
 
 // gracefully shut down the SDK on process exit
 process.on('SIGTERM', () => {
   sdk.shutdown()
-    .then(() => logger.info('Tracing terminated'))
-    .catch((error: any) => logger.error('Error terminating tracing', error))
+    .then(() => console.log('Tracing terminated'))
+    .catch((error: any) => console.error('Error terminating tracing', error))
     .finally(() => process.exit(0));
 });
