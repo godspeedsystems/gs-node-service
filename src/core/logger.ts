@@ -16,7 +16,7 @@ logger.level = (config as any).log_level || 'debug';
 pinoDebug(logger, {
   auto: true, // default
   map: {
-    'express:router': 'info',
+    'express:router': 'debug',
     '*': 'trace' // everything else - trace
   }
 });
