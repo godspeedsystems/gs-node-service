@@ -3,7 +3,7 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import config from 'config';
 
-import app, {router} from './http_listener';
+import app, {router, register } from './http_listener';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
@@ -71,6 +71,21 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             }
         }
     }
+
+    // Expose metrics for all prisma clients, node and express on /metrics
+    app.get('/metrics', async (req: express.Request, res: express.Response) => {
+        let prismaMetrics: string = '';
+        for (let ds in datasources) {
+            if (datasources[ds].type === 'datastore') {
+                const prismaClient = datasources[ds].client;            
+                prismaMetrics += await prismaClient.$metrics.prometheus({
+                                    globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
+                                });
+            }
+        }
+        let appMetrics = await register.metrics();
+        res.end(appMetrics + prismaMetrics);
+    });  
 
     //@ts-ignore
     const baseUrl = config.base_url || '/';

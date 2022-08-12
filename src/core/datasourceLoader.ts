@@ -8,7 +8,6 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
-import config from 'config';
 
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
@@ -63,6 +62,7 @@ export default async function loadDatasources(pathString:string) {
       process.exit(1);
     }
 
+    loadedDatasources[ds].gsName = ds;
     let datasourceScript = compileScript(loadedDatasources[ds]);
     logger.debug('datasourceScript: %s', datasourceScript);
     loadedDatasources[ds] = datasourceScript;
