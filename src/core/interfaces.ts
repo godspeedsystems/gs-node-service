@@ -224,7 +224,8 @@ export class GSFunction extends Function {
       } else if (this.onError.response) {
           status.data = this.onError.response;
       } else if (this.onError.tasks) {
-          status = await this.onError.tasks(ctx);
+        ctx.outputs[this.id] = status;
+        status = await this.onError.tasks(ctx);
       }
 
       if (this.onError.continue === false) {
