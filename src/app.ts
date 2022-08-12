@@ -71,7 +71,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
 
     // Expose metrics for all prisma clients, node and express on /metrics
     app.get('/metrics', async (req: express.Request, res: express.Response) => {
-        let prismaMetrics;
+        let prismaMetrics: string = '';
         for (let ds in datasources) {
             if (datasources[ds].type === 'datastore') {
                 const prismaClient = datasources[ds].client;            
