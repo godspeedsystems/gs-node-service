@@ -78,7 +78,7 @@ export class GSFunction extends Function {
       this.args = args;
       const str = JSON.stringify(args);
 
-      if (_fn && str.match(/<(.*?)%/) && str.includes('%>')) {
+      if (_fn && (str.match(/<(.*?)%/) && str.includes('%>')) || str.match(/(^|\/):([^/]+)/)) {
         this.args_script = compileScript(args);
       }
     }
@@ -134,6 +134,8 @@ export class GSFunction extends Function {
         } else {
           args.datasource = datasource;
         }
+
+        logger.info('datasource %o', args.datasource);
 
         // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
         // so that datasource headers are passed to all the workflows using this datasource]
