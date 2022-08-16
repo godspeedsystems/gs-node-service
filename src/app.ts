@@ -87,6 +87,11 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
         res.end(appMetrics + prismaMetrics);
     });  
 
+    // Expose /health endpoint
+    app.get('/health', async (req: express.Request, res: express.Response) => {
+        return res.status(200).send('OK');
+    });
+    
     //@ts-ignore
     const baseUrl = config.base_url || '/';
     app.use(baseUrl, router);
