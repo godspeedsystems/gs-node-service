@@ -1,4 +1,4 @@
-import { Consumer, Kafka, Producer }  from 'kafkajs';
+import { Consumer, Kafka, Producer, logLevel as kafkaLogLevel }  from 'kafkajs';
 import axios from 'axios';
 import config from 'config';
 
@@ -7,6 +7,29 @@ import { logger } from '../core/logger';
 
 import nodeCleanup from 'node-cleanup';
 import { PlainObject } from '../core/common';
+import Pino from 'pino';
+
+// Create a logCreator to customize kafkajs logs to Pino compatible logs
+const pinoLogCreator = (logLevel: any) => ({ namespace, level, label, log }: { namespace: any; level: any; label: any; log: any; }) => {
+  delete log.timestamp;
+  const pinoLevel = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'];
+  const currLogLevel: number = level;
+
+  const indexOfKey = Object.values(kafkaLogLevel).indexOf(currLogLevel as unknown as kafkaLogLevel);
+  const kafkaLogLevelKey = Object.keys(kafkaLogLevel)[indexOfKey];
+
+  const logPinoLevel: Pino.Level = (kafkaLogLevelKey.toLowerCase() as Pino.Level);
+
+  if (pinoLevel.includes(logPinoLevel) ) {
+    logger[logPinoLevel]({
+      ...log
+    });          
+  } else {
+    logger.info({
+      ...log
+    });
+  }
+};
 
 export default class KafkaMessageBus {
     config: Record<string, any>;
@@ -132,6 +155,7 @@ export default class KafkaMessageBus {
 
                 return brokers;
               },
+              logCreator: pinoLogCreator
         });
 
         this.producer();
