@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "semantic-release": "semantic-release",
-    "start": "cd dist && node app.js",
+    "start": "cd dist && node -r ./telemetry/tracing.js app.js",
     "clean": "rm -rf project build dist coverage",
     "lint": "eslint . --ext .ts --format table",
     "fix-lint": "eslint . --ext .ts --fix",
