@@ -51,7 +51,13 @@ if (config.has('jwt')) {
       return done(null, {});
   }));  
 
-  app.use(passport.authenticate('jwt', { session: false }));
+  app.use(function(req, res, next) {
+    if (req.path == '/metrics' || req.path == '/health') {
+        return next();
+    } else {
+        return passport.authenticate('jwt', { session: false })(req, res, next);
+    }
+  });
 }
 
 app.listen(port);
