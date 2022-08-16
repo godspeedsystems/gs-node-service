@@ -52,12 +52,12 @@ if (config.has('jwt')) {
   }));  
 
   app.use(function(req, res, next) {
-    if (req.path == '/metrics') {
+    if (req.path == '/metrics' || req.path == '/health') {
         return next();
     } else {
         return passport.authenticate('jwt', { session: false })(req, res, next);
     }
-  })
+  });
 }
 
 app.listen(port);
