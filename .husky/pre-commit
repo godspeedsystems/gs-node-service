@@ -3,4 +3,3 @@
 
 npm run fix-lint 
 npm run lint
-npm run commit-test
