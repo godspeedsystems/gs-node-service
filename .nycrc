@@ -6,7 +6,7 @@
   ],
   "exclude": [
     "**/tests/**/*",
-    "src/**/*",
+    "**/src/**/*",
     "coverage/**/*",
     "**/datasources/generated-clients/*",
     "**/com/biz/*"

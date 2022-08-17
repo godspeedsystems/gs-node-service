@@ -12,6 +12,8 @@ import { logger } from '../core/logger';
 const testName = path.basename(__filename).split('.')[0];
 const fixDir = path.join(__dirname, 'fixtures', testName);
 
+
+
 describe(testName, () => {
     it('seriesSingleFnSuccess', async () => {
         try {
@@ -19,7 +21,6 @@ describe(testName, () => {
             const result = await require(`${fixDir}/${testId}`).default();
             //const result = await com_gs_http(args);
             logger.debug('result: %o',result);
-
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
             expect(result.message).to.equal('OK');
@@ -27,6 +28,18 @@ describe(testName, () => {
             expect(result.data.json.personal_email_id).to.equal('ala.eforwich@email.com');
             expect(result.data.json.gender).to.equal('O');
             expect(result.headers).to.be.an('Object');
+        } catch(error) {
+            logger.error('error: %s',<Error>error);
+            fail(<Error>error);
+        }
+    });
+    it('pathParam', async () => {
+        try {
+            const testId = 'pathParam';
+            const result = await require(`${fixDir}/${testId}`).default();
+            logger.debug('result: %o',result);
+            expect(result.data.config.method).to.equal("employee.create");
+            expect(result.code).to.equal(200);
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);

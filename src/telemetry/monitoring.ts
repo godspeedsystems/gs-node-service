@@ -1,29 +1,18 @@
-import { config } from '../core/loader';  // eslint-disable-line
-'use strict';
+/* Commenting the code for now as we are using prometheus metrics as middleware and exposing them on /metrics */
 
-const { MeterProvider, ConsoleMetricExporter } = require('@opentelemetry/sdk-metrics-base');
-const meter = new MeterProvider({
-  exporter: new ConsoleMetricExporter(),
-  interval: config.app.config.telemetry?.metrics?.export?.interval || 60000,
-}).getMeter('gs-rquest-metrics');
+// import { config } from '../core/loader';  // eslint-disable-line
+// 'use strict';
 
-const requestCounter = meter.createCounter("requests-count", {
-  description: "Count all incoming requests"
-});
+// const { OTLPMetricExporter } = require('@opentelemetry/exporter-metrics-otlp-grpc');
+// const { MeterProvider, PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics-base');
 
-const boundInstruments = new Map<string,any> ();
+// const metricExporter = new OTLPMetricExporter({});
+// const meterProvider = new MeterProvider({});
 
-module.exports.countAllRequests = () => {
-  return (req: any, res: any, next:any) => {
-    if (!boundInstruments.has(req.path)) {
-      const labels = { route: req.path };
-      const boundCounter = function (count: number) {
-        requestCounter.add(count, labels);
-      };
-      boundInstruments.set(req.path, boundCounter);
-    }
+// meterProvider.addMetricReader(new PeriodicExportingMetricReader({
+//   exporter: metricExporter,
+//   exportIntervalMillis: config.app.config.telemetry?.metrics?.export?.interval || 60000,
+// }));
+// const meter = meterProvider.getMeter('gs-exporter-collector');
 
-    boundInstruments.get(req.path)(1);
-    next();
-  };
-};
+// require('opentelemetry-node-metrics')(meterProvider);

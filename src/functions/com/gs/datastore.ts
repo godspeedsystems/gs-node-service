@@ -1,6 +1,11 @@
-import {getAtPath} from '../../../core/utils';
 import {GSStatus} from '../../../core/interfaces';
 import { logger } from '../../../core/logger';
+import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
+import { PlainObject } from '../../../core/common';
+
+const tracer = trace.getTracer('name');
+let datastoreSpan: Span;
+
 /**
  * 
  * @param args 
@@ -12,27 +17,67 @@ export default async function(args:{[key:string]:any;}) {
   logger.debug('args %o', args.data);
   
   const ds = args.datasource;
-  //const prismaMethod = <Function>getAtPath(ds.client, args.config.method); 
+  let prismaMethod: any; let status_message: string; 
+
   const [entityType, method] = args.config.method.split('.');
-  let prismaMethod = ds.client[entityType][method];
-  if (!prismaMethod) { //Oops!
-    
-    //Check whether the entityType specified is wrong or the method
-    if (!ds.client[entityType]) {
-      return new GSStatus(false, 400, `Invalid entity type "${entityType}" in query`);
-    }
-    //If not the entity type, the method specified must be wrong.
-    return new GSStatus(false, 500, `Invalid CRUD method "${entityType}" "${method}" called`);
+
+  // Start a datastore span
+  datastoreSpan = tracer.startSpan(`datastore: ${args.datasource.gsName} ${entityType} ${method}`);
+
+  const spanCtx: SpanContext = datastoreSpan.spanContext();
+  datastoreSpan.setAttributes({
+    'traceId': spanCtx.traceId,
+    'spanId': spanCtx.spanId,
+    'method': method,
+    'model': entityType,
+    'db.system': 'prisma'
+  });
+
+
+  // Record metrics to export for datastore
+  const attributes: PlainObject = { hostname: process.env.HOSTNAME, datastore: args.datasource.gsName, model: entityType, method: method };
+
+  try {
+    prismaMethod = ds.client[entityType][method];
+  } catch (err:any) {
+    if (!prismaMethod) { //Oops!
+      logger.error(err);
+      //Check whether the entityType specified is wrong or the method
+      if (!ds.client[entityType]) {
+        attributes.status_code = 400;
+        status_message = `Invalid entity type "${entityType}" in query`;
+        datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
+        cleanupTraces(attributes);
+        return new GSStatus(false, attributes.status_code, undefined, status_message);
+      }
+      //If not the entity type, the method specified must be wrong.
+      attributes.status_code = 500;
+      status_message = `Invalid CRUD method "${entityType}" "${method}" called`;
+      datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
+      cleanupTraces(attributes);
+      return new GSStatus(false, attributes.status_code, undefined, status_message);
+    }  
   }
+
   try {
     const res = await prismaMethod.bind(ds.client)(args.data);
-    //logger.info('prisma res %o', res);{success, code, data, message, headers} 
-    return new GSStatus(true, responseCode(method), undefined, res);
-  } catch (err) {
+    attributes.status_code = responseCode(method);
+    cleanupTraces(attributes);
+    return new GSStatus(true, attributes.status_code, undefined, res);
+  } catch (err: any) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
-    //@ts-ignore
-    return new GSStatus(false, 400, err.message || 'Error in query!', JSON.stringify(err.stack));
+    attributes.status_code = 400;
+    status_message = err.message || 'Error in query!';
+    datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
+    cleanupTraces(attributes);
+    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
   }
+
+}
+
+function cleanupTraces(attributes: PlainObject) {
+  datastoreSpan.setAttribute('status_code', attributes.status_code);
+  datastoreSpan.end();
 }
 
 function responseCode (method: string): number {

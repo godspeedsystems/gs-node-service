@@ -1,7 +1,8 @@
 import { describe, it, expect, glob, path, fs, expectObj } from './common';
-import { getAtPath, setAtPath, checkFunctionExists } from '../core/utils';
+import { getAtPath, setAtPath, checkFunctionExists, checkDatasource, removeNulls, compileScript, prepareScript } from '../core/utils';
 import { fail } from 'assert';
 import { logger } from '../core/logger';
+import { GSActor, GSCloudEvent } from '../core/interfaces';
 
 /*
  For all the functions which doesn't return JSON output and return some specific
@@ -140,4 +141,145 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
+    it('checkDatasource - Check added for wrong datasource name', () => {
+        try {
+            const datasources = {
+                "summary": "Create and read data",
+                "tasks": [
+                  {
+                    "id": "step1",
+                    "description": "Create entity from REST input data (POST request)",
+                    "fn": "com.gs.datastore",
+                    "args": {
+                      "datasource": "mongo",
+                      "config": {
+                        "method": "<% inputs.params.entity_type %>.create"
+                      }
+                    }
+                  },
+                  {
+                    "id": "step2",
+                    "description": "test again",
+                    "fn": "com.gs.datastore",
+                    "args": {
+                      "datasource": "mongo",
+                      "config": {
+                        "method": "<% inputs.params.entity_type %>.findMany"
+                      }
+                    }
+                  }
+                ]
+              };
+              const workflowJson ={
+                "summary": "upload documents",
+                "id": "upload_documents",
+                "tasks": [
+                  {
+                    "id": "step1",
+                    "description": "upload documents",
+                    "fn": "com.gs.http",
+                    "args": {
+                      "datasource": "growth_source_wrapper",
+                      "params": null,
+                      "data": "<js% { \n  [inputs.body.entity_type + 'id']: inputs.body.entity_id, \n  _.omit(inputs.body, ['entity_type', 'entity_id'])} \n%>\n",
+                      "file_key": "files",
+                      "files": "<% inputs.files %>",
+                      "config": {
+                        "url": "/v1/documents",
+                        "method": "post"
+                      }
+                    },
+                    "retry": {
+                      "maxAttempt": 5,
+                      "type": "constant",
+                      "interval": "PT15M"
+                    },
+                    "on_error": {
+                      "continue": false,
+                      "response": "<%'Some error happened in saving' + inputs.body.entity_type%>"
+                    }
+                  }
+                ]
+              };
+              
+            const result = checkDatasource(workflowJson, datasources);
+            logger.debug('result: %o', result);
+            expect(result.success).to.be.equal(false);
+
+        } catch (error) {
+            fail(<Error>error);
+        }
+    });
+    it('removeNulls - Check added for wrong datasource name', () => {
+        try {     
+            const obj = {
+                one: null,
+                two: 2,
+                three: null,
+              };
+            const result = removeNulls(obj);
+            logger.debug('result: %o', result);
+            expect(JSON.stringify(result)).to.be.equal(JSON.stringify({ two: 2}));
+
+        } catch (error) {
+            fail(<Error>error);
+        }
+    });
+  it('compileScript ', async () => {
+    try {
+       const testId = 'compileScript';
+       const {  result } = await require(`${fixDir}/${testId}`);
+        logger.debug('result: %s',result);
+         expect(result).to.equal("M");
+    } catch(error) {
+        logger.error('error: %s',<Error>error);
+        fail(<Error>error);
+    }
+});
+it('compileScript -When args is str', async () => {
+  try {
+     const testId = 'argsAsStr';
+     const {  result } = await require(`${fixDir}/${testId}`);
+      logger.debug('result: %s',result);
+       expect(result.code).to.equal(200);
+       expect(result.success).to.equal(true);
+       expect(result.data.code).to.equal(200);
+
+
+  } catch(error) {
+      logger.error('error: %s',<Error>error);
+      fail(<Error>error);
+  }
+});
+
+it('compileScript -str fail case', async () => {
+  try {
+     const testId = 'argsAsStrFail';
+     const {  result } = await require(`${fixDir}/${testId}`);
+      logger.debug('argsAsStrFail: result: %o',result);
+       expect(result.code).to.equal(500);
+       expect(result.success).to.equal(false);
+      expect(result.message).to.equal('error in output_task1');
+
+
+  } catch(error) {
+      logger.error('error: %s',<Error>error);
+      fail(<Error>error);
+  }
+});
+it('compileScript -When args is obj', async () => {
+  try {
+     const testId = 'argsAsObj';
+     const {  result } = await require(`${fixDir}/${testId}`);
+      logger.debug('result: %o',result);
+       expect(result.name).to.equal("Kushal");
+       expect(result.Gender).to.equal("Male");
+
+
+  } catch(error) {
+      logger.error('error: %s',<Error>error);
+      fail(<Error>error);
+  }
+});
+    
 });

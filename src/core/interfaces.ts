@@ -127,15 +127,24 @@ export class GSFunction extends Function {
 
       logger.debug(`args after evaluation: ${this.id} ${JSON.stringify(args)}. Retry logic is ${this.retry}`);
       if (args?.datasource) {
-        let headers = ctx.datasources[args.datasource].headers;
+        // If datasource is a script then evaluate it else load ctx.datasources as it is.
+        const datasource: any = ctx.datasources[args.datasource];
+        if (datasource instanceof Function) {
+          args.datasource = await evaluateScript(ctx, datasource);
+        } else {
+          args.datasource = datasource;
+        }
+
+        logger.info('datasource %o', args.datasource);
+
+        // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
+        // so that datasource headers are passed to all the workflows using this datasource]
+        let headers = args.datasource.headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
-          headers =  await evaluateScript(ctx, headers);
           Object.assign(args.config.headers, headers);
           logger.debug(`settings datasource headers: %o`, args.config.headers);
-
         }
-        args.datasource = ctx.datasources[args.datasource]; //here we are loading the datasource object
       }
 
       if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
@@ -178,7 +187,7 @@ export class GSFunction extends Function {
         }
       }
     } catch (err: any) {
-      console.error(err);
+      logger.error('Caught error from execution in task id: %s, error: %o',this.id, err);
       status = new GSStatus(
           false,
           500,
@@ -186,24 +195,40 @@ export class GSFunction extends Function {
           `Caught error from execution in task id ${this.id}`
         );
     }
+    
     return this.handleError(ctx, status); //In acvse there is error, this.on_error will be considered for further action
   }
 
   async handleError (ctx: GSContext, status: GSStatus): Promise<GSStatus> {
-    if (this.onError) {
+    //Default value of success is true, if left undefined. //TODO add to the docs. 
+    if (this.onError && status.success === false) {
 
       if (this.onError.response_script ) {
+        //The script may need the output of the task so far, for the transformation logic.
+        //So set the status in outputs, against this task's id
+        ctx.outputs[this.id] = status;
         const res = await evaluateScript(ctx, this.onError.response_script);
-        if (typeof res === 'object' && res.success !== undefined) {
+        if (typeof res === 'object' && !(res.success === undefined && res.code === undefined)) { //Meaning the script is returning GS Status compatible response
           let {success, code, data, message, headers} = res;
           status = new GSStatus(success, code, message, data, headers);
+        } else {
+          //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
+          status = new GSStatus(
+            true,
+            200, //Default code be 200 for now
+            undefined,
+            res
+          );
         }
 
       } else if (this.onError.response) {
           status.data = this.onError.response;
+      } else if (this.onError.tasks) {
+        ctx.outputs[this.id] = status;
+        status = await this.onError.tasks(ctx);
       }
 
-      if (!status.success && this.onError.continue === false) {
+      if (this.onError.continue === false) {
         ctx.exitWithStatus = status;
       }
     }
@@ -215,7 +240,7 @@ export class GSFunction extends Function {
    * @param instruction
    * @param ctx
    */
-  async _call(ctx: GSContext) {
+  async _call(ctx: GSContext): Promise<GSStatus> {
 
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
@@ -243,12 +268,14 @@ export class GSFunction extends Function {
     if (!ctx.outputs[this.id].success) {
       ctx.addLogEvent(new GSLogEvent('ERROR', ctx.outputs));
     }
+
+    return ctx.outputs[this.id];
   };
 }
 
 export class GSSeriesFunction extends GSFunction {
 
-  override async _call(ctx: GSContext) {
+  override async _call(ctx: GSContext): Promise<GSStatus> {
     logger.debug(`GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
     let finalId;
 
@@ -258,19 +285,20 @@ export class GSSeriesFunction extends GSFunction {
       finalId = child.id;
       if (ctx.exitWithStatus) {
         ctx.outputs[this.id] = ctx.exitWithStatus;
-        return;
+        return ctx.exitWithStatus;
       }
 
       logger.debug('finalID: %s',finalId);
     }
     logger.debug('this.id: %s, finalId: %s', this.id, finalId);
     ctx.outputs[this.id] = ctx.outputs[finalId];
+    return ctx.outputs[this.id];
   }
 }
 
 export class GSParallelFunction extends GSFunction {
 
-  override async _call(ctx: GSContext) {
+  override async _call(ctx: GSContext): Promise<GSStatus> {
     logger.debug(`GSParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
     const promises = [];
@@ -298,6 +326,7 @@ export class GSParallelFunction extends GSFunction {
     }
 
     ctx.outputs[this.id] = status;
+    return status;
   }
 }
 
@@ -312,7 +341,7 @@ export class GSSwitchFunction extends GSFunction {
     }
   }
 
-  override async _call(ctx: GSContext) {
+  override async _call(ctx: GSContext): Promise<GSStatus> {
     logger.info('GSSwitchFunction');
     logger.debug('inside switch executor: %o',this.args);
     //logger.debug(ctx,'ctx')
@@ -335,6 +364,8 @@ export class GSSwitchFunction extends GSFunction {
         ctx.outputs[this.id] = new GSStatus(false, undefined, `case ${value} is missing and no default found in switch`);
       }
     }
+
+    return ctx.outputs[this.id];
   }
 }
 
@@ -556,11 +587,6 @@ export class GSActor {
 }
 
 if (require.main === module) {
-  let sum = (a: number, b: number):  number => {
-    // ctx.addEvent(new GSEvent());
-    console.log('Hello world', new Date(), a + b);
-    return a+b;
-  };
   // const createSpan = async (ctx: GSContext): Promise<GSContext> => {
   //   console.log('creating span')
   //   return ctx;
@@ -577,10 +603,6 @@ if (require.main === module) {
 
   //   return ctx;
   // }
-  const sumGSFunction = new GSFunction('sum', sum, [1,2],);
-  const sumOtherGSFunction = new GSFunction('sumOther', sum, [3,2],);
-  //const i = new GSFunction('seriesExample', seriesExecutor, [{children: [sumGSFunction, sumOtherGSFunction]}], null, null, 'series' );
-
 
   // //Set pre auths
   // i.preAuthHooks.push(createSpan);
@@ -591,8 +613,6 @@ if (require.main === module) {
   //async request - response
 
 }
-
-
 
 /**
  * Thoughts on telemetry as middleware

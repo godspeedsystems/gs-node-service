@@ -1,11 +1,35 @@
-import { Consumer, Kafka, Producer }  from 'kafkajs';
+import { Consumer, Kafka, Producer, logLevel as kafkaLogLevel }  from 'kafkajs';
 import axios from 'axios';
 import config from 'config';
 
-import { GSActor, GSCloudEvent } from '../core/interfaces';
+import { GSActor, GSCloudEvent, GSStatus } from '../core/interfaces';
 import { logger } from '../core/logger';
 
 import nodeCleanup from 'node-cleanup';
+import { PlainObject } from '../core/common';
+import Pino from 'pino';
+
+// Create a logCreator to customize kafkajs logs to Pino compatible logs
+const pinoLogCreator = (logLevel: any) => ({ namespace, level, label, log }: { namespace: any; level: any; label: any; log: any; }) => {
+  delete log.timestamp;
+  const pinoLevel = ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'];
+  const currLogLevel: number = level;
+
+  const indexOfKey = Object.values(kafkaLogLevel).indexOf(currLogLevel as unknown as kafkaLogLevel);
+  const kafkaLogLevelKey = Object.keys(kafkaLogLevel)[indexOfKey];
+
+  const logPinoLevel: Pino.Level = (kafkaLogLevelKey.toLowerCase() as Pino.Level);
+
+  if (pinoLevel.includes(logPinoLevel) ) {
+    logger[logPinoLevel]({
+      ...log
+    });          
+  } else {
+    logger.info({
+      ...log
+    });
+  }
+};
 
 export default class KafkaMessageBus {
     config: Record<string, any>;
@@ -13,6 +37,8 @@ export default class KafkaMessageBus {
     kafka: Kafka;
 
     consumers: Record<string, Consumer> = {};
+
+    subscribers: Record<string, boolean> = {};
 
     _producer?: Producer;
 
@@ -54,9 +80,9 @@ export default class KafkaMessageBus {
         return this.consumers[groupId];
     }
 
-    async subscribe(topic: string, groupId: string, processEvent:(event: GSCloudEvent)=>Promise<any>) {
+    async subscribe(topic: string, groupId: string, datasourceName: string,  processEvent:(event: GSCloudEvent)=>Promise<any>) {
 
-        if (this.consumers[groupId]) {
+        if (this.subscribers[topic]) {
           logger.info('kafka consumer already setup and running...');
           return;
         }
@@ -70,13 +96,24 @@ export default class KafkaMessageBus {
 
           await consumer.run({
               eachMessage: async ({ topic, partition, message }) => {
-                  const data =  JSON.parse(message?.value?.toString() || '');
-                  logger.debug('topic %s partition %o data %o', topic, partition);
-                  const event = new GSCloudEvent('id', `${topic}.kafka.${groupId}`, new Date(message.timestamp), 'kafka',
+                  let data: PlainObject;
+                  let msgValue;
+                  try{
+                    msgValue = message?.value?.toString();
+                    data =  { 
+                        "body": JSON.parse(msgValue || '') 
+                      };
+                  } catch(ex) {
+                    logger.error('Error in parsing kafka event data %s . Error message: %s .',msgValue, ex);
+                    return new GSStatus(false, 500, `Error in parsing kafka event data ${msgValue}`,ex);
+                  }
+                  logger.debug('topic %s partition %o datasourceName %s groupId %s data %o', topic, partition, datasourceName, groupId, data);
+                  const event = new GSCloudEvent('id', `${topic}.${datasourceName}.${groupId}`, new Date(message.timestamp), 'kafka',
                       '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
                   return processEvent(event);
               },
           });
+          this.subscribers[topic] = true;
         } catch(error){
           logger.error(error);
         }
@@ -118,6 +155,7 @@ export default class KafkaMessageBus {
 
                 return brokers;
               },
+              logCreator: pinoLogCreator
         });
 
         this.producer();

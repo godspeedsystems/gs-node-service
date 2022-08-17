@@ -3,7 +3,13 @@ import { logger } from "../../../core/logger";
 
 
 export default async function kafka(args:{[key:string]:any;}) {
-    let kafka = args.kafka;
+    logger.debug('com.gs.kafka args: %o',args);
+    let kafka;
+    if(args.datasource) {
+        kafka = args.datasource.client;
+    } else {
+        kafka = args.kafka;
+    }
 
     let data = args.data;
 
@@ -18,9 +24,12 @@ export default async function kafka(args:{[key:string]:any;}) {
 
     return producer.send({
         topic: args.config.topic,
-        messages: data.map((value:any) => ({
-            key: randomUUID(),
-            value: JSON.stringify(value)
+        messages: data.map((message:any) => ({
+            key: message.key,
+            value: JSON.stringify(message.value),
+            partition: message.partition,
+            timestamp: message.timestamp,
+            headers: message.headers
         })),
     });
 }
