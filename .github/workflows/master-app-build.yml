@@ -34,12 +34,12 @@ jobs:
         push: true
         context: .
         file: Dockerfile
-        tags: adminmindgrep/gs_service:stable
+        tags: adminmindgrep/gs_service:latest
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'adminmindgrep/gs_service:stable'
+        image-ref: 'adminmindgrep/gs_service:latest'
         format: 'table'
         exit-code: '0'
         ignore-unfixed: true
