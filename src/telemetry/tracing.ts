@@ -20,9 +20,11 @@ const tracerProvider = new NodeTracerProvider({
   }
 });
 
-// For troubleshooting, set the log level to DiagLogLevel.DEBUG
-//const configLogLevel: DiagLogLevel = config.app.config.telemetry?.log_level || DiagLogLevel.DEBUG;
-//diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
+// get DiagLogLevel from env variable OTEL_LOG_LEVEL, by default, set to 'INFO'
+const envOtelLogLevel = process.env.OTEL_LOG_LEVEL?.toUpperCase() || 'INFO';
+const indexOfKey = Object.keys(DiagLogLevel).indexOf(envOtelLogLevel);
+const otelLogLevel = Object.values(DiagLogLevel)[indexOfKey] as DiagLogLevel;
+diag.setLogger(new DiagConsoleLogger(), otelLogLevel);
 
 const sdk = new opentelemetry.NodeSDK({
   tracerProvider,
