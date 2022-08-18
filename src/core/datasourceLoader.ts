@@ -116,9 +116,11 @@ async function loadHttpDatasource(
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
+    const openAPIClient = await api.getClient();
+    axiosTime(openAPIClient);
     return {
       ...datasource,
-      client: await api.getClient(),
+      client: openAPIClient,
       schema: true,
     };
   } else {
