@@ -7,7 +7,9 @@ import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
 import _ from "lodash";
 import { PlainObject } from "../../../core/common";
-import expandVariables from '../../../core/expandVariables';
+import { promClient } from '../../../telemetry/monitoring';
+import { HttpMetricsCollector } from 'prometheus-api-metrics';
+HttpMetricsCollector.init();
 
 function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
@@ -90,11 +92,13 @@ export default async function(args:{[key:string]:any;}) {
                 params: args.params,
                 data:  form || args.data
             });
+            HttpMetricsCollector.collect(res);
         }
 
         logger.debug('res: %o', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex) {
+        HttpMetricsCollector.collect(ex);
         logger.error(ex);
         //@ts-ignore
         let res = ex.response;
@@ -108,6 +112,7 @@ export default async function(args:{[key:string]:any;}) {
                 }
             };
         }
+        HttpMetricsCollector.collect(res as Error);
         return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
     }
 }

@@ -9,6 +9,8 @@ import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
 
+const axiosTime = require('axios-time');
+
 export default async function loadDatasources(pathString:string) {
   logger.info('Loading datasources');
 
@@ -175,6 +177,7 @@ async function loadHttpDatasource(
         }
       }
     }
+    axiosTime(ds.client);
     return ds;
   }
 }

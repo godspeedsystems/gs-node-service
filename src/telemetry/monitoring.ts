@@ -1,3 +1,11 @@
+import promClient from 'prom-client';
+
+//const register = new promClient.Registry();
+const defaultLabels = { 'service.name': process.env.OTEL_SERVICE_NAME || 'unknown_service:node' };
+promClient.register.setDefaultLabels(defaultLabels);
+
+export { promClient };
+
 /* Commenting the code for now as we are using prometheus metrics as middleware and exposing them on /metrics */
 
 // import { config } from '../core/loader';  // eslint-disable-line
