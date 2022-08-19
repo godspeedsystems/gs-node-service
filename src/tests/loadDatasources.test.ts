@@ -43,7 +43,7 @@ describe(testName, () => {
 
             expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security','gsName');
             expect(datasource.type).to.be.equal('api');
-            expect(datasource.schema).to.be.equal(true);
+            expect(datasource.schema).to.be.equal(false);
             expect(datasource.base_url).to.be.equal('https://partner-uat.growthsourceft.com');
             expect(datasource.security).to.be.eql([{"ApiKey":"plpinelabs"},{"ApiToken":"679e36a018524e6dbfd3f184059b29f0"}]);
             expect(datasource.securitySchemes).to.be.eql({"ApiKey":{"type":"apiKey","in":"header","name":"x-api-key"},"ApiToken":{"type":"apiKey","in":"header","name":"Authorization"}});
