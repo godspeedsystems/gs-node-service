@@ -1,7 +1,7 @@
 import promClient from 'prom-client';
 
 //const register = new promClient.Registry();
-const defaultLabels = { 'service.name': process.env.OTEL_SERVICE_NAME || 'unknown_service:node' };
+const defaultLabels = { serviceName: process.env.OTEL_SERVICE_NAME || 'unknown_service:node' };
 promClient.register.setDefaultLabels(defaultLabels);
 
 export { promClient };
