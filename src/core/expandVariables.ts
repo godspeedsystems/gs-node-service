@@ -23,6 +23,9 @@ function substitute(value: string): any {
 }
 
 export default function compileScript(args: any) {
+  if (!args) {
+    return args;
+  }
   if (typeof(args) == 'object') {
     if (!Array.isArray(args)) {
         let out: PlainObject = {};
