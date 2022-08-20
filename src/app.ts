@@ -10,7 +10,7 @@ import { logger } from './core/logger';
 
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
-import { PROJECT_ROOT_DIRECTORY } from './core/utils';
+import { compileScript, PROJECT_ROOT_DIRECTORY } from './core/utils';
 
 import {validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import loadEvents from './core/eventLoader';
@@ -101,6 +101,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
 async function main() {
     logger.info('Main execution');
     let functions:PlainObject;
+    let events: PlainObject;
 
     const datasources = await loadDatasources(PROJECT_ROOT_DIRECTORY + '/datasources');
     const loadFnStatus = await loadFunctions(datasources,PROJECT_ROOT_DIRECTORY + '/functions');
@@ -116,27 +117,30 @@ async function main() {
     logger.debug(plugins,'plugins');
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
-        logger.debug(events[event.type], event);
+        // evalute eventScript
+        const eventSpec = events[event.type](config, event.data, {}, appConfig.app.mappings);
+
+        logger.debug(eventSpec, event);
         logger.info('Processing event %s',event.type);
         const responseStructure:GSResponse = { apiVersion: (config as any).api_version || "1.0" };
 
         // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
         let eventHandlerWorkflow:GSSeriesFunction;
-        let valid_status:PlainObject = validateRequestSchema(event.type, event, events[event.type]);
+        let valid_status:PlainObject = validateRequestSchema(event.type, event, eventSpec);
 
         if(valid_status.success === false)
         {
             logger.error(valid_status, 'Failed to validate Request JSON Schema');
             const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message, 'data': valid_status.data};
 
-            if (!(events[event.type].on_validation_error)) {
+            if (!(eventSpec.on_validation_error)) {
                 // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
                 if (event.channel !== 'REST') {
                     return;
                 }
                 return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
             } else {
-                logger.debug('on_validation_error: %s',events[event.type].on_validation_error);
+                logger.debug('on_validation_error: %s',eventSpec.on_validation_error);
 
                 const validationError = {
                     success: false,
@@ -146,13 +150,13 @@ async function main() {
                 event.data = { "event": event.data, "validation_error": validationError };
 
                 // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
-                eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].on_validation_error];   
+                eventHandlerWorkflow = <GSSeriesFunction>functions[eventSpec.on_validation_error];   
             }
         } else {
             logger.info(valid_status, 'Request JSON Schema validated successfully');
 
             // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
-            eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].fn];
+            eventHandlerWorkflow = <GSSeriesFunction>functions[eventSpec.fn];
         }
 
         logger.info('calling processevent, type of handler is %s',typeof(eventHandlerWorkflow));
@@ -170,7 +174,7 @@ async function main() {
           // Execute the workflow
           await eventHandlerWorkflow(ctx);
         } catch (err: any) {
-          logger.error(`Error in executing handler ${events[event.type].fn} for the event ${event.type}. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`);
+          logger.error(`Error in executing handler ${eventSpec.fn} for the event ${event.type}. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`);
           // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
           if (event.channel !== 'REST') {
             return;
@@ -179,7 +183,7 @@ async function main() {
           eventHandlerStatus = new GSStatus(
             false, 
             err.code || 500, //Treat as internal server error by default
-            `Error in executing handler ${events[event.type].fn} for the event ${event.type}`, 
+            `Error in executing handler ${eventSpec.fn} for the event ${event.type}`, 
             err //status data
           );
         }
@@ -247,8 +251,13 @@ async function main() {
         // }
     }
 
-    const events = await loadEvents(functions,PROJECT_ROOT_DIRECTORY + '/events');
+    events = await loadEvents(functions,PROJECT_ROOT_DIRECTORY + '/events');
     subscribeToEvents(events, datasources, processEvent);
+    for (let evt in events) {
+        let eventScript = compileScript(events[evt]);
+        logger.debug('eventScript: %s', eventScript);
+        events[evt] = eventScript;
+    }
 }
 
 main();
