@@ -19,7 +19,7 @@ describe(testName, () => {
             logger.debug('pathString: %s',pathString);
             const datasources = await loadDatasources(pathString);
             const datasource = datasources.idfc(config, {}, {}, {});
-            logger.debug('result: %o',datasource);
+            logger.debug('result idfc: %o',datasource);
 
             expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security');
             expect(datasource.client).to.have.keys('request','getUri','delete','get','head','options','post','put','patch','defaults','interceptors','create');
@@ -47,6 +47,22 @@ describe(testName, () => {
             expect(datasource.base_url).to.be.equal('https://partner-uat.growthsourceft.com');
             expect(datasource.security).to.be.eql([{"ApiKey":"plpinelabs"},{"ApiToken":"679e36a018524e6dbfd3f184059b29f0"}]);
             expect(datasource.securitySchemes).to.be.eql({"ApiKey":{"type":"apiKey","in":"header","name":"x-api-key"},"ApiToken":{"type":"apiKey","in":"header","name":"Authorization"}});
+        } catch(error) {
+            fail(<Error>error);
+        }
+    });
+    it('should load kafka datasource', async () => {
+        try {
+            logger.debug('pathString: %s',pathString);
+            const datasources = await loadDatasources(pathString);
+            const datasource = datasources.kafka1({}, {}, {}, {});
+            logger.debug('result:kafka1: %o',datasource);
+  
+             expect(datasource).to.have.keys('client_id','type','client','brokers');
+            expect(datasource.client).to.have.keys('consumers','config','kafka','subscribers');
+            expect(datasource.client_id).to.be.equal("kafka_proj");
+            expect(datasource.type).to.be.equal('kafka');
+           
         } catch(error) {
             fail(<Error>error);
         }
