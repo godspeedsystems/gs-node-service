@@ -1,11 +1,17 @@
 import { randomUUID } from 'crypto';
 import _ from 'lodash';
 import parseDuration from 'parse-duration';
+import opentelemetry from "@opentelemetry/api";
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
 import { compileScript } from './utils';  // eslint-disable-line
 import evaluateScript from '../scriptRuntime'; // eslint-disable-line
+import { promClient } from './telemetry/monitoring';
+
+const tracer = opentelemetry.trace.getTracer(
+  'my-service-tracer'
+);
 
 //import R from 'ramda';
 /**
@@ -51,15 +57,13 @@ import evaluateScript from '../scriptRuntime'; // eslint-disable-line
  */
 
 export class GSFunction extends Function {
+  yaml: PlainObject;
+
   id: string; // can be dot separated fqn
 
   args?: any;
 
   args_script?: Function;
-
-  summary?: string;
-
-  description?: string;
 
   fn?: Function;
 
@@ -69,9 +73,14 @@ export class GSFunction extends Function {
 
   isSubWorkflow?: boolean;
 
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
-    super('return arguments.callee._call.apply(arguments.callee, arguments)');
-    this.id = id || randomUUID();
+  log?: PlainObject;
+
+  metrics?: [PlainObject];
+
+  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+    super('return arguments.callee._tracer.apply(arguments.callee, arguments)');
+    this.yaml = yaml;
+    this.id = yaml.id || randomUUID();
     this.fn = _fn;
 
     if (args) {
@@ -83,36 +92,169 @@ export class GSFunction extends Function {
       }
     }
 
-    this.summary = summary;
-    this.description = description;
-    this.onError = onError;
+    this.onError = yaml.onError;
 
-    if (onError && onError.response) {
-      const response = JSON.stringify(onError.response);
+    if (this.onError && this.onError.response) {
+      const response = JSON.stringify(this.onError.response);
       if (response.match(/<(.*?)%/) && response.includes('%>')) {
-        this.onError!.response_script = compileScript(response);
+        this.onError!.response = compileScript(response);
       }
     }
 
-    if (retry) {
-      this.retry = retry;
+    this.retry = yaml.retry;
 
-      if (retry.interval) {
-        this.retry.interval = parseDuration(retry.interval.replace(/^PT/i, ''));
+    if (this.retry) {
+
+      if (this.retry.interval) {
+        this.retry.interval = parseDuration(this.retry.interval.replace(/^PT/i, ''));
       }
 
-      if (retry.min_interval) {
-        this.retry.min_interval = parseDuration(retry.min_interval.replace(/^PT/i, ''));
+      if (this.retry.min_interval) {
+        this.retry.min_interval = parseDuration(this.retry.min_interval.replace(/^PT/i, ''));
       }
 
-      if (retry.max_interval) {
-        this.retry.max_interval = parseDuration(retry.max_interval.replace(/^PT/i, ''));
+      if (this.retry.max_interval) {
+        this.retry.max_interval = parseDuration(this.retry.max_interval.replace(/^PT/i, ''));
       }
     }
 
     this.isSubWorkflow = isSubWorkflow;
+
+    if (this.yaml.log) {
+      this.log = this.yaml.log;
+
+      if (this.log?.before) {
+        this.log.before.args = compileScript(this.log.before.args);
+      }
+
+      if (this.log?.after) {
+        this.log.after.args = compileScript(this.log.after.args);
+      }
+    }
+
+    if (this.yaml.metrics) {
+      this.metrics = this.yaml.metrics;
+      // @ts-ignore
+      for (let metric of this.metrics) {
+        switch(metric.type) {
+          case 'counter':
+            metric.obj = new promClient.Counter({
+              name: metric.name,
+              help: metric.help,
+              labelNames: Object.keys(metric.labels || {})
+            });
+          break;
+
+          case 'gauge':
+            metric.obj = new promClient.Gauge({
+              name: metric.name,
+              help: metric.help,
+              labelNames: Object.keys(metric.labels || {})
+            });
+          break;
+
+          case 'histogram':
+            metric.obj = new promClient.Histogram({
+              name: metric.name,
+              help: metric.help,
+              labelNames: Object.keys(metric.labels || {})
+            });
+          break;
+
+          case 'summary':
+            metric.obj = new promClient.Summary({
+              name: metric.name,
+              help: metric.help,
+              labelNames: Object.keys(metric.labels || {})
+            });
+          break;
+
+          default:
+              logger.error('Invalid metric type %s, it should be one of counter,summary,histogram,gauge', metric.type);
+              process.exit(1);
+        }
+
+        for (let key of Object.keys(metric)) {
+          if (!['type', 'name', 'obj','timer'].includes(key)) {
+            metric[key] = compileScript(metric[key]);
+          }
+        }
+      }
+    }
   }
 
+  async _internalCall(ctx: GSContext): Promise<GSStatus> {
+    if (this.yaml.log?.before) {
+      const log = this.yaml.log.before;
+      logger[log.level](log.args ? evaluateScript(ctx, log.args): null, log.message);
+    }
+
+    const timers = [];
+    if (this.metrics) {
+      for (let metric of this.metrics) {
+        if (metric.timer) {
+          //@ts-ignore
+          timers.push(metric.obj.startTimer());
+        }
+      }
+    }
+
+    const status = await this._call(ctx);
+
+    if (this.metrics) {
+      for(let timer of timers) {
+        //@ts-ignore
+        timer();
+      }
+
+      for (let metric of this.metrics) {
+        let obj = metric.obj;
+        for (let key of Object.keys(metric)) {
+          if (!['type', 'name', 'obj', 'timer'].includes(key)) {
+            const val = evaluateScript(ctx, metric[key]);
+            obj = obj[key](val);
+          }
+        }
+      }
+    }
+
+    if (this.yaml.log?.after) {
+      const log = this.yaml.log.after;
+      logger[log.level](log.args ? evaluateScript(ctx, log.args): null, log.message);
+    }
+
+    return status;
+  }
+
+  async _observability(ctx: GSContext): Promise<GSStatus> {
+
+    if (this.yaml.trace) {
+      let trace = this.yaml.trace;
+
+      return tracer.startActiveSpan(trace.name, async span => {
+        if (trace.attributes) {
+          for (let attr in trace.attributes) {
+            span.setAttribute(attr, trace.attributes[attr]);
+          }
+        }
+        const status = await this._internalCall(ctx);
+
+        if (!status.success) {
+          span.setStatus({
+            //@ts-ignore
+            code: opentelemetry.SpanStatusCode.ERROR,
+            message: 'Error'
+          });
+        }
+        span.end();
+
+        return status;
+      });
+
+    } else {
+      return this._internalCall(ctx);
+    }
+  }
 
   async _executefn(ctx: GSContext):Promise<GSStatus> {
     let status: GSStatus; //Final status to return
@@ -195,19 +337,19 @@ export class GSFunction extends Function {
           `Caught error from execution in task id ${this.id}`
         );
     }
-    
+
     return this.handleError(ctx, status); //In acvse there is error, this.on_error will be considered for further action
   }
 
   async handleError (ctx: GSContext, status: GSStatus): Promise<GSStatus> {
-    //Default value of success is true, if left undefined. //TODO add to the docs. 
+    //Default value of success is true, if left undefined. //TODO add to the docs.
     if (this.onError && status.success === false) {
 
-      if (this.onError.response_script ) {
+      if (this.onError.response instanceof Function ) {
         //The script may need the output of the task so far, for the transformation logic.
         //So set the status in outputs, against this task's id
         ctx.outputs[this.id] = status;
-        const res = await evaluateScript(ctx, this.onError.response_script);
+        const res = await evaluateScript(ctx, this.onError.response);
         if (typeof res === 'object' && !(res.success === undefined && res.code === undefined)) { //Meaning the script is returning GS Status compatible response
           let {success, code, data, message, headers} = res;
           status = new GSStatus(success, code, message, data, headers);
@@ -280,7 +422,7 @@ export class GSSeriesFunction extends GSFunction {
     let finalId;
 
     for (const child of this.args!) {
-      logger.debug(child);  //Not displaying the object --> Need to check
+      //logger.debug(child);  //Not displaying the object --> Need to check
       await child(ctx);
       finalId = child.id;
       if (ctx.exitWithStatus) {
@@ -333,8 +475,8 @@ export class GSParallelFunction extends GSFunction {
 export class GSSwitchFunction extends GSFunction {
   condition_script?: Function;
 
-  constructor(id: string, _fn?: Function, args?: any, summary?: string, description?: string, onError?: PlainObject, retry?: PlainObject, isSubWorkflow?: boolean) {
-    super(id, _fn, args, summary, description, onError, retry, isSubWorkflow);
+  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+    super(yaml, _fn, args, isSubWorkflow);
     const [condition, cases] = this.args!;
     if (condition.match(/<(.*?)%/) && condition.includes('%>')) {
       this.condition_script = compileScript(condition);

@@ -22,13 +22,11 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
     switch(workflowJson.fn) {
         case 'com.gs.sequential':
             tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
-            return new GSSeriesFunction(workflowJson.id, undefined, tasks,
-                    workflowJson.summary, workflowJson.description);
+            return new GSSeriesFunction(workflowJson, undefined, tasks);
 
         case 'com.gs.parallel':
             tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
-            return new GSParallelFunction(workflowJson.id, undefined, tasks,
-                    workflowJson.summary, workflowJson.description);
+            return new GSParallelFunction(workflowJson, undefined, tasks);
 
         case 'com.gs.switch':
             let args = [workflowJson.value];
@@ -46,8 +44,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
             logger.debug('loading switch workflow %s', JSON.stringify(workflowJson.cases));
 
-            return new GSSwitchFunction(workflowJson.id, undefined, args,
-                    workflowJson.summary, workflowJson.description);
+            return new GSSwitchFunction(workflowJson, undefined, args);
     }
 
     //Load the fn for this GSFunction
@@ -70,8 +67,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
     if (workflowJson?.on_error?.tasks) {
         workflowJson.on_error.tasks = createGSFunction(workflowJson.on_error.tasks, workflows, nativeFunctions);
     }
-    return new GSFunction(workflowJson.id, fn, workflowJson.args,
-        workflowJson.summary, workflowJson.description, workflowJson.on_error, workflowJson.retry, subwf);
+    return new GSFunction(workflowJson, fn, workflowJson.args, subwf);
 }
 
 export async function loadFunctions(datasources: PlainObject,pathString: string): Promise<PlainObject> {
