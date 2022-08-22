@@ -36,7 +36,7 @@ function iterate_yaml_directories(current_yaml_root:any) {
             recursive_object_state[current_property][key] = temp_obj[key];
           } else {
             const file_name = file.slice(0,-5);
-            if (!recursive_object_state[current_property].hasOwnProperty(file)){
+            if (!recursive_object_state[current_property].hasOwnProperty(file_name)){
               recursive_object_state[current_property][file_name] = {};
             }
 
