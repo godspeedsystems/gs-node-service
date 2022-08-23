@@ -7,7 +7,7 @@ import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
 import { compileScript } from './utils';  // eslint-disable-line
 import evaluateScript from '../scriptRuntime'; // eslint-disable-line
-import { promClient } from './telemetry/monitoring';
+import { promClient } from '../telemetry/monitoring';
 
 const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
@@ -78,7 +78,7 @@ export class GSFunction extends Function {
   metrics?: [PlainObject];
 
   constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
-    super('return arguments.callee._tracer.apply(arguments.callee, arguments)');
+    super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
     this.id = yaml.id || randomUUID();
     this.fn = _fn;
@@ -186,6 +186,7 @@ export class GSFunction extends Function {
   async _internalCall(ctx: GSContext): Promise<GSStatus> {
     if (this.logs?.before) {
       const log = this.logs.before;
+      //@ts-ignore
       logger[log.level](log.args ? evaluateScript(ctx, log.args): null, log.message);
     }
 
@@ -220,6 +221,7 @@ export class GSFunction extends Function {
 
     if (this.logs?.after) {
       const log = this.logs.after;
+      //@ts-ignore
       logger[log.level](log.args ? evaluateScript(ctx, log.args): null, log.message);
     }
 

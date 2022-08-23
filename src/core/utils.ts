@@ -105,6 +105,10 @@ export function prepareScript(str: string): Function {
 }
 
 export function compileScript(args: any) {
+  if (!args) {
+    return () => args;
+  }
+
   if (typeof(args) == 'object') {
     if (isPlainObject(args)) {
       return function(config:any, inputs:any, outputs:any, mappings: any) {
