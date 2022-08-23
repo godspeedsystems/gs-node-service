@@ -73,7 +73,7 @@ export class GSFunction extends Function {
 
   isSubWorkflow?: boolean;
 
-  log?: PlainObject;
+  logs?: PlainObject;
 
   metrics?: [PlainObject];
 
@@ -120,15 +120,15 @@ export class GSFunction extends Function {
 
     this.isSubWorkflow = isSubWorkflow;
 
-    if (this.yaml.log) {
-      this.log = this.yaml.log;
+    if (this.yaml.logs) {
+      this.logs = this.yaml.logs;
 
-      if (this.log?.before) {
-        this.log.before.args = compileScript(this.log.before.args);
+      if (this.logs?.before) {
+        this.logs.before.args = compileScript(this.logs.before.args);
       }
 
-      if (this.log?.after) {
-        this.log.after.args = compileScript(this.log.after.args);
+      if (this.logs?.after) {
+        this.logs.after.args = compileScript(this.logs.after.args);
       }
     }
 
@@ -184,8 +184,8 @@ export class GSFunction extends Function {
   }
 
   async _internalCall(ctx: GSContext): Promise<GSStatus> {
-    if (this.yaml.log?.before) {
-      const log = this.yaml.log.before;
+    if (this.logs?.before) {
+      const log = this.logs.before;
       logger[log.level](log.args ? evaluateScript(ctx, log.args): null, log.message);
     }
 
@@ -218,8 +218,8 @@ export class GSFunction extends Function {
       }
     }
 
-    if (this.yaml.log?.after) {
-      const log = this.yaml.log.after;
+    if (this.logs?.after) {
+      const log = this.logs.after;
       logger[log.level](log.args ? evaluateScript(ctx, log.args): null, log.message);
     }
 
@@ -300,9 +300,9 @@ export class GSFunction extends Function {
       let res;
 
       if (Array.isArray(args)) {
-        res = await this.fn?.apply(null, args);
+        res = await this.fn?.apply(null, args.concat({logger, promClient, tracer}));
       } else {
-        res = await this.fn!(args);
+        res = await this.fn!(args, {logger, promClient, tracer});
       }
 
       logger.info(`Result of _executeFn ${this.id} is ${typeof res === 'string' ? res: JSON.stringify(res)}`);
