@@ -3,6 +3,7 @@ import loadDatasources from '../core/datasourceLoader';
 import { fail } from 'assert';
 import { logger } from '../core/logger';
 import config from 'config';
+import KafkaMessageBus from '../kafka';
 
 /*
  For all the functions which doesn't return JSON output and return some specific
@@ -56,7 +57,7 @@ describe(testName, () => {
             logger.debug('pathString: %s',pathString);
             const datasources = await loadDatasources(pathString);
             const datasource = datasources.kafka1({}, {}, {}, {});
-            logger.debug('result:kafka1: %o',datasource);
+            logger.debug('result: %o',datasource);
   
              expect(datasource).to.have.keys('client_id','type','client','brokers');
             expect(datasource.client).to.have.keys('consumers','config','kafka','subscribers');
@@ -67,5 +68,23 @@ describe(testName, () => {
             fail(<Error>error);
         }
     });
+    it('KafkaMessageBus', async () => {
+        try {
+            logger.debug('pathString: %s',pathString);
+            const datasources = await loadDatasources(pathString);
+            const datasource = datasources.kafka1({}, {}, {}, {});
+            const result = new KafkaMessageBus(datasource);
+            logger.debug('result: %o',result);
+  
+             expect(result).to.have.keys('consumers','subscribers','config','kafka');
+            expect(result.config.client).to.have.keys('consumers','config','kafka','subscribers');
+           expect(result.config.client_id).to.be.equal("kafka_proj");
+             expect(result.config.type).to.be.equal('kafka');
+           
+        } catch(error) {
+            fail(<Error>error);
+        }
+    });
+
 });
        
