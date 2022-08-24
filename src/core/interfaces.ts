@@ -307,7 +307,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args, {logger, promClient, tracer});
       }
 
-      logger.info(`Result of _executeFn ${this.id} is ${typeof res === 'string' ? res: JSON.stringify(res)}`);
+      logger.info(`Result of _executeFn ${this.id} %o`, res);
 
 
       if (res instanceof GSStatus) {
@@ -331,7 +331,7 @@ export class GSFunction extends Function {
         }
       }
     } catch (err: any) {
-      logger.error('Caught error from execution in task id: %s, error: %o',this.id, err);
+      logger.error('Caught error from execution in task id: %s, error: %s',this.id, err);
       status = new GSStatus(
           false,
           500,
