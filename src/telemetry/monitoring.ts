@@ -1,29 +1,26 @@
-import { config } from '../core/loader';  // eslint-disable-line
-'use strict';
+import promClient from 'prom-client';
 
-const { MeterProvider, ConsoleMetricExporter } = require('@opentelemetry/sdk-metrics-base');
-const meter = new MeterProvider({
-  exporter: new ConsoleMetricExporter(),
-  interval: config.app.config.telemetry?.metrics?.export?.interval || 60000,
-}).getMeter('gs-rquest-metrics');
+//const register = new promClient.Registry();
+const defaultLabels = { serviceName: process.env.OTEL_SERVICE_NAME || 'unknown_service:node' };
+promClient.register.setDefaultLabels(defaultLabels);
 
-const requestCounter = meter.createCounter("requests-count", {
-  description: "Count all incoming requests"
-});
+export { promClient };
 
-const boundInstruments = new Map<string,any> ();
+/* Commenting the code for now as we are using prometheus metrics as middleware and exposing them on /metrics */
 
-module.exports.countAllRequests = () => {
-  return (req: any, res: any, next:any) => {
-    if (!boundInstruments.has(req.path)) {
-      const labels = { route: req.path };
-      const boundCounter = function (count: number) {
-        requestCounter.add(count, labels);
-      };
-      boundInstruments.set(req.path, boundCounter);
-    }
+// import { config } from '../core/loader';  // eslint-disable-line
+// 'use strict';
 
-    boundInstruments.get(req.path)(1);
-    next();
-  };
-};
+// const { OTLPMetricExporter } = require('@opentelemetry/exporter-metrics-otlp-grpc');
+// const { MeterProvider, PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics-base');
+
+// const metricExporter = new OTLPMetricExporter({});
+// const meterProvider = new MeterProvider({});
+
+// meterProvider.addMetricReader(new PeriodicExportingMetricReader({
+//   exporter: metricExporter,
+//   exportIntervalMillis: config.app.config.telemetry?.metrics?.export?.interval || 60000,
+// }));
+// const meter = meterProvider.getMeter('gs-exporter-collector');
+
+// require('opentelemetry-node-metrics')(meterProvider);

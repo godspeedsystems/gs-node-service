@@ -9,6 +9,7 @@ import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
 import loadRedisClient from '../redis';
+const axiosTime = require('axios-time');
 
 export default async function loadDatasources(pathString: string) {
   logger.info('Loading datasources');
@@ -73,14 +74,10 @@ export default async function loadDatasources(pathString: string) {
       process.exit(1);
     }
 
-    let datasourceScript;
-    const strDatasource = JSON.stringify(loadedDatasources[ds]);
-
-    if (strDatasource.match(/<(.*?)%/) && strDatasource.includes('%>')) {
-      datasourceScript = compileScript(loadedDatasources[ds]);
-      logger.debug('datasourceScript: %s', datasourceScript);
-      loadedDatasources[ds] = datasourceScript;
-    }
+    loadedDatasources[ds].gsName = ds;
+    let datasourceScript = compileScript(loadedDatasources[ds]);
+    logger.debug('datasourceScript: %s', datasourceScript);
+    loadedDatasources[ds] = datasourceScript;
   }
 
   logger.info('Finally loaded datasources: %s', Object.keys(datasources));
@@ -128,9 +125,11 @@ async function loadHttpDatasource(
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
+    const openAPIClient = await api.getClient();
+    axiosTime(openAPIClient);
     return {
       ...datasource,
-      client: await api.getClient(),
+      client: openAPIClient,
       schema: true,
     };
   } else {
@@ -185,6 +184,7 @@ async function loadHttpDatasource(
         }
       }
     }
+    axiosTime(ds.client);
     return ds;
   }
 }

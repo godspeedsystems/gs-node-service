@@ -9,7 +9,7 @@ import config from "config";
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
-export const isPlainObject = value => value?.constructor === Object;
+export const isPlainObject = (value:any) => value?.constructor === Object;
 
 //like Lodash _.get method
 export function getAtPath(obj: PlainObject, path: string) {
