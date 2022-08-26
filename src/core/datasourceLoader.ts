@@ -8,17 +8,14 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
+import loadRedisClient from '../redis';
+const axiosTime = require('axios-time');
 
-export default async function loadDatasources(pathString:string) {
+export default async function loadDatasources(pathString: string) {
   logger.info('Loading datasources');
 
-  let yamlDatasources = await loadYaml(
-    pathString,
-    false
-  );
-  const prismaDatasources = await loadPrismaDsFileNames(
-    pathString
-  );
+  let yamlDatasources = await loadYaml(pathString, false);
+  const prismaDatasources = await loadPrismaDsFileNames(pathString);
   const datasources = {
     ...yamlDatasources,
     ...prismaDatasources,
@@ -33,25 +30,40 @@ export default async function loadDatasources(pathString:string) {
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
-      // Expand config variables
+    // Expand config variables
     datasources[ds] = expandVariables(datasources[ds]);
 
     if (datasources[ds].type === 'api') {
       loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
     } else if (datasources[ds].type === 'datastore') {
-      loadedDatasources[ds] = await loadPrismaClient(pathString + '/generated-clients/' + ds);
+      loadedDatasources[ds] = await loadPrismaClient(
+        pathString + '/generated-clients/' + ds
+      );
     } else if (datasources[ds].type === 'kafka') {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
-    } else if (datasources[ds].type) { //some other type
-      if (datasources[ds].loadFn) { //check if loadFn is present in the datasource YAML
+    } else if (datasources[ds].type === 'redis') {
+      loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
+    } else if (datasources[ds].type) {
+      //some other type
+      if (datasources[ds].loadFn) {
+        //check if loadFn is present in the datasource YAML
 
-        const fnPath = datasources[ds].loadFn.replace(/\./g,'/');
-        const loadFn = await import(path.relative(__dirname, PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath));
+        const fnPath = datasources[ds].loadFn.replace(/\./g, '/');
+        const loadFn = await import(
+          path.relative(
+            __dirname,
+            PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath
+          )
+        );
         loadedDatasources[ds] = await loadFn.default(datasources[ds]);
 
-        logger.debug('Loaded non core datasource: %o',loadedDatasources[ds]);
+        logger.debug('Loaded non core datasource: %o', loadedDatasources[ds]);
       } else {
-        logger.error('No loader found for datasource %s and type %s', ds, datasources[ds].type);
+        logger.error(
+          'No loader found for datasource %s and type %s',
+          ds,
+          datasources[ds].type
+        );
         process.exit(1);
       }
     } else {
@@ -110,13 +122,14 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
 async function loadHttpDatasource(
   datasource: PlainObject
 ): Promise<PlainObject> {
-
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
+    const openAPIClient = await api.getClient();
+    axiosTime(openAPIClient);
     return {
       ...datasource,
-      client: await api.getClient(),
+      client: openAPIClient,
       schema: true,
     };
   } else {
@@ -164,17 +177,14 @@ async function loadHttpDatasource(
 
             ds.client.defaults.auth = auth;
           } else if (securityScheme.scheme == 'bearer') {
-            ds.client.defaults.headers.common.Authorization = `Bearer ${
-              value
-            }`;
+            ds.client.defaults.headers.common.Authorization = `Bearer ${value}`;
           } else {
-            ds.client.defaults.headers.common.Authorization = `${
-              securityScheme.scheme
-            } ${value}`;
+            ds.client.defaults.headers.common.Authorization = `${securityScheme.scheme} ${value}`;
           }
         }
       }
     }
+    axiosTime(ds.client);
     return ds;
   }
 }
@@ -192,7 +202,7 @@ async function loadPrismaClient(pathString: string): Promise<PlainObject> {
 async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
   const ds = {
     ...datasource,
-    client: new KafkaMessageBus(datasource)
+    client: new KafkaMessageBus(datasource),
   };
   return ds;
 }

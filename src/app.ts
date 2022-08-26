@@ -3,7 +3,7 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import config from 'config';
 
-import app, {router, register } from './http_listener';
+import app, { router } from './http_listener';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
@@ -17,6 +17,7 @@ import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
 import { kafka } from './kafka';
 import _ from 'lodash';
+import { promClient } from './telemetry/monitoring';
 
 function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(event: GSCloudEvent)=>Promise<any>) {
     
@@ -83,7 +84,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
                                 });
             }
         }
-        let appMetrics = await register.metrics();
+        let appMetrics = await promClient.register.metrics();
         res.end(appMetrics + prismaMetrics);
     });  
 

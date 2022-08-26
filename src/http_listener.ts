@@ -11,9 +11,7 @@ import fileUpload from 'express-fileupload';
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
 import promBundle from 'express-prom-bundle';
-import prometheusClient from 'prom-client';
-
-export const register = new prometheusClient.Registry();
+import { promClient } from './telemetry/monitoring';
 
 //File Path for api-docs
 const file =PROJECT_ROOT_DIRECTORY.split("/");
@@ -62,14 +60,13 @@ if (config.has('jwt')) {
 
 app.listen(port);
 
-prometheusClient.collectDefaultMetrics({ register });
+promClient.collectDefaultMetrics();
 app.use(
   promBundle({
       autoregister: false,
       includeMethod: true,
       includeStatusCode: true,
-      includePath: true,
-      promRegistry: register,
+      includePath: true
   }),
 );
 
