@@ -92,7 +92,7 @@ export class GSFunction extends Function {
       }
     }
 
-    this.onError = yaml.onError;
+    this.onError = yaml.on_error;
 
     if (this.onError && this.onError.response) {
       const response = JSON.stringify(this.onError.response);
@@ -124,11 +124,11 @@ export class GSFunction extends Function {
       this.logs = this.yaml.logs;
 
       if (this.logs?.before) {
-        this.logs.before.args = compileScript(this.logs.before.args);
+        this.logs.before.attributes = compileScript(this.logs.before.attributes);
       }
 
       if (this.logs?.after) {
-        this.logs.after.args = compileScript(this.logs.after.args);
+        this.logs.after.attributes = compileScript(this.logs.after.attributes);
       }
     }
 
@@ -175,7 +175,7 @@ export class GSFunction extends Function {
         }
 
         for (let key of Object.keys(metric)) {
-          if (!['type', 'name', 'obj','timer'].includes(key)) {
+          if (!['type', 'name', 'obj','timer', 'help'].includes(key)) {
             metric[key] = compileScript(metric[key]);
           }
         }
@@ -187,7 +187,7 @@ export class GSFunction extends Function {
     if (this.logs?.before) {
       const log = this.logs.before;
       //@ts-ignore
-      logger[log.level](log.args ? evaluateScript(ctx, log.args): null, log.message);
+      logger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes): null, `${log.message} %o`, log.params);
     }
 
     const timers = [];
@@ -211,8 +211,8 @@ export class GSFunction extends Function {
       for (let metric of this.metrics) {
         let obj = metric.obj;
         for (let key of Object.keys(metric)) {
-          if (!['type', 'name', 'obj', 'timer'].includes(key)) {
-            const val = evaluateScript(ctx, metric[key]);
+          if (!['type', 'name', 'obj', 'timer', 'help'].includes(key)) {
+            const val = await evaluateScript(ctx, metric[key]);
             obj = obj[key](val);
           }
         }
@@ -222,7 +222,7 @@ export class GSFunction extends Function {
     if (this.logs?.after) {
       const log = this.logs.after;
       //@ts-ignore
-      logger[log.level](log.args ? evaluateScript(ctx, log.args): null, log.message);
+      logger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes): null, `${log.message} %o`, log.params);
     }
 
     return status;
