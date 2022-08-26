@@ -125,11 +125,13 @@ export class GSFunction extends Function {
 
       if (this.logs?.before) {
         this.logs.before.attributes.task_id = this.id;
+        this.logs.before.attributes.task_name = this.yaml.name;
         this.logs.before.attributes = compileScript(this.logs.before.attributes);
       }
 
       if (this.logs?.after) {
         this.logs.after.attributes.task_id = this.id;
+        this.logs.after.attributes.task_name = this.yaml.name;
         this.logs.after.attributes = compileScript(this.logs.after.attributes);
       }
     }
@@ -139,6 +141,7 @@ export class GSFunction extends Function {
       // @ts-ignore
       for (let metric of this.metrics) {
         metric.labels.task_id = this.id;
+        metric.labels.task_name = this.yaml.name;
         switch(metric.type) {
           case 'counter':
             metric.obj = new promClient.Counter({
@@ -239,6 +242,7 @@ export class GSFunction extends Function {
       return tracer.startActiveSpan(trace.name, async span => {
         if (trace.attributes) {
           trace.attributes.task_id = this.id;
+          trace.attributes.task_name = this.yaml.name;
           for (let attr in trace.attributes) {
             span.setAttribute(attr, trace.attributes[attr]);
           }
