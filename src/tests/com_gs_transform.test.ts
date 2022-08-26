@@ -27,7 +27,7 @@ describe(testName, () => {
         try {
             const result = await transformFn('transform','multiple','arg');
             logger.debug('result: %s',result);
-            expect(result).to.eql(['transform', 'multiple', 'arg']);
+            expect(result).to.eql(['transform', 'multiple']);
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);
@@ -37,7 +37,7 @@ describe(testName, () => {
         try {
             const result = await transformFn();
             logger.debug('result: %s',result);
-            expect(result).to.eql([]);
+            expect(result).to.be.equal(undefined);
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);
