@@ -8,3 +8,4 @@ project
 coverage
 .nyc_output
 yarn-error.log
+package-lock.json
