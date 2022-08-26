@@ -3,6 +3,8 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import config from 'config';
 
+import authn from './authn';
+
 import app, { router } from './http_listener';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
@@ -20,7 +22,7 @@ import _ from 'lodash';
 import { promClient } from './telemetry/monitoring';
 
 function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(event: GSCloudEvent)=>Promise<any>) {
-    
+
     for (let route in events) {
         let originalRoute = route;
 
@@ -31,8 +33,9 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             route = route.replace(/{(.*?)}/g, ":$1");
 
             logger.info('registering http handler %s %s', route, method);
+
             // @ts-ignore
-            router[method](route, function(req: express.Request, res: express.Response) {
+            router[method](route, authn(('authn' in events[route]) ? true : events[route].authn), function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
                 //passing all properties of req
                 let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip',
