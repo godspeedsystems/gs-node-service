@@ -1,5 +1,3 @@
-/* eslint-disable no-useless-escape */
-/* eslint-disable prefer-const */
 import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 import path from 'path';
@@ -10,12 +8,13 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
-import loadRedisDatasource from '../redis';
+import loadRedisClient from '../redis';
 import {
   isValidApiDatasource,
-  isValidKafkaDatasource,
   isValidRedisDatasource,
+  isValidKafkaDatasource,
 } from './validation';
+const axiosTime = require('axios-time');
 
 export default async function loadDatasources(pathString: string) {
   logger.info('Loading datasources');
@@ -36,6 +35,9 @@ export default async function loadDatasources(pathString: string) {
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
+    // Expand config variables
+    datasources[ds] = expandVariables(datasources[ds]);
+
     if (datasources[ds].type === 'api') {
       if (isValidApiDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
@@ -54,18 +56,14 @@ export default async function loadDatasources(pathString: string) {
       }
     } else if (datasources[ds].type === 'redis') {
       if (isValidRedisDatasource(datasources[ds])) {
-        loadedDatasources[ds] = await loadRedisDatasource(datasources[ds]);
+        loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
       } else {
         process.exit(1);
       }
     } else if (datasources[ds].type) {
-      // some other type
+      //some other type
       if (datasources[ds].loadFn) {
-        // check if loadFn is present in the datasource YAML
-        // Expand config variables
-        for (let key in datasources[ds]) {
-          datasources[ds][key] = expandVariables(datasources[ds][key]);
-        }
+        //check if loadFn is present in the datasource YAML
 
         const fnPath = datasources[ds].loadFn.replace(/\./g, '/');
         const loadFn = await import(
@@ -74,20 +72,8 @@ export default async function loadDatasources(pathString: string) {
             PROJECT_ROOT_DIRECTORY + '/functions/' + fnPath
           )
         );
-        const finalDatasource = await loadFn.default(datasources[ds]);
+        loadedDatasources[ds] = await loadFn.default(datasources[ds]);
 
-        // Here we are going to check the datasource object, if it contains <% %> then create datasourceScript
-        // and load the datasourceScript else just load the datasource object.
-        let datasourceScript;
-        const strDatasource = JSON.stringify(finalDatasource);
-
-        if (strDatasource.match(/<(.*?)%/) && strDatasource.includes('%>')) {
-          datasourceScript = compileScript(finalDatasource);
-          logger.debug('datasourceScript: %s', datasourceScript);
-          loadedDatasources[ds] = datasourceScript;
-        } else {
-          loadedDatasources[ds] = finalDatasource;
-        }
         logger.debug('Loaded non core datasource: %o', loadedDatasources[ds]);
       } else {
         logger.error(
@@ -104,7 +90,13 @@ export default async function loadDatasources(pathString: string) {
       );
       process.exit(1);
     }
+
+    loadedDatasources[ds].gsName = ds;
+    let datasourceScript = compileScript(loadedDatasources[ds]);
+    logger.debug('datasourceScript: %s', datasourceScript);
+    loadedDatasources[ds] = datasourceScript;
   }
+
   logger.info('Finally loaded datasources: %s', Object.keys(datasources));
   return loadedDatasources;
 }
@@ -131,7 +123,7 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
             prismaSchemas = {
               ...prismaSchemas,
               ...{
-                // For now all datastores are Prisma stores only. Till we integrate Elasticsearch
+                //For now all datastores are Prisma stores only. Till we integrate Elasticsearch
                 [id]: {
                   type: 'datastore',
                 },
@@ -150,16 +142,18 @@ async function loadHttpDatasource(
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
+    const openAPIClient = await api.getClient();
+    axiosTime(openAPIClient);
     return {
       ...datasource,
-      client: await api.getClient(),
+      client: openAPIClient,
       schema: true,
     };
   } else {
     const ds = {
       ...datasource,
       client: axios.create({
-        baseURL: expandVariables(datasource.base_url),
+        baseURL: datasource.base_url,
       }),
       schema: false,
     };
@@ -173,44 +167,41 @@ async function loadHttpDatasource(
         let [scheme, value] = Object.entries(values)[0];
         let securityScheme = securitySchemes[scheme];
 
-        if (securityScheme.type === 'apiKey') {
-          if (securityScheme.in === 'header') {
+        if (securityScheme.type == 'apiKey') {
+          if (securityScheme.in == 'header') {
             try {
-              value = expandVariables(value as string);
               ds.client.defaults.headers.common[securityScheme.name] = <any>(
                 value
               );
               logger.debug('Adding header %s: %s', securityScheme.name, value);
             } catch (ex) {
+              //console.error(ex);
               logger.error(ex);
             }
           }
-        } else if (securityScheme.type === 'http') {
-          if (securityScheme.scheme === 'basic') {
+        } else if (securityScheme.type == 'http') {
+          if (securityScheme.scheme == 'basic') {
             let auth = { username: '', password: '' };
             if (Array.isArray(value)) {
-              auth.username = expandVariables(value[0]);
-              auth.password = expandVariables(value[1]);
+              auth.username = value[0];
+              auth.password = value[1];
             } else {
-              // @ts-ignore
-              auth.username = expandVariables(value.username);
-              // @ts-ignore
-              auth.password = expandVariables(value.password);
+              //@ts-ignore
+              auth.username = value.username;
+              //@ts-ignore
+              auth.password = value.password;
             }
 
             ds.client.defaults.auth = auth;
-          } else if (securityScheme.scheme === 'bearer') {
-            ds.client.defaults.headers.common.Authorization = `Bearer ${expandVariables(
-              value as string
-            )}`;
+          } else if (securityScheme.scheme == 'bearer') {
+            ds.client.defaults.headers.common.Authorization = `Bearer ${value}`;
           } else {
-            ds.client.defaults.headers.common.Authorization = `${
-              securityScheme.scheme
-            } ${expandVariables(value as string)}`;
+            ds.client.defaults.headers.common.Authorization = `${securityScheme.scheme} ${value}`;
           }
         }
       }
     }
+    axiosTime(ds.client);
     return ds;
   }
 }
@@ -221,7 +212,7 @@ async function loadPrismaClient(pathString: string): Promise<PlainObject> {
   await prisma.$connect();
   return {
     client: prisma,
-    // any other config params
+    //any other config params
   };
 }
 

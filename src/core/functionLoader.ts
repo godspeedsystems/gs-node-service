@@ -9,7 +9,6 @@ import {
 import { checkDatasource } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
-import { isValidWorkflow } from './validation';
 
 export function createGSFunction(
   workflowJson: PlainObject,
@@ -121,7 +120,6 @@ export function createGSFunction(
       workflows,
       nativeFunctions
     );
-    workflowJson.on_error.tasks.isSubWorkflow = true;
   }
   return new GSFunction(
     workflowJson.id,
@@ -160,12 +158,8 @@ export async function loadFunctions(
   logger.info('Creating workflows: %s', Object.keys(functions));
 
   for (let f in functions) {
-    if (isValidWorkflow(functions[f], f)) {
-      if (!(functions[f] instanceof GSFunction)) {
-        functions[f] = createGSFunction(functions[f], functions, code);
-      }
-    } else {
-      process.exit(1);
+    if (!(functions[f] instanceof GSFunction)) {
+      functions[f] = createGSFunction(functions[f], functions, code);
     }
   }
   loadFnStatus = { success: true, functions: functions };

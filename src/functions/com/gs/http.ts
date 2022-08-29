@@ -7,7 +7,8 @@ import axiosRetry from 'axios-retry';
 import { AxiosError } from 'axios';
 import _ from "lodash";
 import { PlainObject } from "../../../core/common";
-import expandVariables from '../../../core/expandVariables';
+import { HttpMetricsCollector } from 'prometheus-api-metrics';
+HttpMetricsCollector.init();
 
 function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
@@ -20,7 +21,7 @@ export default async function(args:{[key:string]:any;}) {
         const ds = args.datasource;
         let res;
         logger.debug('calling http client with args %o', args);
-        logger.debug('http client baseURL %s', ds.client.baseURL);
+        logger.debug('http client baseURL %s', ds.client.defaults?.baseURL);
 
         if (ds.schema) {
             logger.debug('invoking with schema');
@@ -92,9 +93,11 @@ export default async function(args:{[key:string]:any;}) {
             });
         }
 
+        HttpMetricsCollector.collect(res);
         logger.debug('res: %o', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
-    } catch(ex) {
+    } catch(ex: any) {
+        HttpMetricsCollector.collect(ex);
         logger.error(ex);
         //@ts-ignore
         let res = ex.response;

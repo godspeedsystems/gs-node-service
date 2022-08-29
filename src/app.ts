@@ -3,7 +3,7 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import config from 'config';
 
-import app, {router} from './http_listener';
+import app, { router } from './http_listener';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
@@ -17,6 +17,7 @@ import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
 import { kafka } from './kafka';
 import _ from 'lodash';
+import { promClient } from './telemetry/monitoring';
 
 function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(event: GSCloudEvent)=>Promise<any>) {
     
@@ -56,13 +57,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             // find the client corresponding to kafkaDatasource from the datasources
             if(kafkaDatasource in datasources) {
                 try{
-                    let evaluatedDatasources;
-                    if (datasources[kafkaDatasource] instanceof Function) {
-                        evaluatedDatasources = datasources[kafkaDatasource](config, {}, {}, appConfig.app.mappings);
-                    } else {
-                        evaluatedDatasources = datasources[kafkaDatasource];
-                    }
-
+                    const evaluatedDatasources = datasources[kafkaDatasource](config, {}, {}, appConfig.app.mappings);
                     logger.debug('evaluatedDatasources: %o',evaluatedDatasources);
                     const kafkaClient = evaluatedDatasources.client;
                     logger.info('registering %s handler, topic %s, groupId %s', route, topic, groupId);
@@ -78,6 +73,26 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
         }
     }
 
+    // Expose metrics for all prisma clients, node and express on /metrics
+    app.get('/metrics', async (req: express.Request, res: express.Response) => {
+        let prismaMetrics: string = '';
+        for (let ds in datasources) {
+            if (datasources[ds].type === 'datastore') {
+                const prismaClient = datasources[ds].client;            
+                prismaMetrics += await prismaClient.$metrics.prometheus({
+                                    globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
+                                });
+            }
+        }
+        let appMetrics = await promClient.register.metrics();
+        res.end(appMetrics + prismaMetrics);
+    });  
+
+    // Expose /health endpoint
+    app.get('/health', async (req: express.Request, res: express.Response) => {
+        return res.status(200).send('OK');
+    });
+    
     //@ts-ignore
     const baseUrl = config.base_url || '/';
     app.use(baseUrl, router);
