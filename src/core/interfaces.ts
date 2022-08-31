@@ -403,6 +403,7 @@ export class GSFunction extends Function {
   async _call(ctx: GSContext): Promise<GSStatus> {
 
     if (this.fn instanceof GSFunction) {
+      let res;
       if (this.isSubWorkflow) {
         logger.info('isSubWorkflow, creating new ctx');
         let args = this.args;
@@ -410,11 +411,13 @@ export class GSFunction extends Function {
           args = await evaluateScript(ctx, this.args_script);
         }
         const newCtx = ctx.cloneWithNewData(args);
-        await this.fn(newCtx);
+        res = await this.fn(newCtx);
         ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
+        this.handleError(ctx, res);
       } else {
         logger.info('No isSubWorkflow, continuing in the same ctx');
-        await this.fn(ctx);
+        res = await this.fn(ctx);
+        this.handleError(ctx, res);
       }
     }
     else {

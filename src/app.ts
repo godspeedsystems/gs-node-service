@@ -113,7 +113,7 @@ async function main() {
 
     const plugins = await loadModules(__dirname + '/plugins', true);
 
-    logger.debug(plugins,'plugins');
+    logger.debug('plugins: %s', Object.keys(plugins));
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
         logger.debug(events[event.type], event);
