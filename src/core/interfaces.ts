@@ -324,8 +324,14 @@ export class GSFunction extends Function {
         if (typeof(res) == 'object' && (res.success !== undefined || res.code !== undefined)) {
           //Some framework functions like HTTP return an object in following format. Check if that is the case.
           //All framework functions are expected to set success as boolean variable. Can not be null.
-          let {success, code, data, message, headers} = res;
+          let {success, code, data, message, headers, exitWithStatus} = res;
           status = new GSStatus(success, code, message, data, headers);
+
+          //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
+          if (exitWithStatus) {
+            ctx.exitWithStatus = status;
+            return status;
+          } 
         } else {
           //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
           status = new GSStatus(
@@ -384,6 +390,8 @@ export class GSFunction extends Function {
         ctx.exitWithStatus = status;
       }
     }
+
+
     return status;
   }
 
