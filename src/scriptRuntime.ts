@@ -3,7 +3,7 @@
  */
 import _ from 'lodash';
 
-import * as plugins from "./plugins";
+import * as plugins from "./plugins/com/gs";
 import { GSContext, GSStatus } from "./core/interfaces"; // eslint-disable-line
 import { logger } from "./core/logger";
 
