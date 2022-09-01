@@ -8,6 +8,7 @@ import { logger } from '../core/logger';
 import nodeCleanup from 'node-cleanup';
 import { PlainObject } from '../core/common';
 import Pino from 'pino';
+import { kafkaCount, kafkaDuration } from '../telemetry/monitoring';
 
 // Create a logCreator to customize kafkajs logs to Pino compatible logs
 const pinoLogCreator = (logLevel: any) => ({ namespace, level, label, log }: { namespace: any; level: any; label: any; log: any; }) => {
@@ -96,21 +97,43 @@ export default class KafkaMessageBus {
 
           await consumer.run({
               eachMessage: async ({ topic, partition, message }) => {
+                  const labels: PlainObject = {'topic': topic, 'partition': partition};
+                  const timer = kafkaDuration.startTimer(labels);
+
                   let data: PlainObject;
-                  let msgValue;
+                  let msgValue; let status ;
                   try{
                     msgValue = message?.value?.toString();
                     data =  { 
                         "body": JSON.parse(msgValue || '') 
                       };
                   } catch(ex) {
+                    status = 500;
+                    kafkaCount.inc({topic, partition, status});
+                    labels.status = status;
+                    timer();
+
                     logger.error('Error in parsing kafka event data %s . Error message: %s .',msgValue, ex);
                     return new GSStatus(false, 500, `Error in parsing kafka event data ${msgValue}`,ex);
                   }
                   logger.debug('topic %s partition %o datasourceName %s groupId %s data %o', topic, partition, datasourceName, groupId, data);
                   const event = new GSCloudEvent('id', `${topic}.${datasourceName}.${groupId}`, new Date(message.timestamp), 'kafka',
                       '1.0', data, 'messagebus', new GSActor('user'),  {messagebus: {kafka: self}});
-                  return processEvent(event);
+                  const res = await processEvent(event);
+
+                  if (!res) {
+                    status = 500;
+                    kafkaCount.inc({topic, partition, status});
+                    labels.status = status;
+                    timer();
+                  } else {
+                    status = 200;
+                    kafkaCount.inc({topic, partition, status});
+                    labels.status = status;
+                    timer();
+                  }
+
+                  return res;
               },
           });
           this.subscribers[topic] = true;
