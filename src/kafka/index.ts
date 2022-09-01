@@ -8,7 +8,21 @@ import { logger } from '../core/logger';
 import nodeCleanup from 'node-cleanup';
 import { PlainObject } from '../core/common';
 import Pino from 'pino';
-import { kafkaCount, kafkaDuration } from '../telemetry/monitoring';
+import { promClient } from '../telemetry/monitoring';
+
+// Create kafka metrics
+const labels = ['topic', 'partition', 'status'];
+const kafkaCount = new promClient.Counter({
+    name: 'kafka_events_total',
+    help: 'Counter for total kafka events consumed',
+    labelNames: labels
+});
+
+const kafkaDuration = new promClient.Histogram({
+    name: 'kafka_events_duration_seconds',
+    help: 'Duration of Kafka events in seconds',
+    labelNames: ['topic', 'partition', 'status']
+});
 
 // Create a logCreator to customize kafkajs logs to Pino compatible logs
 const pinoLogCreator = (logLevel: any) => ({ namespace, level, label, log }: { namespace: any; level: any; label: any; log: any; }) => {

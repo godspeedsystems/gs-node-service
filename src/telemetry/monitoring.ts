@@ -4,20 +4,7 @@ import promClient from 'prom-client';
 const defaultLabels = { serviceName: process.env.OTEL_SERVICE_NAME || 'unknown_service:node' };
 promClient.register.setDefaultLabels(defaultLabels);
 
-const labels = ['topic', 'partition', 'status'];
-const kafkaCount = new promClient.Counter({
-    name: 'kafka_events_total',
-    help: 'Counter for total kafka events consumed',
-    labelNames: labels
-});
-
-const kafkaDuration = new promClient.Histogram({
-    name: 'kafka_events_duration_seconds',
-    help: 'Duration of Kafka events in seconds',
-    labelNames: labels
-});
-
-export { promClient, kafkaCount, kafkaDuration };
+export { promClient };
 
 /* Commenting the code for now as we are using prometheus metrics as middleware and exposing them on /metrics */
 
