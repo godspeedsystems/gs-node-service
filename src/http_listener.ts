@@ -10,7 +10,8 @@ import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
-import promBundle from 'express-prom-bundle';
+//import promBundle from 'express-prom-bundle';
+import promMid from 'express-prometheus-middleware';
 import { promClient } from './telemetry/monitoring';
 
 //File Path for api-docs
@@ -60,15 +61,13 @@ if (config.has('jwt')) {
 
 app.listen(port);
 
-promClient.collectDefaultMetrics();
-app.use(
-  promBundle({
-      autoregister: false,
-      includeMethod: true,
-      includeStatusCode: true,
-      includePath: true
-  }),
-);
+//promClient.collectDefaultMetrics();
+app.use(promMid({
+  collectDefaultMetrics: true,
+  requestDurationBuckets: [0.1, 0.5, 1, 1.5],
+  requestLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400],
+  responseLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400]
+}));
 
 const eventPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/events');
 
