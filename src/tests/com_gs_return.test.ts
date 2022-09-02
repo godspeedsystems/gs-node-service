@@ -16,8 +16,13 @@ describe(testName, () => {
     it('should return single string', async () => {
         try {
             const result = await returnFn('return single arg');
-            logger.debug('result: %s',result);
-            expect(result).to.be.equal('return single arg');
+            logger.debug('result: %o',result);
+            expect(result).to.be.an('Object');
+            expect(result.success).to.equal(true);
+            expect(result.code).to.equal(200);
+            expect(result.exitWithStatus).to.be.equal(true);
+            expect(result.data).to.equal("return single arg");
+
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);
@@ -26,8 +31,12 @@ describe(testName, () => {
     it('should return array of strings', async () => {
         try {
             const result = await returnFn('return','multiple','arg');
-            logger.debug('result: %s',result);
-            expect(result).to.eql(['return', 'multiple']);
+            logger.debug('result: %o',result);
+            expect(result).to.be.an('Object');
+            expect(result.success).to.equal(true);
+            expect(result.code).to.equal(200);
+            expect(result.exitWithStatus).to.be.equal(true);
+            expect(result.data).to.eql(['return', 'multiple']);
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);
@@ -36,8 +45,12 @@ describe(testName, () => {
     it('should not return any arg', async () => {
         try {
             const result = await returnFn();
-            logger.debug('result: %s',result);
-            expect(result).to.be.equal(undefined);
+            logger.debug('result: %o',result);
+            expect(result).to.be.an('Object');
+            expect(result.success).to.equal(true);
+            expect(result.code).to.equal(200);
+            expect(result.exitWithStatus).to.be.equal(true);
+            expect(result.data).to.be.equal(undefined);
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);

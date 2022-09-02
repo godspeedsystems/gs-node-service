@@ -324,8 +324,14 @@ export class GSFunction extends Function {
         if (typeof(res) == 'object' && (res.success !== undefined || res.code !== undefined)) {
           //Some framework functions like HTTP return an object in following format. Check if that is the case.
           //All framework functions are expected to set success as boolean variable. Can not be null.
-          let {success, code, data, message, headers} = res;
+          let {success, code, data, message, headers, exitWithStatus} = res;
           status = new GSStatus(success, code, message, data, headers);
+
+          //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
+          if (exitWithStatus) {
+            ctx.exitWithStatus = status;
+            return status;
+          } 
         } else {
           //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
           status = new GSStatus(
@@ -384,6 +390,8 @@ export class GSFunction extends Function {
         ctx.exitWithStatus = status;
       }
     }
+
+
     return status;
   }
 
@@ -395,6 +403,7 @@ export class GSFunction extends Function {
   async _call(ctx: GSContext): Promise<GSStatus> {
 
     if (this.fn instanceof GSFunction) {
+      let res;
       if (this.isSubWorkflow) {
         logger.info('isSubWorkflow, creating new ctx');
         let args = this.args;
@@ -402,11 +411,13 @@ export class GSFunction extends Function {
           args = await evaluateScript(ctx, this.args_script);
         }
         const newCtx = ctx.cloneWithNewData(args);
-        await this.fn(newCtx);
+        res = await this.fn(newCtx);
         ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
+        this.handleError(ctx, res);
       } else {
         logger.info('No isSubWorkflow, continuing in the same ctx');
-        await this.fn(ctx);
+        res = await this.fn(ctx);
+        this.handleError(ctx, res);
       }
     }
     else {

@@ -1,5 +1,5 @@
 import { describe, it, expect, glob, path, fs, expectObj } from './common';
-import { randomString, randomInt } from '../plugins/index';
+import { randomString, randomInt } from '../plugins/com/gs/index';
 import { fail } from 'assert';
 import { logger } from '../core/logger';
 
