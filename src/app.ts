@@ -173,7 +173,7 @@ async function main() {
           logger.error(`Error in executing handler ${events[event.type].fn} for the event ${event.type}. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`);
           // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
           if (event.channel !== 'REST') {
-            return;
+            return false;
           }
           // Continuining, in case of REST channel, set the status to error mode with proper code and message
           eventHandlerStatus = new GSStatus(
@@ -191,7 +191,7 @@ async function main() {
 
        // Continue further only for REST events, whether or not handler executed successfully.
         if (event.channel !== 'REST') {
-          return;
+          return ctx.outputs[eventHandlerWorkflow.id].success;
         } 
 
         //Continuing for REST events: to validate the handler response and send the HTTP response
