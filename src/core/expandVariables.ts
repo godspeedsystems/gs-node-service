@@ -16,7 +16,7 @@ function substitute(value: string): any {
     }
   } catch (ex) {
     //console.error(ex);
-    logger.error(ex);
+    logger.error('Caught exception %o',ex);
   }
 
   return value;

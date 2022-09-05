@@ -159,7 +159,7 @@ async function loadHttpDatasource(
               logger.debug('Adding header %s: %s', securityScheme.name, value);
             } catch (ex) {
               //console.error(ex);
-              logger.error(ex);
+              logger.error('Caught exception %o',ex);
             }
           }
         } else if (securityScheme.type == 'http') {

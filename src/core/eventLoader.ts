@@ -8,7 +8,7 @@ import expandVariables from './expandVariables';
 export default async function loadEvents(functions: PlainObject,pathString: string) {
     logger.info('Loading events');
     const events = await loadYaml(pathString, true);
-    logger.debug(events,'events');
+    logger.debug('events %o', events);
     logger.info('Loaded events: %s',Object.keys(events));
 
     const evalEvents = expandVariables(events);

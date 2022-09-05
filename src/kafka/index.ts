@@ -69,7 +69,7 @@ export default class KafkaMessageBus {
               }.bind(p));
               this._producer = p;
             } catch(error){
-              logger.error(error);
+              logger.error('Caught error in producer %o', error);
             }
 
         }
@@ -83,7 +83,7 @@ export default class KafkaMessageBus {
             try {
               await  this.consumers[groupId].connect();
             } catch(error){
-              logger.error(error);
+              logger.error('Caught error in consumer %o', error);
             }
             nodeCleanup(function() {
               console.log('calling kafka consumer disconnect...');
@@ -152,7 +152,7 @@ export default class KafkaMessageBus {
           });
           this.subscribers[topic] = true;
         } catch(error){
-          logger.error(error);
+          logger.error('Caught error in subscribe %o', error);
         }
     }
 

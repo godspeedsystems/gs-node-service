@@ -13,7 +13,7 @@ addFormats(ajv);
 
 export function loadJsonSchemaForEvents(eventObj: PlainObject) {
     logger.info('Loading JSON Schema for events %s',Object.keys(eventObj));
-    logger.debug(eventObj,'eventObj');
+    logger.debug('eventObj: %o', eventObj);
 
     Object.keys(eventObj).forEach(function(topic) {
         // Add body schema in ajv for each content_type per topic
@@ -33,7 +33,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
                     const content_schema = body_content[k].schema;
                     if(content_schema) {
                         logger.info('adding body schema for %s', topic);
-                        logger.debug(content_schema);
+                        logger.debug('content_schema %o',content_schema);
                         if (!ajv.getSchema(topic)) {
                             ajv.addSchema(content_schema, topic);
                         }
@@ -75,7 +75,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
 
             for (let schema in paramSchema) {
                 logger.info('adding param schema for %s',topic);
-                logger.debug(paramSchema[schema]);
+                logger.debug('param schema: %o',paramSchema[schema]);
 
                 const topic_param = topic + ':'+ schema;
                 if (!ajv.getSchema(topic_param)) {
