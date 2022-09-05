@@ -8,7 +8,17 @@ import { AxiosError } from 'axios';
 import _ from "lodash";
 import { PlainObject } from "../../../core/common";
 import { HttpMetricsCollector } from 'prometheus-api-metrics';
-HttpMetricsCollector.init();
+import { promClient } from '../../../telemetry/monitoring';
+
+// Create southbound_requests_total metrics
+const labels = ['route', 'method', 'status_code'];
+const southboundCount = new promClient.Counter({
+    name: 'southbound_requests_total',
+    help: 'Counter for total Southbound queries',
+    labelNames: labels
+});
+
+HttpMetricsCollector.init({ countClientErrors: true });
 
 function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
@@ -29,7 +39,6 @@ export default async function(args:{[key:string]:any;}) {
         } else {
             logger.info('invoking wihout schema');
             logger.debug('invoking wihout schema args: %o', args);
-            //logger.debug('datasource.base_url: %s',expandVariables(ds.base_url));
             let form;
 
             if (args.files?.length) {
@@ -94,11 +103,18 @@ export default async function(args:{[key:string]:any;}) {
         }
 
         HttpMetricsCollector.collect(res);
+
+        const route = args.config?.url;
+        const method = args.config?.method.toUpperCase();
+        const status_code = res.status;
+        logger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
+        southboundCount.inc({route, method, status_code});
+
         logger.debug('res: %o', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex: any) {
         HttpMetricsCollector.collect(ex);
-        logger.error(ex);
+        logger.error('Caught exception %o', ex);
         //@ts-ignore
         let res = ex.response;
 
@@ -111,6 +127,13 @@ export default async function(args:{[key:string]:any;}) {
                 }
             };
         }
+
+        const route = args.config?.url;
+        const method = args.config?.method.toUpperCase();
+        const status_code = res.status || ex.status;
+        logger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
+        southboundCount.inc({route, method, status_code});
+
         return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
     }
 }
