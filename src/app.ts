@@ -116,8 +116,9 @@ async function main() {
     logger.debug('plugins: %s', Object.keys(plugins));
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
-        logger.debug(events[event.type], event);
         logger.info('Processing event %s',event.type);
+        logger.debug('cloud event: %o', event);
+        logger.debug('event spec: %o', events[event.type]);
         const responseStructure:GSResponse = { apiVersion: (config as any).api_version || "1.0" };
 
         // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
@@ -126,7 +127,7 @@ async function main() {
 
         if(valid_status.success === false)
         {
-            logger.error(valid_status, 'Failed to validate Request JSON Schema');
+            logger.error('Failed to validate Request JSON Schema %o', valid_status);
             const response_data: PlainObject = { 'message': 'request validation error','error': valid_status.message, 'data': valid_status.data};
 
             if (!(events[event.type].on_validation_error)) {
@@ -149,7 +150,7 @@ async function main() {
                 eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].on_validation_error];   
             }
         } else {
-            logger.info(valid_status, 'Request JSON Schema validated successfully');
+            logger.info('Request JSON Schema validated successfully %o', valid_status);
 
             // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
             eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].fn];
@@ -209,9 +210,9 @@ async function main() {
             valid_status = validateResponseSchema(event.type, eventHandlerStatus);
 
             if (valid_status.success) {
-                logger.info(valid_status, 'Validate Response JSON Schema Success');
+                logger.info('Validate Response JSON Schema Success', valid_status);
             } else {
-                logger.error(valid_status, 'Failed to validate Response JSON Schema');
+                logger.error('Failed to validate Response JSON Schema', valid_status);
                 const response_data: PlainObject = { 'message': 'response validation error','error': valid_status.message, 'data': valid_status.data };
                 return (event.metadata?.http?.express.res as express.Response).status(valid_status.code).send(response_data);
             }

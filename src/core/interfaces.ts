@@ -421,8 +421,6 @@ export class GSFunction extends Function {
       }
     }
     else {
-      //logger.info('invoking inner function');
-      //logger.debug(ctx.inputs, 'inputs');
       ctx.outputs[this.id] = await this._executefn(ctx);
     }
     /**
@@ -443,7 +441,6 @@ export class GSSeriesFunction extends GSFunction {
     let finalId;
 
     for (const child of this.args!) {
-      //logger.debug(child);  //Not displaying the object --> Need to check
       await child(ctx);
       finalId = child.id;
       if (ctx.exitWithStatus) {
@@ -507,7 +504,6 @@ export class GSSwitchFunction extends GSFunction {
   override async _call(ctx: GSContext): Promise<GSStatus> {
     logger.info('GSSwitchFunction');
     logger.debug('inside switch executor: %o',this.args);
-    //logger.debug(ctx,'ctx')
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, cases] = this.args!;
     logger.debug('condition: %s' , value);

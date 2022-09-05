@@ -53,7 +53,7 @@ if (require.main === module) {
     try {
         await loadYaml('../../dist/events', true).then(console.log);
     } catch(ex) {
-      logger.error(ex);
+      logger.error('Caught exception %o', ex);
     }
    })();
 }
