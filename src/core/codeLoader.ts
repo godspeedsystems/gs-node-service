@@ -67,7 +67,7 @@ if (require.main === module) {
     try {
       await loadModules('../plugins').then(console.log);
     } catch (ex) {
-      logger.error(ex);
+      logger.error('Caught exception: %o',ex);
     }
   })();
 }

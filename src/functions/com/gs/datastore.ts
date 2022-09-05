@@ -41,7 +41,7 @@ export default async function(args:{[key:string]:any;}) {
     prismaMethod = ds.client[entityType][method];
   } catch (err:any) {
     if (!prismaMethod) { //Oops!
-      logger.error(err);
+      logger.error('Caught exception %o', err);
       //Check whether the entityType specified is wrong or the method
       if (!ds.client[entityType]) {
         attributes.status_code = 400;
