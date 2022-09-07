@@ -19,7 +19,7 @@ importAll(plugins, global);
  * Can be called for gsFunction.args, gsFunction.on_error.transform and switch.condition
  * Input an be scalar or object
  */
-export default async function evaluateScript(ctx: GSContext, script: Function) {
+export default async function evaluateScript(ctx: GSContext, script: Function, taskValue?: any) {
 
     logger.debug('before evaluateScript %s', script);
     
@@ -28,7 +28,7 @@ export default async function evaluateScript(ctx: GSContext, script: Function) {
     }
 
     try {
-        return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings);
+        return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings, taskValue);
     } catch (err: any) {
         logger.error('Error in parsing script: %o',err);
         ctx.exitWithStatus = new GSStatus(

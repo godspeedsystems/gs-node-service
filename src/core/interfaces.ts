@@ -77,6 +77,8 @@ export class GSFunction extends Function {
 
   metrics?: [PlainObject];
 
+  taskValue?: any;
+
   constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
@@ -193,7 +195,7 @@ export class GSFunction extends Function {
     if (this.logs?.before) {
       const log = this.logs.before;
       //@ts-ignore
-      logger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes): null, `${log.message} %o`, log.params);
+      logger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, this.taskValue): null, `${log.message} %o`, log.params);
     }
 
     const timers = [];
@@ -218,7 +220,7 @@ export class GSFunction extends Function {
         let obj = metric.obj;
         for (let key of Object.keys(metric)) {
           if (!['type', 'name', 'obj', 'timer', 'help'].includes(key)) {
-            const val = await evaluateScript(ctx, metric[key]);
+            const val = await evaluateScript(ctx, metric[key], this.taskValue);
             obj = obj[key](val);
           }
         }
@@ -228,7 +230,7 @@ export class GSFunction extends Function {
     if (this.logs?.after) {
       const log = this.logs.after;
       //@ts-ignore
-      logger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes): null, `${log.message} %o`, log.params);
+      logger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, this.taskValue): null, `${log.message} %o`, log.params);
     }
 
     return status;
@@ -272,7 +274,7 @@ export class GSFunction extends Function {
       logger.debug('Executing handler %s %o', this.id, this.args);
       let args;
       if (this.args_script) {
-        args = await evaluateScript(ctx, this.args_script);
+        args = await evaluateScript(ctx, this.args_script, this.taskValue);
       } else {
         args = _.cloneDeep(this.args);
       }
@@ -282,7 +284,7 @@ export class GSFunction extends Function {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
         const datasource: any = ctx.datasources[args.datasource];
         if (datasource instanceof Function) {
-          args.datasource = await evaluateScript(ctx, datasource);
+          args.datasource = await evaluateScript(ctx, datasource, this.taskValue);
         } else {
           args.datasource = datasource;
         }
@@ -331,7 +333,7 @@ export class GSFunction extends Function {
           if (exitWithStatus) {
             ctx.exitWithStatus = status;
             return status;
-          } 
+          }
         } else {
           //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
           status = new GSStatus(
@@ -365,7 +367,7 @@ export class GSFunction extends Function {
         //The script may need the output of the task so far, for the transformation logic.
         //So set the status in outputs, against this task's id
         ctx.outputs[this.id] = status;
-        const res = await evaluateScript(ctx, this.onError.response);
+        const res = await evaluateScript(ctx, this.onError.response, this.taskValue);
         if (typeof res === 'object' && !(res.success === undefined && res.code === undefined)) { //Meaning the script is returning GS Status compatible response
           let {success, code, data, message, headers} = res;
           status = new GSStatus(success, code, message, data, headers);
@@ -408,7 +410,7 @@ export class GSFunction extends Function {
         logger.info('isSubWorkflow, creating new ctx');
         let args = this.args;
         if (this.args_script) {
-          args = await evaluateScript(ctx, this.args_script);
+          args = await evaluateScript(ctx, this.args_script, this.taskValue);
         }
         const newCtx = ctx.cloneWithNewData(args);
         res = await this.fn(newCtx);
@@ -441,6 +443,7 @@ export class GSSeriesFunction extends GSFunction {
     let finalId;
 
     for (const child of this.args!) {
+      child.taskValue = this.taskValue;
       await child(ctx);
       finalId = child.id;
       if (ctx.exitWithStatus) {
@@ -474,6 +477,8 @@ export class GSParallelFunction extends GSFunction {
     let output;
 
     for (const child of this.args!) {
+      child.taskValue = this.taskValue;
+
       output = ctx.outputs[child.id];
       // populating only first failed task status and code
       if (!output.success && status.success) {
@@ -496,7 +501,7 @@ export class GSSwitchFunction extends GSFunction {
   constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
     super(yaml, _fn, args, isSubWorkflow);
     const [condition, cases] = this.args!;
-    if (condition.match(/<(.*?)%/) && condition.includes('%>')) {
+    if (typeof(condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
       this.condition_script = compileScript(condition);
     }
   }
@@ -508,14 +513,17 @@ export class GSSwitchFunction extends GSFunction {
     let [value, cases] = this.args!;
     logger.debug('condition: %s' , value);
     if (this.condition_script) {
-      value = await evaluateScript(ctx, this.condition_script);
+      value = await evaluateScript(ctx, this.condition_script, this.taskValue);
     }
     if (cases[value]) {
+      cases[value].taskValue = this.taskValue;
+
       await cases[value](ctx);
       ctx.outputs[this.id] = ctx.outputs[cases[value].id];
     } else {
       //check for default otherwise error
       if (cases.default) {
+        cases.default.taskValue = this.taskValue;
         await cases.default(ctx);
         ctx.outputs[this.id] = ctx.outputs[cases.default.id];
       } else{
@@ -524,6 +532,104 @@ export class GSSwitchFunction extends GSFunction {
       }
     }
 
+    return ctx.outputs[this.id];
+  }
+}
+
+export class GSEachParallelFunction extends GSFunction {
+  value_script?: Function;
+
+  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+    super(yaml, _fn, args, isSubWorkflow);
+    const [value, cases] = this.args!;
+    if (typeof(value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
+      this.value_script = compileScript(value);
+    }
+  }
+
+  override async _call(ctx: GSContext): Promise<GSStatus> {
+    logger.debug(`GSEachParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+
+    let [value, tasks] = this.args!;
+    logger.debug('value: %o' , value);
+    if (this.value_script) {
+      value = await evaluateScript(ctx, this.value_script, this.taskValue);
+    }
+
+    let i = 0;
+    if (!Array.isArray(value)) {
+      return ctx.outputs[this.id] = new GSStatus(false, undefined, `GsEachParallel is value is not an array`);
+    }
+
+    const promises = [];
+
+    for (const child of tasks) {
+      child.taskValue = value[i++];
+      promises.push(child(ctx));
+    }
+
+    await Promise.all(promises);
+
+    const outputs:any[] = [];
+    const status = new GSStatus(true, 200, '', outputs);
+    let output;
+
+    for (const child of tasks) {
+      output = ctx.outputs[child.id];
+      // populating only first failed task status and code
+      if (!output.success && status.success) {
+        status.success = false;
+        status.code = output.code;
+        status.message = output.message;
+      }
+
+      outputs.push(output);
+    }
+
+    ctx.outputs[this.id] = status;
+    return status;
+  }
+}
+
+export class GSEachSeriesFunction extends GSFunction {
+  value_script?: Function;
+
+  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+    super(yaml, _fn, args, isSubWorkflow);
+    const [value, cases] = this.args!;
+    if (typeof(value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
+      this.value_script = compileScript(value);
+    }
+  }
+
+  override async _call(ctx: GSContext): Promise<GSStatus> {
+    let [value, tasks] = this.args!;
+    logger.debug('value: %o' , value);
+    if (this.value_script) {
+      value = await evaluateScript(ctx, this.value_script, this.taskValue);
+    }
+
+    let i = 0;
+    if (!Array.isArray(value)) {
+      return ctx.outputs[this.id] = new GSStatus(false, undefined, `GsEachSeries is value is not an array`);
+    }
+
+    logger.debug(`GSEachSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    let finalId;
+
+    for (const child of tasks) {
+      child.taskValue = value[i++];
+      await child(ctx);
+      finalId = child.id;
+      if (ctx.exitWithStatus) {
+        ctx.outputs[this.id] = ctx.exitWithStatus;
+        return ctx.exitWithStatus;
+      }
+
+      logger.debug('finalID: %s',finalId);
+    }
+    logger.debug('this.id: %s, finalId: %s', this.id, finalId);
+    ctx.outputs[this.id] = ctx.outputs[finalId];
     return ctx.outputs[this.id];
   }
 }
