@@ -1,3 +1,7 @@
+/*
+* You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
+* © 2022 Mindgrep Technologies Pvt Ltd
+*/
 import { Consumer, Kafka, Producer, logLevel as kafkaLogLevel }  from 'kafkajs';
 import axios from 'axios';
 import config from 'config';
