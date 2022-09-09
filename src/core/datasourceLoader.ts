@@ -13,6 +13,7 @@ import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
 import loadRedisClient from '../redis';
+import loadElasticgraphClient from '../elasticgraph';
 const axiosTime = require('axios-time');
 
 export default async function loadDatasources(pathString: string) {
@@ -47,6 +48,8 @@ export default async function loadDatasources(pathString: string) {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
     } else if (datasources[ds].type === 'redis') {
       loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
+    } else if (datasources[ds].type === 'elasticgraph') {
+      loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
     } else if (datasources[ds].type) {
       //some other type
       if (datasources[ds].loadFn) {

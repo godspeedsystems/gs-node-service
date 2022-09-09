@@ -3,3 +3,4 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 declare module 'pino-debug';
+declare module 'elasticgraph';
