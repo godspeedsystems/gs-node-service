@@ -18,7 +18,7 @@ jobs:
 
     - name: Checkout submodule
       run: |
-        pwd && export GITHUB_TOKEN=${{ secrets.GIT_TOKEN }}&& ls && git submodule  update --init --recursive --remote
+        pwd && export GITHUB_TOKEN=${{ secrets.GIT_TOKEN }}&& env| grep GITHUB -i && ls && git submodule  update --init --recursive --remote
                 
     - name: Npm install
       uses: actions/setup-node@v3
