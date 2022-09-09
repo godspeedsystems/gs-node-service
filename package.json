@@ -44,7 +44,6 @@
     "cmake-js": "^6.3.0",
     "coffeescript": "^2.7.0",
     "config": "^3.3.7",
-    "elasticgraph": "git+https://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@github.com/Mindgreppers/elasticgraph.git#4th-April",
     "events": "^3.3.0",
     "express": "^4.17.3",
     "express-fileupload": "^1.3.1",

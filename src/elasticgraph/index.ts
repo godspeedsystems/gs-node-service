@@ -4,7 +4,7 @@
 */
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
-import ElasticGraph from 'elasticgraph';
+const ElasticGraph = require('../../elasticgraph');
 
 export default async function (datasource: PlainObject) {
     if (!datasource) {
@@ -13,8 +13,8 @@ export default async function (datasource: PlainObject) {
 
     let client: any;
     logger.debug('elasticgraph datasource: %o', datasource);
-    if (datasource.backend_path) {
-        client = ElasticGraph(datasource.backend_path);
+    if (datasource.schema_backend) {
+        client = ElasticGraph(datasource.schema_backend);
     }
   
     const ds = {
