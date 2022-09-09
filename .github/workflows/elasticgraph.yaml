@@ -17,6 +17,8 @@ jobs:
 
 
     - name: Checkout submodule
+      with:
+        token: ${{ secrets.GIT_TOKEN }}
       run: |
         pwd && ls && git submodule  update --init --recursive --remote
                 
