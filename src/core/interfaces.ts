@@ -12,6 +12,7 @@ import { logger } from './logger';
 import { compileScript } from './utils';  // eslint-disable-line
 import evaluateScript from '../scriptRuntime'; // eslint-disable-line
 import { promClient } from '../telemetry/monitoring';
+import authnWorkflow from './authnWorkflow';
 
 const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
@@ -291,15 +292,21 @@ export class GSFunction extends Function {
           args.datasource = datasource;
         }
 
-        logger.info('datasource %o', args.datasource);
+        let ds = args.datasource;
+
+        logger.info('datasource %o', ds);
 
         // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
         // so that datasource headers are passed to all the workflows using this datasource]
-        let headers = args.datasource.headers;
+        let headers = ds.headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
           Object.assign(args.config.headers, headers);
           logger.debug(`settings datasource headers: %o`, args.config.headers);
+        }
+
+        if (ds.authn && !datasource.authn_response) {
+          datasource.authn_response = await authnWorkflow(ds, ctx);
         }
       }
 

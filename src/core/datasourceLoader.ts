@@ -126,12 +126,13 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
 async function loadHttpDatasource(
   datasource: PlainObject
 ): Promise<PlainObject> {
+  let ds;
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
     const openAPIClient = await api.getClient();
-    axiosTime(openAPIClient);
-    return {
+
+    ds = {
       ...datasource,
       client: openAPIClient,
       schema: true,
@@ -188,9 +189,10 @@ async function loadHttpDatasource(
         }
       }
     }
-    axiosTime(ds.client);
-    return ds;
   }
+
+  axiosTime(ds.client);
+  return ds;
 }
 
 async function loadPrismaClient(pathString: string): Promise<PlainObject> {
