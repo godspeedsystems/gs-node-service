@@ -4,7 +4,7 @@
 */
 import { PlainObject } from './common';
 import { logger } from './logger';
-import { GSFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction} from './interfaces';
+import { GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction} from './interfaces';
 import { checkDatasource } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
@@ -32,7 +32,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
             tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
             return new GSParallelFunction(workflowJson, undefined, tasks);
 
-        case 'com.gs.switch':
+        case 'com.gs.switch': {
             let args = [workflowJson.value];
             let cases:PlainObject = {};
 
@@ -46,9 +46,34 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
             args.push(cases);
 
-            logger.debug('loading switch workflow %s', JSON.stringify(workflowJson.cases));
+            logger.debug('loading switch workflow %o', workflowJson.cases);
 
             return new GSSwitchFunction(workflowJson, undefined, args);
+        }
+
+        case 'com.gs.each_parallel': {
+                let args = [workflowJson.value];
+                let tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
+                let task = new GSSeriesFunction(workflowJson, undefined, tasks);
+
+                args.push(task);
+
+                logger.debug('loading each parallel workflow %o', workflowJson.tasks);
+
+                return new GSEachParallelFunction(workflowJson, undefined, args);
+            }
+
+        case 'com.gs.each_sequential': {
+                let args = [workflowJson.value];
+                let tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
+                let task = new GSSeriesFunction(workflowJson, undefined, tasks);
+
+                args.push(task);
+
+                logger.debug('loading each sequential workflow %o', workflowJson.tasks);
+
+                return new GSEachSeriesFunction(workflowJson, undefined, args);
+            }
     }
 
     //Load the fn for this GSFunction
