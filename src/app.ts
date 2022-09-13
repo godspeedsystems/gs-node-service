@@ -14,7 +14,7 @@ import { logger } from './core/logger';
 
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
-import { PROJECT_ROOT_DIRECTORY } from './core/utils';
+import { compileScript, PROJECT_ROOT_DIRECTORY } from './core/utils';
 
 import {validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import loadEvents from './core/eventLoader';
@@ -121,6 +121,9 @@ async function main() {
         if (datasources[ds].authn) {
             datasources[ds].authn = functions[datasources[ds].authn];
         }
+        let datasourceScript = compileScript(datasources[ds]);
+        logger.debug('datasourceScript: %s', datasourceScript);
+        datasources[ds] = datasourceScript;    
     }
 
     const plugins = await loadModules(__dirname + '/plugins', true);

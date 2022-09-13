@@ -10,7 +10,7 @@ import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
-import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
+import { PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
 import loadRedisClient from '../redis';
 const axiosTime = require('axios-time');
@@ -79,9 +79,6 @@ export default async function loadDatasources(pathString: string) {
     }
 
     loadedDatasources[ds].gsName = ds;
-    let datasourceScript = compileScript(loadedDatasources[ds]);
-    logger.debug('datasourceScript: %s', datasourceScript);
-    loadedDatasources[ds] = datasourceScript;
   }
 
   logger.info('Finally loaded datasources: %s', Object.keys(datasources));
@@ -138,7 +135,7 @@ async function loadHttpDatasource(
       schema: true,
     };
   } else {
-    const ds = {
+    ds = {
       ...datasource,
       client: axios.create({
         baseURL: datasource.base_url,
