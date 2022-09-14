@@ -9,20 +9,22 @@ async function refreshToken(ds: PlainObject, ctx: any,  failedRequest?: any) {
     if (response.success) {
         let result = response.data;
         logger.info('response from authn %o', result);
+        
         if (result.headers) {
             for (let header in result.headers) {
                 ds.client.defaults.headers.common[header] = result.headers[header];
                 if (failedRequest) {
-                    failedRequest.request.config.headers[header] = result.headers[header];
+                    failedRequest.config.headers[header] = result.headers[header];
                 }
             }
         }
 
         if (result.params) {
+            ds.client.defaults.params = ds.client.defaults.params || {};
             for (let param in result.params) {
                 ds.client.defaults.params[param] = result.params[param];
                 if (failedRequest) {
-                    failedRequest.request.config.params[param] = result.params[param];
+                    failedRequest.config.params[param] = result.params[param];
                 }
             }
         }
