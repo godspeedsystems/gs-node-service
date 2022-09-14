@@ -6,6 +6,7 @@
 !tsconfig.json
 !typings
 !node_modules
+!elasticgraph
 
 node_modules/@hanazuki
 node_modules/@prisma
