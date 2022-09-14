@@ -1,31 +1,40 @@
 import { PlainObject } from "./common";
 
 import createAuthRefreshInterceptor from 'axios-auth-refresh';
+import { logger } from "./logger";
 
 async function refreshToken(ds: PlainObject, ctx: any,  failedRequest?: any) {
     const response = await ds.authn(ctx);
-    if (response.headers) {
-        for (let header in response.headers) {
-            ds.client.defaults.headers.common[header] = response.headers[header];
-            failedRequest.request.config.headers[header] = response.headers[header];
-        }
-    }
 
-    if (response.params) {
-        for (let param in response.params) {
-            ds.client.defaults.params[param] = response.params[param];
-            failedRequest.request.config.params[param] = response.params[param];
+    if (response.success) {
+        let result = response.data;
+        logger.info('response from authn %o', result);
+        if (result.headers) {
+            for (let header in result.headers) {
+                ds.client.defaults.headers.common[header] = result.headers[header];
+                if (failedRequest) {
+                    failedRequest.request.config.headers[header] = result.headers[header];
+                }
+            }
         }
+
+        if (result.params) {
+            for (let param in result.params) {
+                ds.client.defaults.params[param] = result.params[param];
+                if (failedRequest) {
+                    failedRequest.request.config.params[param] = result.params[param];
+                }
+            }
+        }
+        return result;
     }
- 
-    return response;
 }
 
 
 export default async function authnWorkflow(ds: PlainObject, ctx: any) {
     const response = await refreshToken(ds, ctx);
 
-    if (response.statusCodes) {
+    if (response?.statusCodes) {
         createAuthRefreshInterceptor(ds.client,
             (failedRequest: any) => {
                 return refreshToken(ds, ctx, failedRequest);

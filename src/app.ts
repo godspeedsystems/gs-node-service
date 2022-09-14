@@ -121,10 +121,14 @@ async function main() {
         if (datasources[ds].authn) {
             datasources[ds].authn = functions[datasources[ds].authn];
         }
+
+        datasources[ds].gsName = ds;
         let datasourceScript = compileScript(datasources[ds]);
         logger.debug('datasourceScript: %s', datasourceScript);
-        datasources[ds] = datasourceScript;    
+        datasources[ds] = datasourceScript;
     }
+
+
 
     const plugins = await loadModules(__dirname + '/plugins', true);
 

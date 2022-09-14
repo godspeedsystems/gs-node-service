@@ -34,6 +34,9 @@ export default async function loadDatasources(pathString: string) {
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
+
+    logger.info('Loaded datasource: %s', ds);
+
     // Expand config variables
     datasources[ds] = expandVariables(datasources[ds]);
 
@@ -77,8 +80,6 @@ export default async function loadDatasources(pathString: string) {
       );
       process.exit(1);
     }
-
-    loadedDatasources[ds].gsName = ds;
   }
 
   logger.info('Finally loaded datasources: %s', Object.keys(datasources));
@@ -123,25 +124,14 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
 async function loadHttpDatasource(
   datasource: PlainObject
 ): Promise<PlainObject> {
-  let ds;
+  let ds = datasource;
+
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
-    const openAPIClient = await api.getClient();
-
-    ds = {
-      ...datasource,
-      client: openAPIClient,
-      schema: true,
-    };
+    ds.client = await api.getClient();;
   } else {
-    ds = {
-      ...datasource,
-      client: axios.create({
-        baseURL: datasource.base_url,
-      }),
-      schema: false,
-    };
+    ds.client = axios.create({baseURL: datasource.base_url});
 
     const security = datasource.security;
     const securitySchemes = datasource.securitySchemes;
@@ -161,7 +151,7 @@ async function loadHttpDatasource(
               logger.debug('Adding header %s: %s', securityScheme.name, value);
             } catch (ex) {
               //console.error(ex);
-              logger.error('Caught exception %o',ex);
+              logger.error('Caught exception %o', (ex as Error).stack);
             }
           }
         } else if (securityScheme.type == 'http') {

@@ -118,7 +118,7 @@ export default async function(args:{[key:string]:any;}) {
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex: any) {
         HttpMetricsCollector.collect(ex);
-        logger.error('Caught exception %o', ex);
+        logger.error('Caught exception %o', (ex as Error).stack);
         //@ts-ignore
         let res = ex.response;
 

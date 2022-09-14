@@ -306,6 +306,7 @@ export class GSFunction extends Function {
         }
 
         if (ds.authn && !datasource.authn_response) {
+          logger.info('Executing datasource authn workflow for %s', args.datasource);
           datasource.authn_response = await authnWorkflow(ds, ctx);
         }
       }
