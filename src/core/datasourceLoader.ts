@@ -10,9 +10,10 @@ import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
-import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
+import { PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
 import loadRedisClient from '../redis';
+import loadElasticgraphClient from '../elasticgraph';
 const axiosTime = require('axios-time');
 
 export default async function loadDatasources(pathString: string) {
@@ -34,6 +35,9 @@ export default async function loadDatasources(pathString: string) {
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
+
+    logger.info('Loaded datasource: %s', ds);
+
     // Expand config variables
     datasources[ds] = expandVariables(datasources[ds]);
 
@@ -47,6 +51,8 @@ export default async function loadDatasources(pathString: string) {
       loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
     } else if (datasources[ds].type === 'redis') {
       loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
+    } else if (datasources[ds].type === 'elasticgraph') {
+      loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
     } else if (datasources[ds].type) {
       //some other type
       if (datasources[ds].loadFn) {
@@ -77,11 +83,6 @@ export default async function loadDatasources(pathString: string) {
       );
       process.exit(1);
     }
-
-    loadedDatasources[ds].gsName = ds;
-    let datasourceScript = compileScript(loadedDatasources[ds]);
-    logger.debug('datasourceScript: %s', datasourceScript);
-    loadedDatasources[ds] = datasourceScript;
   }
 
   logger.info('Finally loaded datasources: %s', Object.keys(datasources));
@@ -126,24 +127,14 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
 async function loadHttpDatasource(
   datasource: PlainObject
 ): Promise<PlainObject> {
+  let ds = datasource;
+
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
-    const openAPIClient = await api.getClient();
-    axiosTime(openAPIClient);
-    return {
-      ...datasource,
-      client: openAPIClient,
-      schema: true,
-    };
+    ds.client = await api.getClient();;
   } else {
-    const ds = {
-      ...datasource,
-      client: axios.create({
-        baseURL: datasource.base_url,
-      }),
-      schema: false,
-    };
+    ds.client = axios.create({baseURL: datasource.base_url});
 
     const security = datasource.security;
     const securitySchemes = datasource.securitySchemes;
@@ -163,7 +154,7 @@ async function loadHttpDatasource(
               logger.debug('Adding header %s: %s', securityScheme.name, value);
             } catch (ex) {
               //console.error(ex);
-              logger.error('Caught exception %o',ex);
+              logger.error('Caught exception %o', (ex as Error).stack);
             }
           }
         } else if (securityScheme.type == 'http') {
@@ -188,9 +179,10 @@ async function loadHttpDatasource(
         }
       }
     }
-    axiosTime(ds.client);
-    return ds;
   }
+
+  axiosTime(ds.client);
+  return ds;
 }
 
 async function loadPrismaClient(pathString: string): Promise<PlainObject> {

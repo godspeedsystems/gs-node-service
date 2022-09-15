@@ -9,7 +9,7 @@ import loadYaml from './yamlLoader';
 import {loadJsonSchemaForEvents} from './jsonSchemaValidation';
 import expandVariables from './expandVariables';
 
-export default async function loadEvents(functions: PlainObject,pathString: string) {
+export default async function loadEvents(functions: PlainObject, pathString: string) {
     logger.info('Loading events');
     const events = await loadYaml(pathString, true);
     logger.debug('events %o', events);
@@ -17,7 +17,7 @@ export default async function loadEvents(functions: PlainObject,pathString: stri
 
     const evalEvents = expandVariables(events);
 
-    const checkFn = checkFunctionExists(events,functions);
+    const checkFn = checkFunctionExists(events, functions);
     if (!checkFn.success) {
         logger.error('Error in loading functions for events. Error message: %s. Exiting.', checkFn.message);
         process.exit(1);

@@ -7,6 +7,8 @@ import {GSActor, GSCloudEvent, GSContext, GSFunction, GSParallelFunction, GSSeri
 
 import config from 'config';
 
+import authn from './authn';
+
 import app, { router } from './http_listener';
 import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
@@ -14,7 +16,7 @@ import { logger } from './core/logger';
 
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
-import { PROJECT_ROOT_DIRECTORY } from './core/utils';
+import { compileScript, PROJECT_ROOT_DIRECTORY } from './core/utils';
 
 import {validateRequestSchema, validateResponseSchema} from './core/jsonSchemaValidation';
 import loadEvents from './core/eventLoader';
@@ -24,7 +26,7 @@ import _ from 'lodash';
 import { promClient } from './telemetry/monitoring';
 
 function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(event: GSCloudEvent)=>Promise<any>) {
-    
+
     for (let route in events) {
         let originalRoute = route;
 
@@ -35,8 +37,9 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             route = route.replace(/{(.*?)}/g, ":$1");
 
             logger.info('registering http handler %s %s', route, method);
+
             // @ts-ignore
-            router[method](route, function(req: express.Request, res: express.Response) {
+            router[method](route, authn(('authn' in events[originalRoute]) ? true : events[originalRoute].authn), function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
                 //passing all properties of req
                 let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip',
@@ -56,7 +59,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
         } else {
             // for kafka event source like {topic}.kafka1.{groupid}
             // here we are assuming that various event sources for kafka are defined in the above format.
-            let [topic, kafkaDatasource, groupId] = route.split('.',3); 
+            let [topic, kafkaDatasource, groupId] = route.split('.',3);
 
             // find the client corresponding to kafkaDatasource from the datasources
             if(kafkaDatasource in datasources) {
@@ -65,7 +68,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
                     logger.debug('evaluatedDatasources: %o',evaluatedDatasources);
                     const kafkaClient = evaluatedDatasources.client;
                     logger.info('registering %s handler, topic %s, groupId %s', route, topic, groupId);
-                    kafkaClient.subscribe(topic, groupId, kafkaDatasource, processEvent);    
+                    kafkaClient.subscribe(topic, groupId, kafkaDatasource, processEvent);
                 } catch(err: any) {
                     logger.error('Caught error in registering handler: %s, error: %o',route, err);
                     process.exit(1);
@@ -82,7 +85,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
         let prismaMetrics: string = '';
         for (let ds in datasources) {
             if (datasources[ds].type === 'datastore') {
-                const prismaClient = datasources[ds].client;            
+                const prismaClient = datasources[ds].client;
                 prismaMetrics += await prismaClient.$metrics.prometheus({
                                     globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
                                 });
@@ -90,13 +93,13 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
         }
         let appMetrics = await promClient.register.metrics();
         res.end(appMetrics + prismaMetrics);
-    });  
+    });
 
     // Expose /health endpoint
     app.get('/health', async (req: express.Request, res: express.Response) => {
         return res.status(200).send('OK');
     });
-    
+
     //@ts-ignore
     const baseUrl = config.base_url || '/';
     app.use(baseUrl, router);
@@ -107,6 +110,7 @@ async function main() {
     let functions:PlainObject;
 
     const datasources = await loadDatasources(PROJECT_ROOT_DIRECTORY + '/datasources');
+
     const loadFnStatus = await loadFunctions(datasources,PROJECT_ROOT_DIRECTORY + '/functions');
     if (loadFnStatus.success) {
         functions = loadFnStatus.functions;
@@ -114,6 +118,20 @@ async function main() {
         logger.error('Unable to load functions exiting...');
         process.exit(1);
     }
+
+    //load authn workflow in datasources
+    for (let ds in datasources) {
+        if (datasources[ds].authn) {
+            datasources[ds].authn = functions[datasources[ds].authn];
+        }
+
+        datasources[ds].gsName = ds;
+        let datasourceScript = compileScript(datasources[ds]);
+        logger.debug('datasourceScript: %s', datasourceScript);
+        datasources[ds] = datasourceScript;
+    }
+
+
 
     const plugins = await loadModules(__dirname + '/plugins', true);
 
@@ -151,7 +169,7 @@ async function main() {
                 event.data = { "event": event.data, "validation_error": validationError };
 
                 // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
-                eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].on_validation_error];   
+                eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].on_validation_error];
             }
         } else {
             logger.info('Request JSON Schema validated successfully %o', valid_status);
@@ -182,26 +200,26 @@ async function main() {
           }
           // Continuining, in case of REST channel, set the status to error mode with proper code and message
           eventHandlerStatus = new GSStatus(
-            false, 
+            false,
             err.code || 500, //Treat as internal server error by default
-            `Error in executing handler ${events[event.type].fn} for the event ${event.type}`, 
+            `Error in executing handler ${events[event.type].fn} for the event ${event.type}`,
             err //status data
           );
         }
         /**
          * For non-rest events, stop now. Nothing more needs to be done.
-         * For REST events check the response schema. If OK, 
+         * For REST events check the response schema. If OK,
          * send the status data over the wire to the caller. Else send response validation error.
         **/
 
        // Continue further only for REST events, whether or not handler executed successfully.
         if (event.channel !== 'REST') {
           return ctx.outputs[eventHandlerWorkflow.id].success;
-        } 
+        }
 
         //Continuing for REST events: to validate the handler response and send the HTTP response
 
-        //eventHandlerStatus being undefined means there was no error. Because on error, 
+        //eventHandlerStatus being undefined means there was no error. Because on error,
         //we are initializing the eventHandlerStatus with the error data, in the catch block above.
         const successfulExecution = !eventHandlerStatus;
         if (successfulExecution) { // Means no error happened
@@ -222,7 +240,7 @@ async function main() {
             }
           }
         }
-        
+
         let code = eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500);
         let data = eventHandlerStatus?.data;
         let headers = eventHandlerStatus?.headers;
@@ -252,7 +270,7 @@ async function main() {
         // }
     }
 
-    const events = await loadEvents(functions,PROJECT_ROOT_DIRECTORY + '/events');
+    const events = await loadEvents(functions, PROJECT_ROOT_DIRECTORY + '/events');
     subscribeToEvents(events, datasources, processEvent);
 }
 

@@ -105,7 +105,7 @@ export function prepareScript(str: string): Function {
     str = CoffeeScript.compile(str ,{bare: true});
   }
 
-  return Function('config', 'inputs', 'outputs', 'mappings', str);
+  return Function('config', 'inputs', 'outputs', 'mappings', 'task_value', str);
 }
 
 export function compileScript(args: any) {

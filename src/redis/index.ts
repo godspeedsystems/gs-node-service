@@ -1,7 +1,7 @@
 /*
-* You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
-* © 2022 Mindgrep Technologies Pvt Ltd
-*/
+ * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
+ * © 2022 Mindgrep Technologies Pvt Ltd
+ */
 import nodeCleanup from 'node-cleanup';
 import { createClient } from 'redis';
 import { PlainObject } from '../core/common';
@@ -31,17 +31,10 @@ export default async function (datasource: PlainObject) {
     function () {
       logger.info('calling redis disconnect...');
       // @ts-ignore
-      this.disconnect();
+      this.quit();
     }.bind(client)
   );
 
-  try {
-    logger.info('redis client %o', client);
-    const response = await client.set('hello', 'ashutosh');
-    logger.info('redis test success %o', response);
-  } catch (error) {
-    logger.error('redis test failed %o', error);
-  }
   const ds = {
     ...datasource,
     client,
