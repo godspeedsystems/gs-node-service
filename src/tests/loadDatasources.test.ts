@@ -6,7 +6,6 @@ import { describe, it, expect, glob, path, fs, expectObj } from './common';
 import loadDatasources from '../core/datasourceLoader';
 import { fail } from 'assert';
 import { logger } from '../core/logger';
-import config from 'config';
 
 /*
  For all the functions which doesn't return JSON output and return some specific
@@ -22,10 +21,10 @@ describe(testName, () => {
         try {
             logger.debug('pathString: %s',pathString);
             const datasources = await loadDatasources(pathString);
-            const datasource = datasources.idfc(config, {}, {}, {});
+            const datasource = datasources.idfc;
             logger.debug('result: %o',datasource);
 
-            expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security', 'gsName');
+            expect(datasource).to.have.keys('client','base_url','type','securitySchemes','security');
             expect(datasource.client).to.have.keys('request','getUri','delete','get','head','options','post','put','patch','defaults','interceptors','create');
             expect(datasource.client.defaults.baseURL).to.be.equal('https://partner-uat.idfc.com');
             expect(datasource.client.defaults.headers.common).to.have.keys('Accept','api-key','api-token','Authorization');
@@ -42,12 +41,12 @@ describe(testName, () => {
         try {
             logger.debug('pathString: %s',pathString);
             const datasources = await loadDatasources(pathString);
-            const datasource = datasources.growthsource({}, {}, {}, {});
+            const datasource = datasources.growthsource;
             logger.debug('result: %o',datasource);
 
-            expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security','gsName');
+            expect(datasource).to.have.keys('client','schema','base_url','type','securitySchemes','security');
             expect(datasource.type).to.be.equal('api');
-            expect(datasource.schema).to.be.equal(false);
+            expect(datasource.schema).to.be.equal(null);
             expect(datasource.base_url).to.be.equal('https://partner-uat.growthsourceft.com');
             expect(datasource.security).to.be.eql([{"ApiKey":"plpinelabs"},{"ApiToken":"679e36a018524e6dbfd3f184059b29f0"}]);
             expect(datasource.securitySchemes).to.be.eql({"ApiKey":{"type":"apiKey","in":"header","name":"x-api-key"},"ApiToken":{"type":"apiKey","in":"header","name":"Authorization"}});

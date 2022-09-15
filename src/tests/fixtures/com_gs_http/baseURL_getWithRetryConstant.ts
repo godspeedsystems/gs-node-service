@@ -6,7 +6,6 @@ import loadDatasources from "../../../core/datasourceLoader";
 
 export default async function() {
     const datasources = await loadDatasources(__dirname + '/datasources'); 
-    const evaluatedDatasources = datasources.swagger_base({}, {}, {}, {});
     const args = {
         config: {
             "method": "get",
@@ -20,6 +19,6 @@ export default async function() {
         params: null,
         datasource: undefined
     };
-    args.datasource = evaluatedDatasources;
+    args.datasource = datasources.swagger_base;    ;
     return args;
 }
