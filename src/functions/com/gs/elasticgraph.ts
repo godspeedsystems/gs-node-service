@@ -29,11 +29,11 @@ export default async function elasticgraph(args:{[key:string]:any;}) {
             resData = res;
         } else if (collect) {
             res = await es[method].collect(args.data);
-            status = res.statusCode || 200;
+            status = res?.statusCode || 200;
             resData = res;
         } else {
             res = await es[method](args.data);
-            status = res.statusCode || 200;
+            status = res?.statusCode || 200;
             resData = res.body;
         }
     } catch (err:any) {

@@ -16,6 +16,6 @@ export default function authn(required: boolean) {
     };
 }
 
-if (config.get('jwt')) {
+if (config.has('jwt')) {
     initialize();
 }
