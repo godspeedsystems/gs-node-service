@@ -24,6 +24,7 @@ import loadDatasources from './core/datasourceLoader';
 import { kafka } from './kafka';
 import _ from 'lodash';
 import { promClient } from './telemetry/monitoring';
+import { importAll } from './scriptRuntime';
 
 function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(event: GSCloudEvent)=>Promise<any>) {
 
@@ -131,9 +132,8 @@ async function main() {
         datasources[ds] = datasourceScript;
     }
 
-
-
     const plugins = await loadModules(__dirname + '/plugins', true);
+    importAll(plugins, global);
 
     logger.debug('plugins: %s', Object.keys(plugins));
 

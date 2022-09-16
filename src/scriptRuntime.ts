@@ -7,7 +7,6 @@
  */
 import _ from 'lodash';
 
-import * as plugins from "./plugins/com/gs";
 import { GSContext, GSStatus } from "./core/interfaces"; // eslint-disable-line
 import { logger } from "./core/logger";
 
@@ -16,8 +15,6 @@ export function importAll(sourceScope: any, targetScope: any) {
         targetScope[name] = sourceScope[name];
     }
 }
-
-importAll(plugins, global);
 
 /**
  * Can be called for gsFunction.args, gsFunction.on_error.transform and switch.condition
