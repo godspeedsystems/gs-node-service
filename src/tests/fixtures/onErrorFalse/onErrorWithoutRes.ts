@@ -11,6 +11,7 @@ import { loadFunctions } from '../../../core/functionLoader';
 import loadYaml from '../../../core/yamlLoader';
 import { logger } from '../../../core/logger';
 import { GSCloudEvent, GSActor, GSContext, GSSeriesFunction, GSStatus } from '../../../core/interfaces';
+import { importAll } from '../../../scriptRuntime';
 
 let functions:PlainObject;
 let events:PlainObject;
@@ -31,6 +32,7 @@ async function loadInputs() {
     }
 
     const plugins = await loadModules(__dirname + '/plugins', true);
+    importAll(plugins, global);
     events = await loadYaml(__dirname + '/events', true);
 
     //Creating GSCloudEvent
