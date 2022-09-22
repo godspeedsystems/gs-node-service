@@ -366,17 +366,15 @@ export class GSFunction extends Function {
         );
     }
 
-    return this.handleError(ctx, status, taskValue); //In acvse there is error, this.on_error will be considered for further action
+    return status;
   }
 
   async handleError (ctx: GSContext, status: GSStatus, taskValue: any): Promise<GSStatus> {
     //Default value of success is true, if left undefined. //TODO add to the docs.
     if (this.onError && status.success === false) {
-
       if (this.onError.response instanceof Function ) {
         //The script may need the output of the task so far, for the transformation logic.
         //So set the status in outputs, against this task's id
-        ctx.outputs[this.id] = status;
         const res = await evaluateScript(ctx, this.onError.response, taskValue);
         if (typeof res === 'object' && !(res.success === undefined && res.code === undefined)) { //Meaning the script is returning GS Status compatible response
           let {success, code, data, message, headers} = res;
@@ -392,17 +390,25 @@ export class GSFunction extends Function {
         }
 
       } else if (this.onError.response) {
-          status.data = this.onError.response;
+        status.data = this.onError.response;
       } else if (this.onError.tasks) {
-        ctx.outputs[this.id] = status;
         status = await this.onError.tasks(ctx);
       }
 
       if (this.onError.continue === false) {
+        logger.debug(null, 'exiting on error %s', this.id);
         ctx.exitWithStatus = status;
       }
     }
 
+    ctx.outputs[this.id] = status;
+
+    /**
+     * If the call had an error, set that in events so that we can send it to the telemetry backend.
+     */
+     if (!status.success) {
+      ctx.addLogEvent(new GSLogEvent('ERROR', ctx.outputs));
+    }
 
     return status;
   }
@@ -415,9 +421,9 @@ export class GSFunction extends Function {
   async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
 
     logger.info('_call invoked with task value %s %o', this.id, taskValue);
+    let status;
 
     if (this.fn instanceof GSFunction) {
-      let res;
       if (this.isSubWorkflow) {
         logger.info('isSubWorkflow, creating new ctx');
         let args = this.args;
@@ -425,26 +431,17 @@ export class GSFunction extends Function {
           args = await evaluateScript(ctx, this.args_script, taskValue);
         }
         const newCtx = ctx.cloneWithNewData(args);
-        res = await this.fn(newCtx);
-        ctx.outputs[this.id] = newCtx.outputs[this.fn.id];
-        this.handleError(ctx, res, taskValue);
+        status = await this.fn(newCtx, taskValue);
       } else {
         logger.info('No isSubWorkflow, continuing in the same ctx');
-        res = await this.fn(ctx);
-        this.handleError(ctx, res, taskValue);
+        status = await this.fn(ctx, taskValue);
       }
     }
     else {
-      ctx.outputs[this.id] = await this._executefn(ctx, taskValue);
-    }
-    /**
-     * If the call had an error, set that in events so that we can send it to the telemetry backend.
-     */
-    if (!ctx.outputs[this.id].success) {
-      ctx.addLogEvent(new GSLogEvent('ERROR', ctx.outputs));
+      status = await this._executefn(ctx, taskValue);
     }
 
-    return ctx.outputs[this.id];
+    return this.handleError(ctx, status, taskValue);
   };
 }
 
@@ -460,7 +457,6 @@ export class GSSeriesFunction extends GSFunction {
         ctx.outputs[this.id] = ctx.exitWithStatus;
         return ctx.exitWithStatus;
       }
-
     }
     logger.debug('this.id: %s, output: %s', this.id, ret.data);
     ctx.outputs[this.id] = ret;
