@@ -370,45 +370,45 @@ export class GSFunction extends Function {
   }
 
   async handleError (ctx: GSContext, status: GSStatus, taskValue: any): Promise<GSStatus> {
-    //Default value of success is true, if left undefined. //TODO add to the docs.
-    if (this.onError && status.success === false) {
-      if (this.onError.response instanceof Function ) {
-        //The script may need the output of the task so far, for the transformation logic.
-        //So set the status in outputs, against this task's id
-        const res = await evaluateScript(ctx, this.onError.response, taskValue);
-        if (typeof res === 'object' && !(res.success === undefined && res.code === undefined)) { //Meaning the script is returning GS Status compatible response
-          let {success, code, data, message, headers} = res;
-          status = new GSStatus(success, code, message, data, headers);
-        } else {
-          //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
-          status = new GSStatus(
-            true,
-            200, //Default code be 200 for now
-            undefined,
-            res
-          );
+
+    if (!status.success) {
+      /**
+      * If the call had an error, set that in events so that we can send it to the telemetry backend.
+      */
+      ctx.addLogEvent(new GSLogEvent('ERROR', ctx.outputs));
+
+      if (this.onError) {
+        if (this.onError.response instanceof Function ) {
+          //The script may need the output of the task so far, for the transformation logic.
+          //So set the status in outputs, against this task's id
+          const res = await evaluateScript(ctx, this.onError.response, taskValue);
+          if (typeof res === 'object' && !(res.success === undefined && res.code === undefined)) { //Meaning the script is returning GS Status compatible response
+            let {success, code, data, message, headers} = res;
+            status = new GSStatus(success, code, message, data, headers);
+          } else {
+            //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
+            status = new GSStatus(
+              true,
+              200, //Default code be 200 for now
+              undefined,
+              res
+            );
+          }
+
+        } else if (this.onError.response) {
+          status.data = this.onError.response;
+        } else if (this.onError.tasks) {
+          status = await this.onError.tasks(ctx);
         }
 
-      } else if (this.onError.response) {
-        status.data = this.onError.response;
-      } else if (this.onError.tasks) {
-        status = await this.onError.tasks(ctx);
-      }
-
-      if (this.onError.continue === false) {
-        logger.debug(null, 'exiting on error %s', this.id);
-        ctx.exitWithStatus = status;
+        if (this.onError.continue === false) {
+          logger.debug(null, 'exiting on error %s', this.id);
+          ctx.exitWithStatus = status;
+        }
       }
     }
 
     ctx.outputs[this.id] = status;
-
-    /**
-     * If the call had an error, set that in events so that we can send it to the telemetry backend.
-     */
-     if (!status.success) {
-      ctx.addLogEvent(new GSLogEvent('ERROR', ctx.outputs));
-    }
 
     return status;
   }
