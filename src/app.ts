@@ -40,7 +40,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             logger.info('registering http handler %s %s', route, method);
 
             // @ts-ignore
-            router[method](route, authn(('authn' in events[originalRoute]) ? true : events[originalRoute].authn), function(req: express.Request, res: express.Response) {
+            router[method](route, authn(events[originalRoute]?.authn), function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
                 //passing all properties of req
                 let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip',
