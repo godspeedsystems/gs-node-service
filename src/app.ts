@@ -24,6 +24,7 @@ import loadDatasources from './core/datasourceLoader';
 import { kafka } from './kafka';
 import _ from 'lodash';
 import { promClient } from './telemetry/monitoring';
+import { importAll } from './scriptRuntime';
 
 function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(event: GSCloudEvent)=>Promise<any>) {
 
@@ -39,7 +40,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             logger.info('registering http handler %s %s', route, method);
 
             // @ts-ignore
-            router[method](route, authn(('authn' in events[originalRoute]) ? true : events[originalRoute].authn), function(req: express.Request, res: express.Response) {
+            router[method](route, authn(events[originalRoute]?.authn), function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
                 //passing all properties of req
                 let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip',
@@ -131,9 +132,8 @@ async function main() {
         datasources[ds] = datasourceScript;
     }
 
-
-
     const plugins = await loadModules(__dirname + '/plugins', true);
+    importAll(plugins, global);
 
     logger.debug('plugins: %s', Object.keys(plugins));
 
