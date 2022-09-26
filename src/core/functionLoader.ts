@@ -96,6 +96,10 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
     if (workflowJson?.on_error?.tasks) {
         workflowJson.on_error.tasks = createGSFunction(workflowJson.on_error.tasks, workflows, nativeFunctions);
     }
+
+    if (workflowJson?.authz) {
+        workflowJson.authz = createGSFunction(workflowJson.authz, workflows, nativeFunctions);
+    }
     return new GSFunction(workflowJson, fn, workflowJson.args, subwf);
 }
 
