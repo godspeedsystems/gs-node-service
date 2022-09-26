@@ -49,7 +49,7 @@ function iterate_yaml_directories(current_yaml_root:any) {
         }
       }
     } else if (!file.endsWith('.yaml')) {
-      if (file.includes('.')) continue;
+      if (file.includes('.') || current_yaml_root.includes('node_modules')) continue;
       const next_yaml_root = current_yaml_root + '/' + file;
       const intermediate_object_state = iterate_yaml_directories(
         next_yaml_root
