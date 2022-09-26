@@ -378,6 +378,7 @@ export class GSFunction extends Function {
       ctx.addLogEvent(new GSLogEvent('ERROR', ctx.outputs));
 
       if (this.onError) {
+        ctx.outputs[this.id] = status;
         if (this.onError.response instanceof Function ) {
           //The script may need the output of the task so far, for the transformation logic.
           //So set the status in outputs, against this task's id
