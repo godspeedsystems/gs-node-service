@@ -100,10 +100,7 @@ export class GSFunction extends Function {
     this.onError = yaml.on_error;
 
     if (this.onError && this.onError.response) {
-      const response = JSON.stringify(this.onError.response);
-      if (response.match(/<(.*?)%/) && response.includes('%>')) {
-        this.onError!.response = compileScript(this.onError.response);
-      }
+      this.onError!.response = compileScript(this.onError.response);
     }
 
     this.retry = yaml.retry;
