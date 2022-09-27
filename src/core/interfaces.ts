@@ -724,7 +724,7 @@ export class GSContext { //span executions
     this.mappings = mappings;
     this.plugins = plugins;
 
-    logger.debug('inputs for context %s', JSON.stringify(event.data));
+    logger.debug('inputs for context %o', event.data);
   }
 
   public cloneWithNewData(data: PlainObject): GSContext {
