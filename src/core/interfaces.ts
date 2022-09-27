@@ -102,7 +102,7 @@ export class GSFunction extends Function {
     if (this.onError && this.onError.response) {
       const response = JSON.stringify(this.onError.response);
       if (response.match(/<(.*?)%/) && response.includes('%>')) {
-        this.onError!.response = compileScript(response);
+        this.onError!.response = compileScript(this.onError.response);
       }
     }
 
