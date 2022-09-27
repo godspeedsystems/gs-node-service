@@ -15,7 +15,10 @@ const logger: Pino.Logger = Pino({
                 Resource: { 'service.name': process.env.OTEL_SERVICE_NAME || 'unknown_service:node' } 
               }
   },
-  redact: (config as any).redact || []
+  redact: {
+    paths: (config as any).redact || [],
+    censor: '*****'
+  }
 });
 
 pinoDebug(logger, {
