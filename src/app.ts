@@ -33,14 +33,23 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
 
         if (route.includes('.http.')) {
             let method = 'get';
+            let required = false;
 
             [route, method] = route.split('.http.');
             route = route.replace(/{(.*?)}/g, ":$1");
 
             logger.info('registering http handler %s %s', route, method);
 
+            if (config.has('jwt')) {
+                if ('authn' in events[originalRoute]) {
+                    required = events[originalRoute]?.authn;
+                } else {
+                    required = true;
+                }
+            }
+
             // @ts-ignore
-            router[method](route, authn(('authn' in events[originalRoute]) ? events[originalRoute]?.authn : true), function(req: express.Request, res: express.Response) {
+            router[method](route, authn(required), function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
                 //passing all properties of req
                 let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip',
