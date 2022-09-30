@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .ts --format table",
     "fix-lint": "eslint . --ext .ts --fix",
     "service-build": "mkdir -p build && cp -r src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && npm install && ./node_modules/typescript/bin/tsc",
-    "build": "mkdir -p build project/src && cp -r project/src/* project/package.json src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && cd dist && npm install && cd ../ && cd elasticgraph && npm install && cd ../ && ./node_modules/typescript/bin/tsc",
+    "build": "mkdir -p build project/src && rsync --delete -rv --exclude 'config' project/* src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && rsync -rv --delete --exclude='*.ts' project/config dist/ && npm install && cd dist && npm install && cd ../ && cd elasticgraph && npm install && cd ../ && ./node_modules/typescript/bin/tsc",
     "prepare": "husky install",
     "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 15000",
     "test-one": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/loadDatasources.test.js --timeout 15000",
