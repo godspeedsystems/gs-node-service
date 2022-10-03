@@ -432,7 +432,7 @@ export class GSFunction extends Function {
       let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
 
       const newCtx = ctx.cloneWithNewData(args);
-      let allow = await this.yaml.authz.args(newCtx, taskValue);
+      let allow = await this.yaml.authz(newCtx, taskValue);
       if (allow.success && allow.data === false) {
         ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
         return ctx.exitWithStatus;
