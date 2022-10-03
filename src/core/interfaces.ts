@@ -103,6 +103,10 @@ export class GSFunction extends Function {
       this.onError!.response = compileScript(this.onError.response);
     }
 
+    if (this.yaml.authz?.args) {
+      this.yaml.authz.args = compileScript(this.yaml.authz?.args);
+    }
+
     this.retry = yaml.retry;
 
     if (this.retry) {
@@ -420,6 +424,18 @@ export class GSFunction extends Function {
 
     logger.info('_call invoked with task value %s %o', this.id, taskValue);
     let status;
+
+    if (this.yaml.authz) {
+      logger.info('invoking authz workflow, creating new ctx');
+      let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
+
+      const newCtx = ctx.cloneWithNewData(args);
+      let allow = await this.yaml.authz(newCtx, taskValue);
+      if (allow.success && allow.data === false) {
+        ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
+        return ctx.exitWithStatus;
+      }
+    }
 
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
