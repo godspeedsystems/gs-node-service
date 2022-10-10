@@ -33,14 +33,23 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
 
         if (route.includes('.http.')) {
             let method = 'get';
+            let required = false;
 
             [route, method] = route.split('.http.');
             route = route.replace(/{(.*?)}/g, ":$1");
 
             logger.info('registering http handler %s %s', route, method);
 
+            if (config.has('jwt')) {
+                if ('authn' in events[originalRoute]) {
+                    required = events[originalRoute]?.authn;
+                } else {
+                    required = true;
+                }
+            }
+
             // @ts-ignore
-            router[method](route, authn(events[originalRoute]?.authn), function(req: express.Request, res: express.Response) {
+            router[method](route, authn(required), function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
                 //passing all properties of req
                 let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip',
@@ -139,7 +148,6 @@ async function main() {
 
     async function processEvent(event: GSCloudEvent) { //GSCLoudEvent
         logger.info('Processing event %s',event.type);
-        logger.debug('cloud event: %o', event);
         logger.debug('event spec: %o', events[event.type]);
         const responseStructure:GSResponse = { apiVersion: (config as any).api_version || "1.0" };
 
@@ -178,7 +186,7 @@ async function main() {
             eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].fn];
         }
 
-        logger.info('calling processevent, type of handler is %s',typeof(eventHandlerWorkflow));
+        logger.info({'workflow_name': events[event.type].fn}, 'calling processevent, type of handler is %s',typeof(eventHandlerWorkflow));
 
         const ctx = new GSContext(
             config,
@@ -193,7 +201,7 @@ async function main() {
           // Execute the workflow
           await eventHandlerWorkflow(ctx);
         } catch (err: any) {
-          logger.error(`Error in executing handler ${events[event.type].fn} for the event ${event.type}. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`);
+          logger.error({'workflow_name': events[event.type].fn}, `Error in executing handler ${events[event.type].fn} for the event ${event.type}. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`);
           // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
           if (event.channel !== 'REST') {
             return false;
@@ -249,7 +257,7 @@ async function main() {
             data = data.toString();
         }
 
-        logger.debug('return value %o %o %o', data, code, headers);
+        logger.debug({'workflow_name': events[event.type].fn}, 'return value %o %o %o', data, code, headers);
         (event.metadata?.http?.express.res as express.Response).status(code).header(headers).send(data);
 
         // //Now send the actual response over REST, for both the success and failure scenarios

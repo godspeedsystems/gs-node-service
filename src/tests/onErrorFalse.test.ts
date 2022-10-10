@@ -23,10 +23,7 @@ describe(testName, () => {
             logger.debug('result: %o',result);
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
-            expect(result.data.message).to.equal('getaddrinfo ENOTFOUND httpbinabc.org');
             expect(result.data.data).to.equal('Some error happened');
-
-
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);
@@ -39,12 +36,8 @@ describe(testName, () => {
             logger.debug('result: %o',result);
             expect(result.success).to.equal(true);
             expect(result.code).to.equal(200);
-            expect(result.data.message).to.equal('getaddrinfo ENOTFOUND httpbinabc.org');
-            expect(result.data.data.data).to.equal('Some error happened');
-            expect(result.data.data.code).to.equal(200);
-
-
-
+            expect(result.data.data).to.equal('Some error happened');
+            expect(result.data.code).to.equal(200);
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);
@@ -59,9 +52,6 @@ describe(testName, () => {
             expect(result.code).to.equal(200);
             expect(result.data.data.message).to.equal('getaddrinfo ENOTFOUND httpbinabc.org');
             expect(result.data.data.code).to.equal('Error');
-
-
-
         } catch(error) {
             logger.error('error: %s',<Error>error);
             fail(<Error>error);

@@ -11,11 +11,12 @@ import loadModules from './codeLoader';
 
 export function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject): GSFunction {
 
-    logger.debug('Creating GSFunction %s', workflowJson.id);
+    logger.debug('Creating GSFunction %s workflow_name %s', workflowJson.id, workflowJson.workflow_name);
 
     if (!workflowJson.fn) {
         if (Array.isArray(workflowJson)) {
-            workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential' };
+            // @ts-ignore
+            workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential', workflow_name: workflowJson?.workflow_name };
         } else {
             workflowJson.fn = 'com.gs.sequential';
         }
@@ -25,11 +26,17 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
     switch(workflowJson.fn) {
         case 'com.gs.sequential':
-            tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
+            tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
+                taskJson.workflow_name = workflowJson.workflow_name;
+                return createGSFunction(taskJson, workflows, nativeFunctions);
+            });
             return new GSSeriesFunction(workflowJson, undefined, tasks);
 
         case 'com.gs.parallel':
-            tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
+            tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
+                taskJson.workflow_name = workflowJson.workflow_name;
+                return createGSFunction(taskJson, workflows, nativeFunctions);
+            });
             return new GSParallelFunction(workflowJson, undefined, tasks);
 
         case 'com.gs.switch': {
@@ -37,10 +44,12 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
             let cases:PlainObject = {};
 
             for (let c in workflowJson.cases) {
+                workflowJson.cases[c].workflow_name = workflowJson.workflow_name;
                 cases[c] = createGSFunction(workflowJson.cases[c], workflows, nativeFunctions);
             }
 
             if (workflowJson.defaults) {
+                workflowJson.defaults.workflow_name = workflowJson.workflow_name;
                 cases.default = createGSFunction(workflowJson.defaults, workflows, nativeFunctions);
             }
 
@@ -53,7 +62,10 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
         case 'com.gs.each_parallel': {
                 let args = [workflowJson.value];
-                let tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
+                let tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
+                    taskJson.workflow_name = workflowJson.workflow_name;
+                    return createGSFunction(taskJson, workflows, nativeFunctions);
+                });
                 let task = new GSSeriesFunction(workflowJson, undefined, tasks);
 
                 args.push(task);
@@ -65,7 +77,10 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
         case 'com.gs.each_sequential': {
                 let args = [workflowJson.value];
-                let tasks = workflowJson.tasks.map((taskJson:PlainObject) => createGSFunction(taskJson, workflows, nativeFunctions));
+                let tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
+                    taskJson.workflow_name = workflowJson.workflow_name;
+                    return createGSFunction(taskJson, workflows, nativeFunctions);
+                });
                 let task = new GSSeriesFunction(workflowJson, undefined, tasks);
 
                 args.push(task);
@@ -87,6 +102,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
         }
         subwf = true;
         if (!(existingWorkflowData instanceof GSFunction) ) { //Is still a Json data, not converted to GSFunction
+            existingWorkflowData.workflow_name = workflowJson.fn;
             fn = workflows[workflowJson.fn] = createGSFunction(existingWorkflowData, workflows, nativeFunctions);
         } else { //Is a GSFunction already
             fn = existingWorkflowData;
@@ -94,10 +110,12 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
     }
 
     if (workflowJson?.on_error?.tasks) {
+        workflowJson.on_error.tasks.workflow_name = workflowJson.workflow_name;
         workflowJson.on_error.tasks = createGSFunction(workflowJson.on_error.tasks, workflows, nativeFunctions);
     }
 
     if (workflowJson?.authz) {
+        workflowJson.authz.workflow_name = workflowJson.workflow_name;
         workflowJson.authz = createGSFunction(workflowJson.authz, workflows, nativeFunctions);
     }
     return new GSFunction(workflowJson, fn, workflowJson.args, subwf);
@@ -122,6 +140,7 @@ export async function loadFunctions(datasources: PlainObject,pathString: string)
 
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
+            functions[f].workflow_name = f;
             functions[f] = createGSFunction(functions[f], functions, code);
         }
     }
