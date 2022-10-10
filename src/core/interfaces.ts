@@ -9,7 +9,7 @@ import opentelemetry from "@opentelemetry/api";
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
-import { compileScript } from './utils';  // eslint-disable-line
+import { compileScript, isPlainObject } from './utils';  // eslint-disable-line
 import evaluateScript from '../scriptRuntime'; // eslint-disable-line
 import { promClient } from '../telemetry/monitoring';
 import authnWorkflow from './authnWorkflow';
@@ -425,17 +425,21 @@ export class GSFunction extends Function {
   async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
 
     logger.info('_call invoked with task value %s %o', this.id, taskValue);
-    let status;
+    let status, prismaArgs;
 
     if (this.yaml.authz) {
       logger.info('invoking authz workflow, creating new ctx');
       let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
 
       const newCtx = ctx.cloneWithNewData(args);
-      let allow = await this.yaml.authz.args(newCtx, taskValue);
-      if (allow.success && allow.data === false) {
-        ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
-        return ctx.exitWithStatus;
+      let allow = await this.yaml.authz(newCtx, taskValue);
+      if (allow.success) {
+        if (allow.data === false) {
+          ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
+          return ctx.exitWithStatus;
+        } else if (isPlainObject(allow.data)) {
+          prismaArgs = allow.data;
+        }
       }
     }
 
@@ -446,6 +450,11 @@ export class GSFunction extends Function {
         if (this.args_script) {
           args = await evaluateScript(ctx, this.args_script, taskValue);
         }
+
+        if (prismaArgs && args.data) {
+          args.data = _.merge(args.data, prismaArgs);
+        }
+
         const newCtx = ctx.cloneWithNewData(args);
         status = await this.fn(newCtx, taskValue);
       } else {
