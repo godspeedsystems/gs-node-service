@@ -1,7 +1,7 @@
 /*
-* You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
-* © 2022 Mindgrep Technologies Pvt Ltd
-*/
+ * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
+ * © 2022 Mindgrep Technologies Pvt Ltd
+ */
 import config from 'config';
 
 import { logger } from './logger';
@@ -15,7 +15,11 @@ function substitute(value: string): any {
 
       let script = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
       //TODO: pass other context variables
-      value = Function('config', 'mappings', 'return ' + script)(config, appConfig.app.mappings);
+      value = Function(
+        'config',
+        'mappings',
+        'return ' + script
+      )(config, appConfig.app.mappings);
       logger.debug('value after %s', value);
     }
   } catch (ex) {
@@ -29,21 +33,21 @@ export default function compileScript(args: any) {
   if (!args) {
     return args;
   }
-  if (typeof(args) == 'object') {
+  if (typeof args == 'object') {
     if (!Array.isArray(args)) {
-        let out: PlainObject = {};
-        for (let k in args) {
-          out[k] = compileScript(args[k]);
-        }
-        return out;
+      let out: PlainObject = {};
+      for (let k in args) {
+        out[k] = compileScript(args[k]);
+      }
+      return out;
     } else {
-        let out:[any] = <any>[];
-        for (let k in <[any]>args) {
-          out[k] = compileScript(args[k]);
-        }
-        return out;
+      let out: [any] = <any>[];
+      for (let k in <[any]>args) {
+        out[k] = compileScript(args[k]);
+      }
+      return out;
     }
-  } else if (typeof(args) == 'string') {
+  } else if (typeof args == 'string') {
     return substitute(args);
   }
 
