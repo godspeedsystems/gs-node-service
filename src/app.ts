@@ -13,6 +13,7 @@ import {
 } from './core/interfaces';
 
 import config from 'config';
+
 import authn from './authn';
 
 import app, { router } from './http_listener';
@@ -224,7 +225,6 @@ async function main() {
   async function processEvent(event: GSCloudEvent) {
     //GSCLoudEvent
     logger.info('Processing event %s', event.type);
-    logger.debug('cloud event: %o', event);
     logger.debug('event spec: %o', events[event.type]);
     const responseStructure: GSResponse = {
       apiVersion: (config as any).api_version || '1.0',
@@ -283,6 +283,7 @@ async function main() {
     }
 
     logger.info(
+      { workflow_name: events[event.type].fn },
       'calling processevent, type of handler is %s',
       typeof eventHandlerWorkflow
     );
@@ -301,6 +302,7 @@ async function main() {
       await eventHandlerWorkflow(ctx);
     } catch (err: any) {
       logger.error(
+        { workflow_name: events[event.type].fn },
         `Error in executing handler ${events[event.type].fn} for the event ${
           event.type
         }. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`
@@ -370,7 +372,13 @@ async function main() {
       data = data.toString();
     }
 
-    logger.debug('return value %o %o %o', data, code, headers);
+    logger.debug(
+      { workflow_name: events[event.type].fn },
+      'return value %o %o %o',
+      data,
+      code,
+      headers
+    );
     (event.metadata?.http?.express.res as express.Response)
       .status(code)
       .header(headers)
