@@ -123,8 +123,8 @@ const SEVERITY_NAME_MAP = {
  * @param {MapperOptions} mapperOptions
  * @returns {OpenTelemetryLogData}
  */
-function toOpenTelemetry (sourceObject, { messageKey }, resourceOptions) {
-  const { time, level, hostname, pid, [messageKey]: msg, ...attributes } = sourceObject;
+ function toOpenTelemetry (sourceObject, { messageKey }, resourceOptions) {
+  const { time, level, hostname, pid, trace_id, span_id, trace_flags, [messageKey]: msg, ...attributes } = sourceObject;
 
   const severityNumber = SEVERITY_NUMBER_MAP[sourceObject.level];
   const severityText = SEVERITY_NAME_MAP[severityNumber];
@@ -134,6 +134,9 @@ function toOpenTelemetry (sourceObject, { messageKey }, resourceOptions) {
     Timestamp: time + ZEROS_FROM_MILLI_TO_NANO,
     SeverityNumber: severityNumber,
     SeverityText: severityText,
+    TraceId: trace_id,
+    SpanId: span_id,
+    TraceFlags: trace_flags,
     Resource: {
       ...resourceOptions,
       'host.hostname': hostname,
