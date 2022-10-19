@@ -1,0 +1,47 @@
+{
+    "$id": "kafka_datasource_schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "const": "kafka"
+        },
+        "client_id": {
+            "type": "string"
+        },
+        "brokers": {
+            "type": "array",
+            "items": [
+                {
+                    "type": "string"
+                }
+            ],
+            "minItems": 1
+        },
+        "producer": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "$ref": "#/definitions/producerOptions"
+                }
+            }
+        },
+        "consumer": {
+            "type": "object",
+            "properties": {
+                "options": {
+                    "$ref": "#/definitions/consumerOptions"
+                }
+            }
+        }
+    },
+    "definitions": {
+        "producerOptions": {
+            "type": "object"
+        },
+        "consumerOptions": {
+            "type": "object"
+        }
+    },
+    "errorMessage": "It's not a valid kafka datasource definition. Refer above error for more detail."
+}

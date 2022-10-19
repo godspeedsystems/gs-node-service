@@ -1,7 +1,7 @@
 /*
-* You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
-* © 2022 Mindgrep Technologies Pvt Ltd
-*/
+ * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
+ * © 2022 Mindgrep Technologies Pvt Ltd
+ */
 import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 import path from 'path';
@@ -14,6 +14,11 @@ import { PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
 import loadRedisClient from '../redis';
 import loadElasticgraphClient from '../elasticgraph';
+import {
+  isValidApiDatasource,
+  isValidRedisDatasource,
+  isValidKafkaDatasource,
+} from './validation';
 const axiosTime = require('axios-time');
 
 export default async function loadDatasources(pathString: string) {
@@ -35,22 +40,33 @@ export default async function loadDatasources(pathString: string) {
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
-
     logger.info('Loaded datasource: %s', ds);
 
     // Expand config variables
     datasources[ds] = expandVariables(datasources[ds]);
 
     if (datasources[ds].type === 'api') {
-      loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
+      if (isValidApiDatasource(datasources[ds])) {
+        loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
+      } else {
+        process.exit(1);
+      }
     } else if (datasources[ds].type === 'datastore') {
       loadedDatasources[ds] = await loadPrismaClient(
         pathString + '/generated-clients/' + ds
       );
     } else if (datasources[ds].type === 'kafka') {
-      loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
+      if (isValidKafkaDatasource(datasources[ds])) {
+        loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
+      } else {
+        process.exit(1);
+      }
     } else if (datasources[ds].type === 'redis') {
-      loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
+      if (isValidRedisDatasource(datasources[ds])) {
+        loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
+      } else {
+        process.exit(1);
+      }
     } else if (datasources[ds].type === 'elasticgraph') {
       loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
     } else if (datasources[ds].type) {
@@ -132,9 +148,9 @@ async function loadHttpDatasource(
   if (datasource.schema) {
     const api = new OpenAPIClientAxios({ definition: datasource.schema });
     api.init();
-    ds.client = await api.getClient();;
+    ds.client = await api.getClient();
   } else {
-    ds.client = axios.create({baseURL: datasource.base_url});
+    ds.client = axios.create({ baseURL: datasource.base_url });
 
     const security = datasource.security;
     const securitySchemes = datasource.securitySchemes;
