@@ -11,9 +11,7 @@ import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
-//import promBundle from 'express-prom-bundle';
-import promMid from 'express-prometheus-middleware';
-import { promClient } from './telemetry/monitoring';
+import promMid from '@mindgrep/express-prometheus-middleware';
 
 //File Path for api-docs
 const file = PROJECT_ROOT_DIRECTORY.split("/");
@@ -38,7 +36,6 @@ app.use(fileUpload({
 
 app.listen(port);
 
-//promClient.collectDefaultMetrics();
 app.use(promMid({
   collectDefaultMetrics: true,
   requestDurationBuckets: [0.1, 0.5, 1, 1.5],

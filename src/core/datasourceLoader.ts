@@ -5,6 +5,9 @@
 import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 import path from 'path';
+import { fieldEncryptionMiddleware } from '@mindgrep/prisma-deterministic-search-field-encryption';
+import { Buffer } from 'buffer';
+import crypto from 'crypto';
 import { logger } from './logger';
 import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
@@ -19,7 +22,16 @@ import {
   isValidRedisDatasource,
   isValidKafkaDatasource,
 } from './validation';
+import config from 'config';
 const axiosTime = require('axios-time');
+
+const secret = (config as any).prismaSecret || 'prismaEncryptionSecret';
+const password_hash = crypto
+  .createHash('md5')
+  .update(secret, 'utf-8')
+  .digest('hex')
+  .toUpperCase();
+const iv = Buffer.alloc(16);
 
 export default async function loadDatasources(pathString: string) {
   logger.info('Loading datasources');
@@ -202,9 +214,16 @@ async function loadHttpDatasource(
 }
 
 async function loadPrismaClient(pathString: string): Promise<PlainObject> {
-  const { PrismaClient } = require(pathString);
+  const { Prisma, PrismaClient } = require(pathString);
   const prisma = new PrismaClient();
   await prisma.$connect();
+  prisma.$use(
+    fieldEncryptionMiddleware({
+      encryptFn: (decrypted: any) => cipher(decrypted),
+      decryptFn: (encrypted: string) => decipher(encrypted),
+      dmmf: Prisma.dmmf,
+    })
+  );
   return {
     client: prisma,
     //any other config params
@@ -217,4 +236,14 @@ async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
     client: new KafkaMessageBus(datasource),
   };
   return ds;
+}
+
+function cipher(decrypted: any) {
+  const cipher = crypto.createCipheriv('aes-256-gcm', password_hash, iv);
+  return cipher.update(decrypted, 'utf-8', 'hex');
+}
+
+function decipher(encrypted: string) {
+  const decipher = crypto.createDecipheriv('aes-256-gcm', password_hash, iv);
+  return decipher.update(encrypted, 'hex', 'utf-8');
 }
