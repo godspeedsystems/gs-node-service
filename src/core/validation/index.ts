@@ -7,6 +7,7 @@ import workflowSchema from './workflow.schema.json';
 import apiDsSchema from './datasources/api.schema.json';
 import redisDsSchema from './datasources/redis.schema.json';
 import kafkaDsSchema from './datasources/kafka.schema.json';
+import elasticgraphSchema from './datasources/elasticgraph.schema.json';
 
 const ajvInstance = new Ajv({ allErrors: true });
 addFormats(ajvInstance);
@@ -17,6 +18,7 @@ const validateWorkflow = ajvInstance.compile(workflowSchema);
 const validateApiDs = ajvInstance.compile(apiDsSchema);
 const validateRedisDs = ajvInstance.compile(redisDsSchema);
 const validateKafkaDs = ajvInstance.compile(kafkaDsSchema);
+const validElasticgraphDs = ajvInstance.compile(elasticgraphSchema);
 
 export const isValidEvent = (event: PlainObject, eventKey: string): boolean => {
   if (!validateEvent(event)) {
@@ -70,6 +72,19 @@ export const isValidKafkaDatasource = (datasource: PlainObject): boolean => {
       JSON.stringify(datasource)
     );
     logger.error(validateKafkaDs.errors);
+    return false;
+  }
+  return true;
+};
+
+export const isValidElasticgraphDatasource = (
+  datasource: PlainObject
+): boolean => {
+  if (!validElasticgraphDs(datasource)) {
+    logger.error(
+      'Datasource validation failed for %s datasource',
+      JSON.stringify(datasource)
+    );
     return false;
   }
   return true;

@@ -24,6 +24,12 @@
         },
         "responses": {
             "type": "object"
+        },
+        "authn": {
+            "type": "boolean"
+        },
+        "on_validation_error": {
+            "type": "boolean"
         }
     },
     "additionalProperties": true,

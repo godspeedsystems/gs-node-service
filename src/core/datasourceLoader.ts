@@ -21,6 +21,7 @@ import {
   isValidApiDatasource,
   isValidRedisDatasource,
   isValidKafkaDatasource,
+  isValidElasticgraphDatasource,
 } from './validation';
 import config from 'config';
 const axiosTime = require('axios-time');
@@ -80,7 +81,11 @@ export default async function loadDatasources(pathString: string) {
         process.exit(1);
       }
     } else if (datasources[ds].type === 'elasticgraph') {
-      loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
+      if (isValidElasticgraphDatasource(datasources[ds])) {
+        loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
+      } else {
+        process.exit(1);
+      }
     } else if (datasources[ds].type) {
       //some other type
       if (datasources[ds].loadFn) {
