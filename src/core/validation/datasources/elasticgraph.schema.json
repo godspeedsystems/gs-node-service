@@ -1,0 +1,26 @@
+{
+    "$id": "elasticgraph_datasource_schema",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+        "type",
+        "schema_backend",
+        "deep",
+        "collect"
+    ],
+    "properties": {
+        "type": {
+            "const": "elasticgraph"
+        },
+        "schema_backend": {
+            "type": "string"
+        },
+        "deep": {
+            "type": "boolean"
+        },
+        "collect": {
+            "type": "boolean"
+        }
+    },
+    "errorMessage": "It's not a valid elasticgraph datasource definition. Refer above error for more detail."
+}
