@@ -52,7 +52,7 @@ function subscribeToEvents(events: any, datasources: PlainObject, processEvent:(
             router[method](route, authn(required), function(req: express.Request, res: express.Response) {
                 logger.debug('originalRoute: %s %o %o', originalRoute, req.params, req.files);
                 //passing all properties of req
-                let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip',
+                let data = _.pick(req, ['baseUrl', 'body','cookies', 'fresh', 'hostname', 'ip', 'user',
                                     'ips', 'method', 'originalUrl', 'params', 'path', 'protocol', 'query',
                                     'route', 'secure', 'signedCookies', 'stale', 'subdomains', 'xhr', 'headers']);
 
