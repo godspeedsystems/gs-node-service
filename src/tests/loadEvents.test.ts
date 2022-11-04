@@ -22,7 +22,7 @@ describe(testName, () => {
       const testId = 'loadEventsSuccess';
       const { loadInputs, pathString } = await require(`${fixDir}/${testId}`);
       const functions = await loadInputs();
-      const result = await loadEvents(functions, {}, pathString);
+      const result = await loadEvents(functions, pathString);
 
       logger.debug('result: %o', result);
 

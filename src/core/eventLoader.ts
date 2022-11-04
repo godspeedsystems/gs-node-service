@@ -11,9 +11,8 @@ import { loadJsonSchemaForEvents } from './jsonSchemaValidation';
 import expandVariables from './expandVariables';
 import _ from 'lodash';
 
-const replaceRefsInEvents = (
-  events: PlainObject,
-  definitions: PlainObject
+const rewiteRefsToAbsolutePath = (
+  events: PlainObject
 ): PlainObject | undefined => {
   if (!Object.keys(events).length) {
     // there are no events
@@ -36,14 +35,9 @@ const replaceRefsInEvents = (
           if (contentSchema) {
             if (contentSchema.hasOwnProperty('$ref')) {
               const defKey = contentSchema.$ref;
-              logger.info('defKey=%s in definitions=%o', defKey, definitions);
-              if (_.has(definitions, defKey)) {
-                contentSchema = _.get(definitions, defKey);
-                bodyContent[contentType].schema = contentSchema;
-              } else {
-                logger.error(`${defKey} is not defined in definitions.`);
-                process.exit(1);
-              }
+              contentSchema.$ref =
+                'https://godspeed.systems/definitions.json' + defKey;
+              bodyContent[contentType].schema = contentSchema;
             }
           }
         });
@@ -62,14 +56,10 @@ const replaceRefsInEvents = (
             if (responseContentTypeSchema) {
               if (responseContentTypeSchema.hasOwnProperty('$ref')) {
                 const defKey = responseContentTypeSchema.$ref;
-                if (_.has(definitions, defKey)) {
-                  responseContentTypeSchema = _.get(definitions, defKey);
-                  responses[responseCode].content[responseContentType].schema =
-                    responseContentTypeSchema;
-                } else {
-                  logger.error(`${defKey} is not defined in definitions.`);
-                  process.exit(1);
-                }
+                responseContentTypeSchema.$ref =
+                  'https://godspeed.systems/definitions.json' + defKey;
+                responses[responseCode].content[responseContentType].schema =
+                  responseContentTypeSchema;
               }
             }
           });
@@ -85,16 +75,13 @@ const replaceRefsInEvents = (
 
 export default async function loadEvents(
   functions: PlainObject,
-  definitions: PlainObject,
   pathString: string
 ) {
   logger.info('Loading events');
   const events = await loadYaml(pathString, true);
   logger.debug('events %o', events);
-  //   logger.info('Loaded events: %s', Object.keys(events));
-  let eventsAfterReplacement = replaceRefsInEvents(events, definitions);
-  logger.debug('refReplacedEvents %o', eventsAfterReplacement);
-  const evalEvents = expandVariables(eventsAfterReplacement);
+
+  const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events));
 
   const checkFn = checkFunctionExists(events, functions);
   if (!checkFn.success) {

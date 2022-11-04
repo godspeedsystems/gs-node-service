@@ -30,7 +30,7 @@ import { kafka } from './kafka';
 import _ from 'lodash';
 import { promClient } from './telemetry/monitoring';
 import { importAll } from './scriptRuntime';
-import { loadDefinitions } from './core/definitionsLoader';
+import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 
 function subscribeToEvents(
   events: any,
@@ -183,9 +183,7 @@ async function main() {
   logger.info('Main execution');
   let functions: PlainObject;
 
-  const definitions = await loadDefinitions(
-    PROJECT_ROOT_DIRECTORY + '/definitions'
-  );
+  await loadAndRegisterDefinitions(PROJECT_ROOT_DIRECTORY + '/definitions');
 
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
@@ -401,7 +399,6 @@ async function main() {
 
   const events = await loadEvents(
     functions,
-    definitions,
     PROJECT_ROOT_DIRECTORY + '/events'
   );
   subscribeToEvents(events, datasources, processEvent);

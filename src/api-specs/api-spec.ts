@@ -7,18 +7,15 @@ import yaml from 'yaml';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 import fs from 'fs-extra';
-import { removeNulls, PROJECT_ROOT_DIRECTORY } from '../core/utils';
+import { removeNulls } from '../core/utils';
 import swaggerCommonPart from './basic-spec';
-import { loadDefinitions } from '../core/definitionsLoader';
-import _ from 'lodash';
 
 export default async function generateSchema(
-  eventsFolderPath: string
+  eventsFolderPath: string,
+  definitionsFolderPath: string
 ): Promise<PlainObject> {
   const eventsSchema: PlainObject = await loadEventsYaml(eventsFolderPath);
-  const definitions: PlainObject = await loadDefinitions(
-    PROJECT_ROOT_DIRECTORY + '/definitions'
-  );
+  const definitions: PlainObject = await loadYaml(definitionsFolderPath, false);
   const finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart)); //Make a deep clone copy
 
   Object.keys(eventsSchema).forEach((event: any) => {
@@ -27,31 +24,11 @@ export default async function generateSchema(
     const method = event.split('.')[2];
     const eventSchema = eventsSchema[event];
 
-    const bodyContent =
-      eventSchema?.body?.content || eventSchema?.data?.body?.content;
-
-    if (bodyContent) {
-      Object.keys(bodyContent).forEach((contentType: string) => {
-        let contentSchema = bodyContent[contentType].schema;
-        if (contentSchema) {
-          if (contentSchema.hasOwnProperty('$ref')) {
-            const defKey = contentSchema.$ref;
-            if (_.has(definitions, defKey)) {
-              contentSchema.$ref = `#/definitions/${defKey
-                .split('.')
-                .join('/')}`;
-              bodyContent[contentType].schema = contentSchema;
-            }
-          }
-        }
-      });
-    }
-
     //Initialize the schema for this method, for given event
     let methodSpec: PlainObject = {
       summary: eventSchema.summary,
       description: eventSchema.description,
-      requestBody: { content: bodyContent },
+      requestBody: eventSchema.body || eventSchema.data?.schema?.body,
       parameters: eventSchema.params || eventSchema.data?.schema?.params,
       responses: eventSchema.responses,
     };
@@ -62,12 +39,11 @@ export default async function generateSchema(
       [method]: methodSpec,
     };
   });
-
+  // add definitions{models} in swagger specs
+  finalSpec.definitions = definitions;
   removeNulls(finalSpec);
-  finalSpec.definitions = { ...definitions };
   return finalSpec;
 }
-
 async function loadEventsYaml(path: string) {
   try {
     return await loadYaml(path, true);
@@ -79,7 +55,8 @@ async function loadEventsYaml(path: string) {
 
 if (require.main === module) {
   const eventPath = '/workspace/development/app/src/events';
-  generateSchema(eventPath)
+  const definitionsPath = '/workspace/development/app/src/definitions';
+  generateSchema(eventPath, definitionsPath)
     .then((schema) => {
       fs.outputFile(
         '/workspace/development/app/docs/api-doc.yaml',
