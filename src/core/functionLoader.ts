@@ -76,18 +76,18 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
             }
 
         case 'com.gs.each_sequential': {
+                let workflowJson1 = JSON.parse(JSON.stringify(workflowJson));
                 let args = [workflowJson.value];
                 let tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
                     taskJson.workflow_name = workflowJson.workflow_name;
                     return createGSFunction(taskJson, workflows, nativeFunctions);
                 });
                 let task = new GSSeriesFunction(workflowJson, undefined, tasks);
-
                 args.push(task);
 
                 logger.debug('loading each sequential workflow %o', workflowJson.tasks);
 
-                return new GSEachSeriesFunction(workflowJson, undefined, args);
+                return new GSEachSeriesFunction(workflowJson1, undefined, args);
             }
     }
 
