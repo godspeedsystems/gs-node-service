@@ -20,7 +20,7 @@ export function initialize() {
           issuer: jwtConfig.issuer,
         }
       }, function(jwtPayload, done) {
-          return done(null, {});
+          return done(null, jwtPayload);
       }));
 }
 

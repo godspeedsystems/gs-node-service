@@ -52,6 +52,73 @@ function subscribeToEvents(
       if (config.has('jwt')) {
         if ('authn' in events[originalRoute]) {
           required = events[originalRoute]?.authn;
+          logger.info('registering http handler %s %s', route, method);
+
+          if (config.has('jwt')) {
+            if ('authn' in events[originalRoute]) {
+              required = events[originalRoute]?.authn;
+            } else {
+              required = true;
+            }
+          }
+
+          // @ts-ignore
+          router[method](
+            route,
+            authn(required),
+            function (req: express.Request, res: express.Response) {
+              logger.debug(
+                'originalRoute: %s %o %o',
+                originalRoute,
+                req.params,
+                req.files
+              );
+              //passing all properties of req
+              let data = _.pick(req, [
+                'baseUrl',
+                'body',
+                'cookies',
+                'fresh',
+                'hostname',
+                'ip',
+                'user',
+                'ips',
+                'method',
+                'originalUrl',
+                'params',
+                'path',
+                'protocol',
+                'query',
+                'route',
+                'secure',
+                'signedCookies',
+                'stale',
+                'subdomains',
+                'xhr',
+                'headers',
+              ]);
+
+              logger.info('inputs %o', data);
+              //@ts-ignore
+              data.files = Object.values(req.files || {});
+              const event = new GSCloudEvent(
+                'id',
+                originalRoute,
+                new Date(),
+                'http',
+                '1.0',
+                data,
+                'REST',
+                new GSActor('user'),
+                { http: { express: { res } } }
+              );
+              processEvent(event);
+            }
+          );
+        } else if (route.includes('.kafka.')) {
+          let [topic, groupId] = route.split('.kafka.');
+          logger.info('registering kafka handler %s %s', topic, groupId);
+          kafka.subscribe(topic, groupId, 'kafka', processEvent);
         } else {
           required = true;
         }
