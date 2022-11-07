@@ -50,19 +50,21 @@ const rewiteRefsToAbsolutePath = (
         Object.keys(responses).forEach((responseCode) => {
           let responseContent = responses[responseCode].content;
           logger.info('responseContent %o', responseContent);
-          Object.keys(responseContent).forEach((responseContentType) => {
-            let responseContentTypeSchema =
-              responseContent[responseContentType].schema;
-            if (responseContentTypeSchema) {
-              if (responseContentTypeSchema.hasOwnProperty('$ref')) {
-                const defKey = responseContentTypeSchema.$ref;
-                responseContentTypeSchema.$ref =
-                  'https://godspeed.systems/definitions.json' + defKey;
-                responses[responseCode].content[responseContentType].schema =
-                  responseContentTypeSchema;
+          if (responseContent) {
+            Object.keys(responseContent).forEach((responseContentType) => {
+              let responseContentTypeSchema =
+                responseContent[responseContentType].schema;
+              if (responseContentTypeSchema) {
+                if (responseContentTypeSchema.hasOwnProperty('$ref')) {
+                  const defKey = responseContentTypeSchema.$ref;
+                  responseContentTypeSchema.$ref =
+                    'https://godspeed.systems/definitions.json' + defKey;
+                  responses[responseCode].content[responseContentType].schema =
+                    responseContentTypeSchema;
+                }
               }
-            }
-          });
+            });
+          }
         });
       }
 
