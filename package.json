@@ -56,6 +56,7 @@
     "glob": "^8.0.1",
     "js-yaml": "^4.1.0",
     "kafkajs": "^2.0.0",
+    "lodash": "^4.17.21",
     "node-cleanup": "^2.1.2",
     "openapi-client-axios": "^5.1.2",
     "opentelemetry-instrumentation-kafkajs": "^0.27.1",
