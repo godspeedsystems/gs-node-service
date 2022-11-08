@@ -12,8 +12,11 @@
         "schema": {
             "type": "string"
         },
-        "security": {
+        "headers": {
             "type": "object"
+        },
+        "security": {
+            "type": "array"
         },
         "securitySchemes": {
             "type": "object"
