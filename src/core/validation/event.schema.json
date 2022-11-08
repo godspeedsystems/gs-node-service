@@ -29,7 +29,7 @@
             "type": "boolean"
         },
         "on_validation_error": {
-            "type": "boolean"
+            "type": "string"
         }
     },
     "additionalProperties": true,
