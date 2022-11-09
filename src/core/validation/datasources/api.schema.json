@@ -1,0 +1,40 @@
+{
+    "$id": "api_datasource_schema",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "type": {
+            "const": "api"
+        },
+        "base_url": {
+            "type": "string"
+        },
+        "schema": {
+            "type": "string"
+        },
+        "headers": {
+            "type": "object"
+        },
+        "security": {
+            "type": "array"
+        },
+        "securitySchemes": {
+            "type": "object"
+        }
+    },
+    "anyOf": [
+        {
+            "required": [
+                "type",
+                "base_url"
+            ]
+        },
+        {
+            "required": [
+                "type",
+                "schema"
+            ]
+        }
+    ],
+    "errorMessage": "It's not a valid api datasource definition. Refer above error for more detail."
+}

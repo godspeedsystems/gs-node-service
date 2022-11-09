@@ -1,11 +1,11 @@
 /*
-* You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
-* © 2022 Mindgrep Technologies Pvt Ltd
-*/
+ * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
+ * © 2022 Mindgrep Technologies Pvt Ltd
+ */
 import express from 'express';
 import bodyParser from 'body-parser';
 import expressPinoLogger from 'express-pino-logger';
-import swaggerUI from "swagger-ui-express";
+import swaggerUI from 'swagger-ui-express';
 import path from 'path';
 import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
@@ -14,48 +14,56 @@ import generateSchema from './api-specs/api-spec';
 import promMid from '@mindgrep/express-prometheus-middleware';
 
 //File Path for api-docs
-const file = PROJECT_ROOT_DIRECTORY.split("/");
+const file = PROJECT_ROOT_DIRECTORY.split('/');
 file.pop();
 
 const loggerExpress = expressPinoLogger({
-    logger: logger,
-    autoLogging: true,
-  });
+  logger: logger,
+  autoLogging: true,
+});
 
-const app:express.Express = express();
+const app: express.Express = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(loggerExpress);
 
 const port = process.env.PORT || 3000;
-app.use(fileUpload({
+app.use(
+  fileUpload({
     useTempFiles: true,
     limits: { fileSize: 50 * 1024 * 1024 },
-}));
+  })
+);
 
 app.listen(port);
 
-app.use(promMid({
-  collectDefaultMetrics: true,
-  requestDurationBuckets: [0.1, 0.5, 1, 1.5],
-  requestLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400],
-  responseLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400]
-}));
+app.use(
+  promMid({
+    collectDefaultMetrics: true,
+    requestDurationBuckets: [0.1, 0.5, 1, 1.5],
+    requestLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400],
+    responseLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400],
+  })
+);
 
 const eventPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/events');
+const definitionsPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/definitions');
 
-generateSchema(eventPath)
+generateSchema(eventPath, definitionsPath)
   .then((schema) => {
-    logger.debug("api-schema generated at /api-docs");
-    app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(schema));
+    logger.debug('api-schema generated at /api-docs');
+    app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(schema));
   })
   .catch((e) => {
     logger.error('Error in generating API schema %o', e);
     process.exit(1);
   });
 
-logger.info('Node + Express REST API skeleton server started on port: %s', port);
+logger.info(
+  'Node + Express REST API skeleton server started on port: %s',
+  port
+);
 
 export default app;
 

@@ -1,19 +1,21 @@
 /*
-* You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
-* © 2022 Mindgrep Technologies Pvt Ltd
-*/
+ * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
+ * © 2022 Mindgrep Technologies Pvt Ltd
+ */
 import loadYaml from '../core/yamlLoader';
 import yaml from 'yaml';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 import fs from 'fs-extra';
-import { removeNulls, PROJECT_ROOT_DIRECTORY } from '../core/utils';
+import { removeNulls } from '../core/utils';
 import swaggerCommonPart from './basic-spec';
 
 export default async function generateSchema(
-  eventsFolderPath: string
+  eventsFolderPath: string,
+  definitionsFolderPath: string
 ): Promise<PlainObject> {
   const eventsSchema: PlainObject = await loadEventsYaml(eventsFolderPath);
+  const definitions: PlainObject = await loadYaml(definitionsFolderPath, false);
   const finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart)); //Make a deep clone copy
 
   Object.keys(eventsSchema).forEach((event: any) => {
@@ -37,6 +39,8 @@ export default async function generateSchema(
       [method]: methodSpec,
     };
   });
+  // add definitions{models} in swagger specs
+  finalSpec.definitions = definitions;
   removeNulls(finalSpec);
   return finalSpec;
 }
@@ -51,7 +55,8 @@ async function loadEventsYaml(path: string) {
 
 if (require.main === module) {
   const eventPath = '/workspace/development/app/src/events';
-  generateSchema(eventPath)
+  const definitionsPath = '/workspace/development/app/src/definitions';
+  generateSchema(eventPath, definitionsPath)
     .then((schema) => {
       fs.outputFile(
         '/workspace/development/app/docs/api-doc.yaml',

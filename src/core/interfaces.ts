@@ -501,13 +501,6 @@ export class GSParallelFunction extends GSFunction {
     for (const child of this.args!) {
 
       output = ctx.outputs[child.id];
-      // populating only first failed task status and code
-      if (!output.success && status.success) {
-        status.success = false;
-        status.code = output.code;
-        status.message = output.message;
-      }
-
       outputs.push(output);
     }
 
@@ -618,19 +611,36 @@ export class GSEachSeriesFunction extends GSFunction {
 
     logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSEachSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
-    const outputs:[GSStatus] = <any>[];
+    //const outputs:[GSStatus] = <any>[];
+    const outputs:any[] = [];
+    const status = new GSStatus(true, 200, '', outputs);
+    let taskRes: any;
+    let allTasksFailed = true;
 
     for (const val of value) {
-      outputs.push(await task(ctx, val));
+      taskRes = await task(ctx, val);
 
       if (ctx.exitWithStatus) {
         ctx.outputs[this.id] = ctx.exitWithStatus;
-        return ctx.exitWithStatus;
+        outputs.push(ctx.outputs[this.id]);
+        break;  // break from for loop when continue is false for any task_value in each_sequential.
+      } else {
+        outputs.push(taskRes);
+        if (taskRes.success) {
+          allTasksFailed = false;
+        }
       }
     }
 
-    const status = new GSStatus(true, 200, '', outputs.map(t => t.data));
+    delete ctx.exitWithStatus; // exitWithStatus is removed from ctx so that other tasks (outside each_sequential loop) can be continued.
     ctx.outputs[this.id] = status;
+
+    if (allTasksFailed) {
+      status.success = false;
+      status.code = 500;
+      return this.handleError(ctx, status, taskValue); // if the all the tasks get failed then check on_error at each_sequential loop level
+    }
+
     return ctx.outputs[this.id];
   }
 }

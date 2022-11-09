@@ -1,0 +1,77 @@
+{
+    "$id": "event_schema",
+    "type": "object",
+    "properties": {
+        "fn": {
+            "type": "string"
+        },
+        "summary": {
+            "type": "string"
+        },
+        "description": {
+            "type": "string"
+        },
+        "body": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "object"
+                }
+            }
+        },
+        "params": {
+            "$ref": "#/definitions/params"
+        },
+        "responses": {
+            "type": "object"
+        },
+        "authn": {
+            "type": "boolean"
+        },
+        "on_validation_error": {
+            "type": "string"
+        }
+    },
+    "additionalProperties": true,
+    "definitions": {
+        "params": {
+            "type": "array",
+            "items": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "in": {
+                            "enum": [
+                                "cookie",
+                                "path",
+                                "query",
+                                "header"
+                            ]
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "required": {
+                            "type": "boolean"
+                        },
+                        "schema": {
+                            "type": "object"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "allow_empty_value": {
+                            "type": "boolean"
+                        }
+                    },
+                    "required": [
+                        "in",
+                        "schema"
+                    ]
+                }
+            ],
+            "minItems": 0
+        }
+    },
+    "errorMessage": "It's not a valid event definition. Refer above error for more detail."
+}
