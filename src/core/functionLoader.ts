@@ -61,9 +61,11 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
         }
 
         case 'com.gs.each_parallel': {
+                let workflowJson1 = JSON.parse(JSON.stringify(workflowJson));
                 let args = [workflowJson.value];
                 let tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
                     taskJson.workflow_name = workflowJson.workflow_name;
+                    taskJson.isEachParallel = true;
                     return createGSFunction(taskJson, workflows, nativeFunctions);
                 });
                 let task = new GSSeriesFunction(workflowJson, undefined, tasks);
@@ -72,7 +74,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
                 logger.debug('loading each parallel workflow %o', workflowJson.tasks);
 
-                return new GSEachParallelFunction(workflowJson, undefined, args);
+                return new GSEachParallelFunction(workflowJson1, undefined, args);
             }
 
         case 'com.gs.each_sequential': {

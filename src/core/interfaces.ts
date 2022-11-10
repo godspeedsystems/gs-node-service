@@ -471,8 +471,14 @@ export class GSSeriesFunction extends GSFunction {
     for (const child of this.args!) {
       ret = await child(ctx, taskValue);
       if (ctx.exitWithStatus) {
-        ctx.outputs[this.id] = ctx.exitWithStatus;
-        return ctx.exitWithStatus;
+        if (child.yaml.isEachParallel) {
+          logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
+          ctx.outputs[this.id] = ret;
+          return ret;
+        } else {
+          ctx.outputs[this.id] = ctx.exitWithStatus;
+          return ctx.exitWithStatus;
+        }
       }
     }
     logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'this.id: %s, output: %s', this.id, ret.data);
@@ -569,19 +575,36 @@ export class GSEachParallelFunction extends GSFunction {
 
     let i = 0;
     if (!Array.isArray(value)) {
-      ctx.outputs[this.id] = new GSStatus(false, undefined, `GsEachParallel is value is not an array`);
+      ctx.outputs[this.id] = new GSStatus(false, undefined, `GSEachParallel value is not an array`);
       return ctx.outputs[this.id];
     }
 
     const promises = [];
+    let outputs:any[] = [];
+    let status: GSStatus;
+    let allTasksFailed = true;
 
     for (const val of value) {
       promises.push(task(ctx, val));
     }
+    outputs = await Promise.all(promises);
+    status = new GSStatus(true, 200, '', outputs);
 
-    const outputs = await Promise.all(promises);
-    const status = new GSStatus(true, 200, '', outputs.map(t => (<GSStatus>t).data));
+    for (const output of outputs) {
+      if (output.success) {
+        allTasksFailed = false;
+      }
+    }
+
+    delete ctx.exitWithStatus;
     ctx.outputs[this.id] = status;
+
+    if (allTasksFailed) {
+      status.success = false;
+      status.code = 500;
+      return this.handleError(ctx, status, taskValue); // if the all the tasks get failed then check on_error at each_parallel loop level
+    }
+
     return status;
   }
 }
