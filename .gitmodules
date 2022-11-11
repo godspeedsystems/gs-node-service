@@ -1,4 +1,4 @@
 [submodule "elasticgraph"]
 	path = elasticgraph
 	url = https://github.com/Mindgreppers/elasticgraph.git
-	branch = master
+	branch = master-gs_service
