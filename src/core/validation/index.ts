@@ -9,7 +9,7 @@ import redisDsSchema from './datasources/redis.schema.json';
 import kafkaDsSchema from './datasources/kafka.schema.json';
 import elasticgraphSchema from './datasources/elasticgraph.schema.json';
 
-const ajvInstance = new Ajv({ allErrors: true });
+const ajvInstance = new Ajv({ allErrors: true, coerceTypes: true });
 addFormats(ajvInstance);
 require('ajv-errors')(ajvInstance);
 
