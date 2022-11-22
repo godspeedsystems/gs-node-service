@@ -7,7 +7,7 @@ import {GSStatus} from '../../../core/interfaces';
 import { PlainObject } from "../../../core/common";
 
 export default async function elasticgraph(args:{[key:string]:any;}) {
-    logger.debug('com.gs.elasticgraph args: %o',args);
+    logger.debug('com.gs.elasticgraph args.data: %o',args.data);
     
     const es = args.datasource.client;
     const method = args.config.method;
