@@ -288,13 +288,13 @@ export class GSFunction extends Function {
         const datasource: any = ctx.datasources[args.datasource];
         if (datasource instanceof Function) {
           args.datasource = await evaluateScript(ctx, datasource, taskValue);
+          logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'datasource evaluated');
         } else {
           args.datasource = datasource;
+          logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'datasource %o', args.datasource);
         }
 
         let ds = args.datasource;
-
-        logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'datasource %o', ds);
 
         // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
         // so that datasource headers are passed to all the workflows using this datasource]
@@ -306,7 +306,7 @@ export class GSFunction extends Function {
         }
 
         if (ds.authn && !datasource.authn_response) {
-          logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Executing datasource authn workflow for %s', args.datasource);
+          logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Executing datasource authn workflow');
           datasource.authn_response = await authnWorkflow(ds, ctx);
         }
       }
@@ -490,7 +490,7 @@ export class GSSeriesFunction extends GSFunction {
         }
       }
     }
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'this.id: %s, output: %s', this.id, ret.data);
+    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
     return ret;
   }
