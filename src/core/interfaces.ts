@@ -9,7 +9,7 @@ import opentelemetry from "@opentelemetry/api";
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
-import { compileScript } from './utils';  // eslint-disable-line
+import { compileScript, isPlainObject } from './utils';  // eslint-disable-line
 import evaluateScript from '../scriptRuntime'; // eslint-disable-line
 import { promClient } from '../telemetry/monitoring';
 import authnWorkflow from './authnWorkflow';
@@ -280,13 +280,9 @@ export class GSFunction extends Function {
     try {
       logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Executing handler %s %o', this.id, this.args);
       let args;
-      if (this.args_script) {
-        args = await evaluateScript(ctx, this.args_script, taskValue);
-      } else {
-        args = _.cloneDeep(this.args);
-      }
+      args = _.cloneDeep(this.args);
 
-      logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `args after evaluation: ${this.id} ${JSON.stringify(args)}. Retry logic is ${this.retry}`);
+      logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `Retry logic is ${this.retry}`);
       if (args?.datasource) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
         const datasource: any = ctx.datasources[args.datasource];
@@ -426,7 +422,7 @@ export class GSFunction extends Function {
   async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
 
     logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, '_call invoked with task value %s %o', this.id, taskValue);
-    let status;
+    let status, prismaArgs;
 
     if (this.yaml.authz) {
       logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'invoking authz workflow, creating new ctx');
@@ -434,19 +430,31 @@ export class GSFunction extends Function {
 
       const newCtx = ctx.cloneWithNewData(args);
       let allow = await this.yaml.authz(newCtx, taskValue);
-      if (allow.success && allow.data === false) {
-        ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
-        return ctx.exitWithStatus;
+      if (allow.success) {
+        if (allow.data === false) {
+          ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
+          return ctx.exitWithStatus;
+        } else if (isPlainObject(allow.data)) {
+          prismaArgs = allow.data;
+        }
       }
+    }
+
+    let args = this.args;
+    if (this.args_script) {
+      args = await evaluateScript(ctx, this.args_script, taskValue);
+    }
+    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `args after evaluation: ${this.id} ${JSON.stringify(args)}`);
+    
+    if (prismaArgs) {
+      args.data = _.merge(args.data, prismaArgs);
+      logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `merged args with authz args.data: ${JSON.stringify(args)}`);
     }
 
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
         logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'isSubWorkflow, creating new ctx');
-        let args = this.args;
-        if (this.args_script) {
-          args = await evaluateScript(ctx, this.args_script, taskValue);
-        }
+
         const newCtx = ctx.cloneWithNewData(args);
         status = await this.fn(newCtx, taskValue);
       } else {
@@ -455,6 +463,7 @@ export class GSFunction extends Function {
       }
     }
     else {
+      this.args = _.cloneDeep(args);
       status = await this._executefn(ctx, taskValue);
     }
 
