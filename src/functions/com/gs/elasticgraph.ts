@@ -7,7 +7,7 @@ import {GSStatus} from '../../../core/interfaces';
 import { PlainObject } from "../../../core/common";
 
 export default async function elasticgraph(args:{[key:string]:any;}) {
-    logger.debug('com.gs.elasticgraph args: %o',args);
+    logger.debug('com.gs.elasticgraph args.data: %o',args.data);
     
     const es = args.datasource.client;
     const method = args.config.method;
@@ -37,8 +37,8 @@ export default async function elasticgraph(args:{[key:string]:any;}) {
             resData = res.body;
         }
     } catch (err:any) {
-        logger.error('Caught exception %o', err.stack);
-        return new GSStatus(false, 500, err.message, JSON.stringify(err.stack));
+        logger.error('Caught exception %o', err);
+        return new GSStatus(false, 500, err.message, err);
     }
     return new GSStatus(true, status, undefined, resData);
 }

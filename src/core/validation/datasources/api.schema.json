@@ -12,6 +12,9 @@
         "schema": {
             "type": "string"
         },
+        "authn": {
+            "type": "string"
+        },
         "headers": {
             "type": "object"
         },

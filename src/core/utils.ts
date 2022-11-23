@@ -134,9 +134,12 @@ export function compileScript(args: any) {
       return () => args;
     }
   } else if (typeof(args) == 'string') {
-    logger.debug('before replacing path params %s', args);
-    args = args.replace(/(^|\/):([^/]+)/g, '$1<%inputs.params.$2%>');
-    logger.debug('after replacing path params %s', args);
+
+    if (args.match(/(^|\/):([^/]+)/)) {
+      logger.debug('before replacing path params %s', args);
+      args = args.replace(/(^|\/):([^/]+)/g, '$1<%inputs.params.$2%>');
+      logger.debug('after replacing path params %s', args);  
+    }
 
     if (args.match(/<(.*?)%/) && args.includes('%>')) {
       return prepareScript(args);
