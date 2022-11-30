@@ -4,7 +4,7 @@
 */
 import { PlainObject } from './common';
 import { logger } from './logger';
-import { GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction} from './interfaces';
+import { GSDynamicFunction, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction} from './interfaces';
 import { checkDatasource } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
@@ -30,14 +30,21 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 taskJson.workflow_name = workflowJson.workflow_name;
                 return createGSFunction(taskJson, workflows, nativeFunctions);
             });
-            return new GSSeriesFunction(workflowJson, undefined, tasks);
+            return new GSSeriesFunction(workflowJson, undefined, tasks, false, workflows);
+
+        case 'com.gs.dynamic_fn':
+            tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
+                taskJson.workflow_name = workflowJson.workflow_name;
+                return createGSFunction(taskJson, workflows, nativeFunctions);
+            });
+            return new GSDynamicFunction(workflowJson, undefined, tasks, false, workflows);
 
         case 'com.gs.parallel':
             tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
                 taskJson.workflow_name = workflowJson.workflow_name;
                 return createGSFunction(taskJson, workflows, nativeFunctions);
             });
-            return new GSParallelFunction(workflowJson, undefined, tasks);
+            return new GSParallelFunction(workflowJson, undefined, tasks, false, workflows);
 
         case 'com.gs.switch': {
             let args = [workflowJson.value];
@@ -57,7 +64,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
             logger.debug('loading switch workflow %o', workflowJson.cases);
 
-            return new GSSwitchFunction(workflowJson, undefined, args);
+            return new GSSwitchFunction(workflowJson, undefined, args, false, workflows);
         }
 
         case 'com.gs.each_parallel': {
@@ -68,13 +75,13 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                     taskJson.isEachParallel = true;
                     return createGSFunction(taskJson, workflows, nativeFunctions);
                 });
-                let task = new GSSeriesFunction(workflowJson, undefined, tasks);
+                let task = new GSSeriesFunction(workflowJson, undefined, tasks, false, workflows);
 
                 args.push(task);
 
                 logger.debug('loading each parallel workflow %o', workflowJson.tasks);
 
-                return new GSEachParallelFunction(workflowJson1, undefined, args);
+                return new GSEachParallelFunction(workflowJson1, undefined, args, false, workflows);
             }
 
         case 'com.gs.each_sequential': {
@@ -84,12 +91,12 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                     taskJson.workflow_name = workflowJson.workflow_name;
                     return createGSFunction(taskJson, workflows, nativeFunctions);
                 });
-                let task = new GSSeriesFunction(workflowJson, undefined, tasks);
+                let task = new GSSeriesFunction(workflowJson, undefined, tasks, false, workflows);
                 args.push(task);
 
                 logger.debug('loading each sequential workflow %o', workflowJson.tasks);
 
-                return new GSEachSeriesFunction(workflowJson1, undefined, args);
+                return new GSEachSeriesFunction(workflowJson1, undefined, args, false, workflows);
             }
     }
 
@@ -120,7 +127,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
         workflowJson.authz.workflow_name = workflowJson.workflow_name;
         workflowJson.authz = createGSFunction(workflowJson.authz, workflows, nativeFunctions);
     }
-    return new GSFunction(workflowJson, fn, workflowJson.args, subwf);
+    return new GSFunction(workflowJson, fn, workflowJson.args, subwf, workflows);
 }
 
 export async function loadFunctions(datasources: PlainObject,pathString: string): Promise<PlainObject> {
