@@ -84,12 +84,15 @@ export class GSFunction extends Function {
 
   workflow_name?: string;
 
-  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  workflows?: PlainObject;
+
+  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, workflows?: PlainObject) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
     this.id = yaml.id || randomUUID();
     this.fn = _fn;
     this.workflow_name = yaml.workflow_name;
+    this.workflows = workflows;
 
     if (args) {
       this.args = args;
@@ -445,7 +448,7 @@ export class GSFunction extends Function {
       args = await evaluateScript(ctx, this.args_script, taskValue);
     }
     logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `args after evaluation: ${this.id} ${JSON.stringify(args)}`);
-    
+
     if (prismaArgs) {
       args.data = _.merge(args.data, prismaArgs);
       logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `merged args with authz args.data: ${JSON.stringify(args)}`);
@@ -496,6 +499,30 @@ export class GSSeriesFunction extends GSFunction {
   }
 }
 
+export class GSDynamicFunction extends GSFunction {
+
+  override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
+    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSDynamicFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    let ret;
+
+    for (const child of this.args!) {
+      ret = await child(ctx, taskValue);
+      if (ctx.exitWithStatus) {
+        ctx.outputs[this.id] = ctx.exitWithStatus;
+        return ctx.exitWithStatus;
+      }
+    }
+    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'this.id: %s, output: %s', this.id, ret.data);
+
+    if (ret.success && typeof(ret.data) === 'string') {
+      ctx.outputs[this.id] = await this.workflows![ret.data](ctx, taskValue);
+    } else {
+      return this.handleError(ctx, ret, taskValue);
+    }
+    return ctx.outputs[this.id];
+  }
+}
+
 export class GSParallelFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
@@ -524,11 +551,12 @@ export class GSParallelFunction extends GSFunction {
   }
 }
 
+
 export class GSSwitchFunction extends GSFunction {
   condition_script?: Function;
 
-  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
-    super(yaml, _fn, args, isSubWorkflow);
+  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, workflows?: PlainObject) {
+    super(yaml, _fn, args, isSubWorkflow, workflows);
     const [condition, cases] = this.args!;
     if (typeof(condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
       this.condition_script = compileScript(condition);
@@ -565,8 +593,8 @@ export class GSSwitchFunction extends GSFunction {
 export class GSEachParallelFunction extends GSFunction {
   value_script?: Function;
 
-  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
-    super(yaml, _fn, args, isSubWorkflow);
+  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, workflows?: PlainObject) {
+    super(yaml, _fn, args, isSubWorkflow, workflows);
     const [value, cases] = this.args!;
     if (typeof(value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
       this.value_script = compileScript(value);
@@ -621,8 +649,8 @@ export class GSEachParallelFunction extends GSFunction {
 export class GSEachSeriesFunction extends GSFunction {
   value_script?: Function;
 
-  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
-    super(yaml, _fn, args, isSubWorkflow);
+  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, workflows?: PlainObject) {
+    super(yaml, _fn, args, isSubWorkflow, workflows);
     const [value, cases] = this.args!;
     if (typeof(value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
       this.value_script = compileScript(value);
