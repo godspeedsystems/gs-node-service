@@ -29,7 +29,7 @@ export default async function generateSchema(
       summary: eventSchema.summary,
       description: eventSchema.description,
       requestBody: eventSchema.body || eventSchema.data?.schema?.body,
-      parameters: eventSchema.params || eventSchema.data?.schema?.params,
+      parameters: eventSchema.parameters || eventSchema.params || eventSchema.data?.schema?.params,
       responses: eventSchema.responses,
     };
 
