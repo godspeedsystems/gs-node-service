@@ -84,21 +84,27 @@ export class GSFunction extends Function {
 
   workflow_name?: string;
 
-  workflows?: PlainObject;
+  workflows: PlainObject;
 
-  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, workflows?: PlainObject) {
+  nativeFunctions: PlainObject;
+
+  fnScript?: Function;
+
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
     this.id = yaml.id || randomUUID();
     this.fn = _fn;
     this.workflow_name = yaml.workflow_name;
     this.workflows = workflows;
+    this.nativeFunctions = nativeFunctions;
+    this.fnScript = fnScript;
 
     if (args) {
       this.args = args;
       const str = JSON.stringify(args);
 
-      if (_fn && (str.match(/<(.*?)%/) && str.includes('%>')) || str.match(/(^|\/):([^/]+)/)) {
+      if ((str.match(/<(.*?)%/) && str.includes('%>')) || str.match(/(^|\/):([^/]+)/)) {
         this.args_script = compileScript(args);
       }
     }
@@ -325,13 +331,12 @@ export class GSFunction extends Function {
       let res;
 
       if (Array.isArray(args)) {
-        res = await this.fn?.apply(null, args.concat({logger, promClient, tracer}));
+        res = await this.fn!(...args.concat({logger, promClient, tracer}));
       } else {
         res = await this.fn!(args, {logger, promClient, tracer});
       }
 
       logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `Result of _executeFn ${this.id} %o`, res);
-
 
       if (res instanceof GSStatus) {
         status = res;
@@ -454,6 +459,18 @@ export class GSFunction extends Function {
       logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `merged args with authz args.data: ${JSON.stringify(args)}`);
     }
 
+    if (this.fnScript) {
+      let s: string = await evaluateScript(ctx, this.fnScript, taskValue);
+      this.fn = this.nativeFunctions?.[s];
+
+      if (!this.fn) {
+        this.fn = this.workflows?.[s];
+        this.isSubWorkflow = true;
+      }
+
+      logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `invoking dynamic fn: ${s}`);
+    }
+
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
         logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'isSubWorkflow, creating new ctx');
@@ -466,7 +483,7 @@ export class GSFunction extends Function {
       }
     }
     else {
-      this.args = _.cloneDeep(args);
+      this.args = args;
       status = await this._executefn(ctx, taskValue);
     }
 
@@ -555,8 +572,8 @@ export class GSParallelFunction extends GSFunction {
 export class GSSwitchFunction extends GSFunction {
   condition_script?: Function;
 
-  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, workflows?: PlainObject) {
-    super(yaml, _fn, args, isSubWorkflow, workflows);
+  constructor(yaml: PlainObject, workflows: PlainObject,  nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+    super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
     const [condition, cases] = this.args!;
     if (typeof(condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
       this.condition_script = compileScript(condition);
@@ -593,8 +610,8 @@ export class GSSwitchFunction extends GSFunction {
 export class GSEachParallelFunction extends GSFunction {
   value_script?: Function;
 
-  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, workflows?: PlainObject) {
-    super(yaml, _fn, args, isSubWorkflow, workflows);
+  constructor(yaml: PlainObject, workflows: PlainObject,  nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+    super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow,);
     const [value, cases] = this.args!;
     if (typeof(value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
       this.value_script = compileScript(value);
@@ -649,8 +666,8 @@ export class GSEachParallelFunction extends GSFunction {
 export class GSEachSeriesFunction extends GSFunction {
   value_script?: Function;
 
-  constructor(yaml: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, workflows?: PlainObject) {
-    super(yaml, _fn, args, isSubWorkflow, workflows);
+  constructor(yaml: PlainObject, workflows: PlainObject,  nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+    super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
     const [value, cases] = this.args!;
     if (typeof(value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
       this.value_script = compileScript(value);
