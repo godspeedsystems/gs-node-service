@@ -65,7 +65,9 @@ export default async function(args:{[key:string]:any;}) {
 
                 if (args.data) {
                     for(let k in args.data) {
-                        form.append(k, args.data[k]);
+                        if (args.data[k]) {
+                            form.append(k, args.data[k]);
+                        }
                     }
                 }
             }
