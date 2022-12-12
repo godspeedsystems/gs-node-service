@@ -148,6 +148,17 @@ export async function loadFunctions(datasources: PlainObject,pathString: string)
     logger.info('Loaded native functions: %s', Object.keys(code));
 
     for (let f in functions) {
+        try {
+            if (! functions[f].tasks) {
+                logger.error('Error in loading tasks of function %s, exiting.', f);
+                process.exit(1);
+            } 
+        } catch (ex) {
+            logger.error('Error in loading tasks of function %s, exiting.', f);
+            process.exit(1);
+        }
+
+    for (let f in functions) {
         const checkDS = checkDatasource(functions[f], datasources);
         if (!checkDS.success) {
           logger.error('Error in loading datasource for function %s . Error message: %s . Exiting.', f, checkDS.message);
