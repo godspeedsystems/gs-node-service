@@ -2,7 +2,9 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
+import config from 'config';
 const port = process.env.PORT || 3000;
+const customServerUrl = (config as any).server_url || `http://localhost:${port}`;
 
 const swaggerCommonPart={
     "openapi": "3.0.0",
@@ -22,7 +24,7 @@ const swaggerCommonPart={
         }
     },
     "servers": [{
-        "url": `http://localhost:${port}`
+        "url": customServerUrl
     }],
     "paths": {}
 };
