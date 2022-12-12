@@ -22,6 +22,9 @@
         "params": {
             "$ref": "#/definitions/params"
         },
+        "parameters": {
+            "$ref": "#/definitions/parameters"
+        },
         "responses": {
             "type": "object"
         },
@@ -35,6 +38,44 @@
     "additionalProperties": true,
     "definitions": {
         "params": {
+            "type": "array",
+            "items": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "in": {
+                            "enum": [
+                                "cookie",
+                                "path",
+                                "query",
+                                "header"
+                            ]
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "required": {
+                            "type": "boolean"
+                        },
+                        "schema": {
+                            "type": "object"
+                        },
+                        "description": {
+                            "type": "string"
+                        },
+                        "allow_empty_value": {
+                            "type": "boolean"
+                        }
+                    },
+                    "required": [
+                        "in",
+                        "schema"
+                    ]
+                }
+            ],
+            "minItems": 0
+        },
+        "parameters": {
             "type": "array",
             "items": [
                 {

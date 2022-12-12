@@ -37,8 +37,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
       }
 
       // Add params schema in ajv for each param per topic
-      const params =
-        eventObjTopic?.params || eventObjTopic?.data?.schema?.params;
+      const params = eventObjTopic?.parameters || eventObjTopic?.params || eventObjTopic?.data?.schema?.params;
       let paramSchema: PlainObject = {};
 
       if (params) {
@@ -149,7 +148,7 @@ export function validateRequestSchema(
     status = { success: true };
   }
 
-  const params =
+  const params = eventSpec?.parameters ||
     eventSpec?.params || //structure like open api spec
     eventSpec?.data?.schema?.params; //Legacy
 
