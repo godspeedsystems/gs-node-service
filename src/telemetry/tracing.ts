@@ -15,6 +15,7 @@ const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-otlp-grpc');
+const { ElasticsearchInstrumentation } = require('@heliosphere/opentelemetry-instrumentation-elasticsearch');
 
 const traceExporter = new OTLPTraceExporter();
 
@@ -74,7 +75,17 @@ const sdk = new opentelemetry.NodeSDK({
                           });
                         }
                       }),
-                      new PinoInstrumentation({})
+                      new PinoInstrumentation({}),
+                      new ElasticsearchInstrumentation({
+                        suppressInternalInstrumentation: false,
+                        moduleVersionAttributeName: 'elasticsearchClient.version',
+                        responseHook: (span: any, result: any) => {
+                          span.setAttribute('db.response', JSON.stringify(result));
+                        },
+                        dbStatementSerializer: (operation: any, params: any, options: any) => {
+                          return JSON.stringify(params);
+                        }
+                      })
                     ],
                     ignoreLayers: true 
 });
