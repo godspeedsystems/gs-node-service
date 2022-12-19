@@ -5,6 +5,10 @@
 import { logger } from "../../../core/logger";
 import {GSStatus} from '../../../core/interfaces';
 import { PlainObject } from "../../../core/common";
+import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
+
+const tracer = trace.getTracer('name');
+let datastoreSpan: Span;
 
 export default async function elasticgraph(args:{[key:string]:any;}) {
     logger.debug('com.gs.elasticgraph args.data: %o',args.data);
@@ -16,6 +20,19 @@ export default async function elasticgraph(args:{[key:string]:any;}) {
     let res: any;
     let status: any;
     let resData: PlainObject;
+
+    // Start an elasticgraph span
+    datastoreSpan = tracer.startSpan(`elasticgraph: ${args.datasource.gsName} ${args.data.index} ${method}`);
+
+    const spanCtx: SpanContext = datastoreSpan.spanContext();
+    datastoreSpan.setAttributes({
+        'traceId': spanCtx.traceId,
+        'spanId': spanCtx.spanId,
+        'method': method,
+        'index': args.data.index,
+        'db.system': 'elasticgraph'
+    });
+
 
     // Check if deep feature is enabled. We have three cases here:
     // 1. deep=true If deep is true then it has collect within it by default.
@@ -38,7 +55,13 @@ export default async function elasticgraph(args:{[key:string]:any;}) {
         }
     } catch (err:any) {
         logger.error('Caught exception %o', err);
+        datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: err.message});
+        datastoreSpan.setAttribute('status_code', 500);
+        datastoreSpan.end();
         return new GSStatus(false, 500, err.message, err);
     }
+
+    datastoreSpan.setAttribute('status_code', status);
+    datastoreSpan.end();
     return new GSStatus(true, status, undefined, resData);
 }
