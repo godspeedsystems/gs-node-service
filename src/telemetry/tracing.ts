@@ -78,13 +78,7 @@ const sdk = new opentelemetry.NodeSDK({
                       new PinoInstrumentation({}),
                       new ElasticsearchInstrumentation({
                         suppressInternalInstrumentation: false,
-                        moduleVersionAttributeName: 'elasticsearchClient.version',
-                        responseHook: (span: any, result: any) => {
-                          span.setAttribute('db.response', JSON.stringify(result));
-                        },
-                        dbStatementSerializer: (operation: any, params: any, options: any) => {
-                          return JSON.stringify(params);
-                        }
+                        moduleVersionAttributeName: 'elasticsearchClient.version'
                       })
                     ],
                     ignoreLayers: true 
