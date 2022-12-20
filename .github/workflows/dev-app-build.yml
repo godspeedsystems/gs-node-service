@@ -3,7 +3,7 @@ name: Dev App Build
 on:
   push:
     branches:
-    - dev
+    - sonar_scanning
 
 jobs:
 
@@ -31,6 +31,11 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+    - name: Sonar code analysis 
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
     - name: Build and push
       uses: docker/build-push-action@v2
