@@ -36,11 +36,11 @@ jobs:
         pwd
         ls
 
-    # - name: Sonar code analysis 
-    #   uses: sonarsource/sonarqube-scan-action@master
-    #   env:
-    #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    - name: Sonar code analysis 
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
     # - name: Build and push
     #   uses: docker/build-push-action@v2
