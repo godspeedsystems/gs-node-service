@@ -34,7 +34,7 @@ jobs:
         with:
           go-version: '1.13'
       - name: Snyk monitor
-        run: snyk test --strict-out-of-sync=false
+        run: snyk code test --strict-out-of-sync=false
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       # - name: Run Snyk to check for vulnerabilities
