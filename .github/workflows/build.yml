@@ -26,6 +26,7 @@ jobs:
         with:
           node-version: 16.15.1
       - run: npm install
+      - run: npm upgrade
 
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
