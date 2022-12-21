@@ -31,8 +31,8 @@ jobs:
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: monitor
+        # with:
+        #   command: monitor
     # - name: Npm install
     # uses: actions/setup-node@v3
     # with:
