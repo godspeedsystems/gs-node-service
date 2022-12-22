@@ -3,7 +3,7 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import { randomUUID } from 'crypto';
-import _, { isArray } from 'lodash';
+import _ from 'lodash';
 import parseDuration from 'parse-duration';
 import opentelemetry from "@opentelemetry/api";
 
