@@ -21,7 +21,7 @@ export default async function (args: any) {
   }
 
   try {
-    return await awsMethod.bind(serviceClient)(...args);
+    return await awsMethod.bind(serviceClient)(...args.params);
   } catch (error) {
     logger.error('Error executing aws %s command. %s', service, awsMethod);
     return new GSStatus(
