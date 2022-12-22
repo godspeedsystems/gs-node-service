@@ -10,6 +10,29 @@ import { dirname } from  'path';
 import CoffeeScript from 'coffeescript';
 import config from "config";
 
+import * as fs from 'fs';
+import * as assert from 'assert';
+import * as buffer from 'buffer';
+import * as child_process from 'child_process';
+import * as cluster from 'cluster';
+import * as dgram from 'dgram';
+import * as dns from 'dns';
+import * as events from 'events';
+import * as http from 'http';
+import * as https from 'https';
+import * as net from 'net';
+import * as os from 'os';
+import * as path from 'path';
+import * as querystring from 'querystring';
+import * as readline from 'readline';
+import * as stream from 'stream';
+import * as string_decoder from 'string_decoder';
+import * as timers from 'timers';
+import * as tls from 'tls';
+import * as url from 'url';
+import * as util from 'util';
+import * as zlib from 'zlib';
+
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
@@ -71,6 +94,51 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
 }
 
 export function prepareScript(str: string): Function {
+  //@ts-ignore
+  global.fs = fs;
+  //@ts-ignore
+  global.assert = assert;
+  //@ts-ignore
+  global.buffer = buffer;
+  //@ts-ignore
+  global.child_process = child_process;
+  //@ts-ignore
+  global.cluster = cluster;
+  //@ts-ignore
+  global.dgram = dgram;
+  //@ts-ignore
+  global.dns = dns;
+  //@ts-ignore
+  global.events = events;
+  //@ts-ignore
+  global.http = http;
+  //@ts-ignore
+  global.https = https;
+  //@ts-ignore
+  global.net = net;
+  //@ts-ignore
+  global.os = os;
+  //@ts-ignore
+  global.path = path;
+  //@ts-ignore
+  global.querystring = querystring;
+  //@ts-ignore
+  global.readline = readline;
+  //@ts-ignore
+  global.stream = stream;
+  //@ts-ignore
+  global.string_decoder = string_decoder;
+  //@ts-ignore
+  global.timers = timers;
+  //@ts-ignore
+  global.tls = tls;
+  //@ts-ignore
+  global.url = url;
+  //@ts-ignore
+  global.util = util;
+  //@ts-ignore
+  global.zlib = zlib;
+
 
   //@ts-ignore
   let lang = config.lang || 'coffee';

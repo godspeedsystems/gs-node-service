@@ -9,25 +9,18 @@ export default async function (args: any) {
   const awsClient = args?.datasource?.client;
   const service = args.config.service;
   const method = args.config.method;
-  const serviceClient = awsClient[service];
-  const awsMethod = serviceClient[method];
-
-  if (!awsMethod) {
-    return new GSStatus(
-      false,
-      500,
-      `Invalid AWS "${service}" method "${awsMethod}" called.`
-    );
-  }
+  const client = awsClient[service];
 
   try {
-    return await awsMethod.bind(serviceClient)(...args.params);
-  } catch (error) {
-    logger.error('Error executing aws %s command. %s', service, awsMethod);
+    const data = await client[method](...args.params);
+    return data;
+  } catch (error: any) {
+    logger.error('Caught exception: %o', error.stack);
+    logger.error('Error executing aws %s command. %s', service, method);
     return new GSStatus(
       false,
       400,
-      `Problem executing aws "${service}" method "${awsMethod}" called.`
+      `Problem executing aws "${service}" method "${method}" called.`
     );
   }
 }

@@ -3,6 +3,7 @@
  * © 2022 Mindgrep Technologies Pvt Ltd
  */
 import { PlainObject } from '../core/common';
+import { logger } from '../core/logger';
 
 export default async function (datasource: PlainObject) {
   // @ts-ignore
@@ -10,7 +11,7 @@ export default async function (datasource: PlainObject) {
     return;
   }
 
-  let client = {}
+  let client: any = {};
 
   for (let service in datasource.services) {
     let module = await import('@aws-sdk/client-' + service.toLowerCase())

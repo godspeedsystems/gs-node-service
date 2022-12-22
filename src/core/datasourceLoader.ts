@@ -15,7 +15,7 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
-import loadAWSClient from '../redis';
+import loadAWSClient from '../aws';
 import loadRedisClient from '../redis';
 import loadElasticgraphClient from '../elasticgraph';
 import {
