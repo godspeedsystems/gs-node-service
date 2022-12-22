@@ -15,6 +15,7 @@ import expandVariables from './expandVariables';
 import glob from 'glob';
 import { PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
+import loadAWSClient from '../redis';
 import loadRedisClient from '../redis';
 import loadElasticgraphClient from '../elasticgraph';
 import {
@@ -86,6 +87,8 @@ export default async function loadDatasources(pathString: string) {
       } else {
         process.exit(1);
       }
+    } else if (datasources[ds].type === 'aws') {
+      loadedDatasources[ds] = await loadAWSClient(datasources[ds]);
     } else if (datasources[ds].type) {
       //some other type
       if (datasources[ds].loadFn) {
