@@ -28,6 +28,7 @@ jobs:
       - run: | 
             pwd
             ls 
+            npm install
       - uses: snyk/actions/setup@master
       - uses: actions/setup-go@v1
         with:
