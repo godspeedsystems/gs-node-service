@@ -23,7 +23,7 @@ export function importAll(sourceScope: any, targetScope: any) {
 export default async function evaluateScript(ctx: GSContext, script: Function, taskValue?: any) {
 
     logger.debug('before evaluateScript %s', script);
-    
+
     if (!script) {
         return;
     }

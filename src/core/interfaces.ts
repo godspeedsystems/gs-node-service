@@ -288,8 +288,12 @@ export class GSFunction extends Function {
     let status: GSStatus; //Final status to return
     try {
       logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Executing handler %s %o', this.id, this.args);
-      let args;
-      args = _.cloneDeep(this.args);
+      let args = this.args;
+      if (Array.isArray(this.args)) {
+        args = [...this.args];
+      } else if (_.isPlainObject(this.args)) {
+        args = {...this.args};
+      }
 
       logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `Retry logic is ${this.retry}`);
       if (args?.datasource) {
