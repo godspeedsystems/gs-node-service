@@ -46,6 +46,7 @@ export default async function(args:{[key:string]:any;}) {
             let form;
 
             if (args.files) {
+                logger.debug('args.files: %o', args.files);
                 form = new FormData();
 
                 if (Array.isArray(args.files)) {
@@ -60,12 +61,22 @@ export default async function(args:{[key:string]:any;}) {
                     }
                 } else if (_.isPlainObject(args.files)) {
                     for (let key in args.files) {
-                        let file = args.files[key]
-                        form.append(key, fs.createReadStream(file.tempFilePath), {
-                            filename: file.name,
-                            contentType: file.mimetype,
-                            knownLength: file.size
-                        });
+                        let file = args.files[key];
+                        if (Array.isArray(file)) {
+                            for (let singleFile of file) {
+                                form.append(key || 'files', fs.createReadStream(singleFile.tempFilePath), {
+                                    filename: singleFile.name,
+                                    contentType: singleFile.mimetype,
+                                    knownLength: singleFile.size
+                                });
+                            }
+                        } else{
+                            form.append(key, fs.createReadStream(file.tempFilePath), {
+                                filename: file.name,
+                                contentType: file.mimetype,
+                                knownLength: file.size
+                            });
+                        }
                     }
                 }
 
