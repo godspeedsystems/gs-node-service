@@ -112,7 +112,9 @@ export class GSFunction extends Function {
     this.onError = yaml.on_error;
 
     if (this.onError && this.onError.response) {
-      this.onError!.response = compileScript(this.onError.response);
+      if ( !(this.onError.response instanceof Function) ) {
+        this.onError!.response = compileScript(this.onError.response);
+      }
     }
 
     if (this.yaml.authz?.args) {

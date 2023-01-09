@@ -130,6 +130,8 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
     if (workflowJson?.on_error?.tasks) {
         workflowJson.on_error.tasks.workflow_name = workflowJson.workflow_name;
         workflowJson.on_error.tasks = createGSFunction(workflowJson.on_error.tasks, workflows, nativeFunctions, null);
+    } else if (workflowJson?.on_error) {
+        // do nothing
     } else if (onError) {
         workflowJson.on_error = onError;
     }
