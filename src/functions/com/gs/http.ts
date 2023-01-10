@@ -45,17 +45,39 @@ export default async function(args:{[key:string]:any;}) {
             logger.debug('invoking wihout schema args: %o', args);
             let form;
 
-            if (args.files?.length) {
+            if (args.files) {
+                logger.debug('args.files: %o', args.files);
                 form = new FormData();
 
-                let files:PlainObject[] = _.flatten(args.files);
+                if (Array.isArray(args.files)) {
+                    let files:PlainObject[] = _.flatten(args.files);
 
-                for (let file of files) {
-                    form.append(args.file_key || 'files', fs.createReadStream(file.tempFilePath), {
-                        filename: file.name,
-                        contentType: file.mimetype,
-                        knownLength: file.size
-                    });
+                    for (let file of files) {
+                        form.append(args.file_key || 'files', fs.createReadStream(file.tempFilePath), {
+                            filename: file.name,
+                            contentType: file.mimetype,
+                            knownLength: file.size
+                        });
+                    }
+                } else if (_.isPlainObject(args.files)) {
+                    for (let key in args.files) {
+                        let file = args.files[key];
+                        if (Array.isArray(file)) {
+                            for (let singleFile of file) {
+                                form.append(key || 'files', fs.createReadStream(singleFile.tempFilePath), {
+                                    filename: singleFile.name,
+                                    contentType: singleFile.mimetype,
+                                    knownLength: singleFile.size
+                                });
+                            }
+                        } else{
+                            form.append(key, fs.createReadStream(file.tempFilePath), {
+                                filename: file.name,
+                                contentType: file.mimetype,
+                                knownLength: file.size
+                            });
+                        }
+                    }
                 }
 
                 args.config.headers = {

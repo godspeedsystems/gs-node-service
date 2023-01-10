@@ -16,7 +16,10 @@
             "type": "string"
         },
         "headers": {
-            "type": "object"
+            "anyOf": [
+                { "type": "object" },
+                { "type": "string" }
+            ]
         },
         "security": {
             "type": "array"
