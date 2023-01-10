@@ -4,10 +4,12 @@
 */
 import { PlainObject } from './common';
 import { logger } from './logger';
-import { GSDynamicFunction, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction} from './interfaces';
+import { GSDynamicFunction, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSIFFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction} from './interfaces';
 import { checkDatasource, compileScript } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
+
+let lastIfFn: GSIFFunction | null;
 
 export function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, onError: PlainObject | null): GSFunction {
 
@@ -65,6 +67,64 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
             logger.debug('loading switch workflow %o', workflowJson.cases);
 
             return new GSSwitchFunction(workflowJson, workflows, nativeFunctions, undefined, args, false);
+        }
+
+        case 'com.gs.if': {
+            let args = [workflowJson.condition];
+
+            tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
+                taskJson.workflow_name = workflowJson.workflow_name;
+                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+            });
+            let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
+
+            args.push(task);
+
+            lastIfFn = new GSIFFunction(workflowJson, workflows, nativeFunctions, undefined, args, false);
+
+            return lastIfFn;
+        }
+
+        case 'com.gs.elif': {
+            let args = [workflowJson.condition];
+
+            tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
+                taskJson.workflow_name = workflowJson.workflow_name;
+                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+            });
+            let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
+
+            args.push(task);
+
+            let fn = new GSIFFunction(workflowJson, workflows, nativeFunctions, undefined, args, false);
+
+            if (!lastIfFn) {
+                logger.error(`If is missing before elsif ${workflowJson.id}.`);
+                process.exit(1);
+            } else {
+                lastIfFn.else_fn = fn;
+            }
+
+            lastIfFn = fn;
+            return lastIfFn;
+        }
+
+        case 'com.gs.else': {
+            tasks = workflowJson.tasks.map((taskJson:PlainObject) => {
+                taskJson.workflow_name = workflowJson.workflow_name;
+                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+            });
+            let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
+
+            if (!lastIfFn) {
+                logger.error(`If is missing before else ${workflowJson.id}.`);
+                process.exit(1);
+            } else {
+                lastIfFn.else_fn = task;
+            }
+
+            lastIfFn = null;
+            return task;
         }
 
         case 'com.gs.each_parallel': {
@@ -156,7 +216,7 @@ export async function loadFunctions(datasources: PlainObject,pathString: string)
             if (! functions[f].tasks) {
                 logger.error('Error in loading tasks of function %s, exiting.', f);
                 process.exit(1);
-            } 
+            }
         } catch (ex) {
             logger.error('Error in loading tasks of function %s, exiting.', f);
             process.exit(1);

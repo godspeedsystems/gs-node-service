@@ -613,6 +613,49 @@ export class GSSwitchFunction extends GSFunction {
   }
 }
 
+export class GSIFFunction extends GSFunction {
+  condition_script?: Function;
+
+  task?: GSFunction;
+
+  else_fn?: GSFunction;
+
+  constructor(yaml: PlainObject, workflows: PlainObject,  nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+    super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
+    const [condition, task, else_fn] = this.args!;
+    if (typeof(condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
+      this.condition_script = compileScript(condition);
+    }
+
+    this.task = task;
+    this.else_fn = else_fn;
+  }
+
+  override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
+    logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'GSSwitchFunction');
+    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'inside switch executor: %o',this.args);
+    // tasks incase of series, parallel and condition, cases should be converted to args
+    let [value, task] = this.args!;
+    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'condition: %s' , value);
+    if (this.condition_script) {
+      value = await evaluateScript(ctx, this.condition_script, taskValue);
+    }
+
+    if (value) {
+      ctx.outputs[this.id] = await this.task!(ctx, taskValue);
+    } else {
+      if (this.else_fn) {
+        ctx.outputs[this.id] = await this.else_fn(ctx, taskValue);
+      } else {
+        ctx.outputs[this.id] = new GSStatus(false, undefined, `condition not matching and no else present`);
+      }
+    }
+
+    return ctx.outputs[this.id];
+  }
+}
+
+
 export class GSEachParallelFunction extends GSFunction {
   value_script?: Function;
 
