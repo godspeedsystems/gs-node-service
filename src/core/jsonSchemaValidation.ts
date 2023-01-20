@@ -111,10 +111,10 @@ export function validateRequestSchema(
   const hasSchema: any = eventSpec?.body || eventSpec?.data?.schema?.body;
   if (event.data.body && hasSchema) {
     logger.info('event body and eventSpec exist');
-    logger.info('event.data.body: %o', event.data.body);
+    logger.debug('event.data.body: %o', event.data.body);
     const ajv_validate = ajvInstance.getSchema(topic);
     if (ajv_validate) {
-      logger.info('ajv_validate for body');
+      logger.debug('ajv_validate for body');
       if (!ajv_validate(event.data.body)) {
         logger.error('ajv_validate failed');
         status = {
@@ -125,7 +125,7 @@ export function validateRequestSchema(
         };
         return status;
       } else {
-        logger.info('ajv_validate success');
+        logger.info('ajv_validate success for body');
         status = { success: true };
       }
     } else {
@@ -160,7 +160,7 @@ export function validateRequestSchema(
     cookie: 'cookie',
   };
 
-  logger.info('ajv_validate for params');
+  logger.debug('ajv_validate for params');
 
   if (params) {
     for (let param in MAP) {
@@ -179,6 +179,7 @@ export function validateRequestSchema(
           };
           return status;
         } else {
+          logger.info('ajv_validate success for params');
           status = { success: true };
         }
       }
