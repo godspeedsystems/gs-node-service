@@ -98,11 +98,11 @@ function subscribeToEvents(
                 'headers',
               ]);
 
-              logger.info('inputs %o', data);
               //@ts-ignore
               data.file_obj = req.files;
               //@ts-ignore
               data.files = Object.values(req.files || {});
+              logger.info('inputs %o', data);
 
               const event = new GSCloudEvent(
                 'id',
@@ -162,11 +162,11 @@ function subscribeToEvents(
             'headers',
           ]);
 
-          logger.info('inputs %o', data);
           //@ts-ignore
           data.file_obj = req.files;
           //@ts-ignore
           data.files = Object.values(req.files || {});
+          logger.info('inputs %o', data);
 
           const event = new GSCloudEvent(
             'id',
