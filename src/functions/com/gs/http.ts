@@ -36,8 +36,8 @@ export default async function(args:{[key:string]:any;}) {
         let res;
         logger.debug('calling http client with args %o', args);
         logger.debug('http client baseURL %s', ds.client?.defaults?.baseURL);
-        logger.debug('http client headers %o', { ...ds.client?.defaults?.headers?.common, ...args?.config?.headers});
-        logger.debug('http client params %o', { ...ds.client?.defaults?.params, ...args?.params});
+        logger.info('http client headers %o', { ...ds.client?.defaults?.headers?.common, ...args?.config?.headers});
+        logger.info('http client params %o', { ...ds.client?.defaults?.params, ...args?.params});
 
         if (ds.schema) {
             logger.debug('invoking with schema');
