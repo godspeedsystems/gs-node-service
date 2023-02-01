@@ -8,7 +8,7 @@ import FormData from 'form-data'; // npm install --save form-data
 import fs from 'fs';
 
 import axiosRetry from 'axios-retry';
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import _ from "lodash";
 import { PlainObject } from "../../../core/common";
 import { HttpMetricsCollector } from 'prometheus-api-metrics';
@@ -72,11 +72,23 @@ export default async function(args:{[key:string]:any;}) {
                                 });
                             }
                         } else{
-                            form.append(key, fs.createReadStream(file.tempFilePath), {
-                                filename: file.name,
-                                contentType: file.mimetype,
-                                knownLength: file.size
-                            });
+                            if (args.files.url) {
+                                const tempFile = '/tmp/download-' + new Date().getTime();
+                                try {
+                                    await downloadFile(args.files.url, tempFile);
+                                    logger.info('File downloaded at %s', tempFile);
+                                } catch(err: any) {
+                                    logger.error('url: %s error in downloading file: %s ', args.files.url, JSON.stringify(err.stack));
+                                }
+
+                                form.append(key, fs.createReadStream(tempFile) );
+                            } else {
+                                form.append(key, fs.createReadStream(file.tempFilePath), {
+                                    filename: file.name,
+                                    contentType: file.mimetype,
+                                    knownLength: file.size
+                                });    
+                            }
                         }
                     }
                 }
@@ -124,6 +136,10 @@ export default async function(args:{[key:string]:any;}) {
                 });
             }
 
+            if (form) {
+                logger.info('form data: %o', form);
+            }
+
             res = await ds.client({
                 ...args.config,
                 params: args.params,
@@ -166,3 +182,29 @@ export default async function(args:{[key:string]:any;}) {
         return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
     }
 }
+
+async function downloadFile(fileUrl: string, outputLocationPath: string) {
+    const writer = fs.createWriteStream(outputLocationPath);
+  
+    return axios({
+      method: 'get',
+      url: fileUrl,
+      responseType: 'stream',
+    }).then(response => {
+        return new Promise((resolve, reject) => {
+        response.data.pipe(writer);
+        let error: any;
+        writer.on('error', err => {
+          error = err;
+          writer.close();
+          reject(err);
+        });
+        writer.on('close', () => {
+          if (!error) {
+            resolve(true);
+          }
+        });
+      });
+    });
+}
+
