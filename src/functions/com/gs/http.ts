@@ -8,7 +8,7 @@ import FormData from 'form-data'; // npm install --save form-data
 import fs from 'fs';
 
 import axiosRetry from 'axios-retry';
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import _ from "lodash";
 import { PlainObject } from "../../../core/common";
 import { HttpMetricsCollector } from 'prometheus-api-metrics';
@@ -65,18 +65,34 @@ export default async function(args:{[key:string]:any;}) {
                         let file = args.files[key];
                         if (Array.isArray(file)) {
                             for (let singleFile of file) {
-                                form.append(key || 'files', fs.createReadStream(singleFile.tempFilePath), {
-                                    filename: singleFile.name,
-                                    contentType: singleFile.mimetype,
-                                    knownLength: singleFile.size
-                                });
+                                if (singleFile.url) {
+                                    const response = await axios({
+                                        ...singleFile,
+                                        responseType: 'stream',
+                                      });
+                                    form.append(key, response.data);
+                                } else {
+                                    form.append(key || 'files', fs.createReadStream(singleFile.tempFilePath), {
+                                        filename: singleFile.name,
+                                        contentType: singleFile.mimetype,
+                                        knownLength: singleFile.size
+                                    });
+                                }
                             }
                         } else{
-                            form.append(key, fs.createReadStream(file.tempFilePath), {
-                                filename: file.name,
-                                contentType: file.mimetype,
-                                knownLength: file.size
-                            });
+                            if (file.url) {
+                                const response = await axios({
+                                    ...file,
+                                    responseType: 'stream',
+                                  });
+                                form.append(key, response.data);
+                            } else {
+                                form.append(key, fs.createReadStream(file.tempFilePath), {
+                                    filename: file.name,
+                                    contentType: file.mimetype,
+                                    knownLength: file.size
+                                });    
+                            }
                         }
                     }
                 }
@@ -122,6 +138,10 @@ export default async function(args:{[key:string]:any;}) {
                         return 0;
                     }
                 });
+            }
+
+            if (form) {
+                logger.info('form data: %o', form);
             }
 
             res = await ds.client({
