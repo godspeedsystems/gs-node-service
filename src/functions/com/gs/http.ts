@@ -65,18 +65,26 @@ export default async function(args:{[key:string]:any;}) {
                         let file = args.files[key];
                         if (Array.isArray(file)) {
                             for (let singleFile of file) {
-                                form.append(key || 'files', fs.createReadStream(singleFile.tempFilePath), {
-                                    filename: singleFile.name,
-                                    contentType: singleFile.mimetype,
-                                    knownLength: singleFile.size
-                                });
+                                if (singleFile.url) {
+                                    const response = await axios({
+                                        ...singleFile,
+                                        responseType: 'stream',
+                                      });
+                                    form.append(key, response.data);
+                                } else {
+                                    form.append(key || 'files', fs.createReadStream(singleFile.tempFilePath), {
+                                        filename: singleFile.name,
+                                        contentType: singleFile.mimetype,
+                                        knownLength: singleFile.size
+                                    });
+                                }
                             }
                         } else{
                             if (file.url) {
                                 const response = await axios({
                                     ...file,
                                     responseType: 'stream',
-                                  })
+                                  });
                                 form.append(key, response.data);
                             } else {
                                 form.append(key, fs.createReadStream(file.tempFilePath), {
