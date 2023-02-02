@@ -72,16 +72,12 @@ export default async function(args:{[key:string]:any;}) {
                                 });
                             }
                         } else{
-                            if (args.files.url) {
-                                const tempFile = '/tmp/download-' + new Date().getTime();
-                                try {
-                                    await downloadFile(args.files.url, tempFile);
-                                    logger.info('File downloaded at %s', tempFile);
-                                } catch(err: any) {
-                                    logger.error('url: %s error in downloading file: %s ', args.files.url, JSON.stringify(err.stack));
-                                }
-
-                                form.append(key, fs.createReadStream(tempFile) );
+                            if (file.url) {
+                                const response = await axios({
+                                    ...file,
+                                    responseType: 'stream',
+                                  })
+                                form.append(key, response.data);
                             } else {
                                 form.append(key, fs.createReadStream(file.tempFilePath), {
                                     filename: file.name,
@@ -182,29 +178,3 @@ export default async function(args:{[key:string]:any;}) {
         return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
     }
 }
-
-async function downloadFile(fileUrl: string, outputLocationPath: string) {
-    const writer = fs.createWriteStream(outputLocationPath);
-  
-    return axios({
-      method: 'get',
-      url: fileUrl,
-      responseType: 'stream',
-    }).then(response => {
-        return new Promise((resolve, reject) => {
-        response.data.pipe(writer);
-        let error: any;
-        writer.on('error', err => {
-          error = err;
-          writer.close();
-          reject(err);
-        });
-        writer.on('close', () => {
-          if (!error) {
-            resolve(true);
-          }
-        });
-      });
-    });
-}
-
