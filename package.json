@@ -67,7 +67,7 @@
     "passport-jwt": "^4.0.0",
     "pino": "^7.11.0",
     "pino-debug": "^2.0.0",
-    "prisma": "^3.14.0",
+    "prisma": "^4.9.0",
     "prom-client": "^12.0.0",
     "prometheus-api-metrics": "^3.2.2",
     "rambda": "^7.0.3",
