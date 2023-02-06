@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "semantic-release": "semantic-release",
-    "start": "cd dist && NODE_ENV=production node -r ./telemetry/tracing.js app.js",
+    "start": "cd dist && if [ ! ${NODE_ENV} ]; then NODE_ENV=production node -r ./telemetry/tracing.js app.js; else node -r ./telemetry/tracing.js app.js; fi",
     "clean": "rm -rf project build dist coverage",
     "lint": "eslint . --ext .ts --format table",
     "fix-lint": "eslint . --ext .ts --fix",
