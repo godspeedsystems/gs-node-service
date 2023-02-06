@@ -46,7 +46,19 @@ module.exports = async function (opts) {
 
   return build(async function (/** @type { AsyncIterable<Bindings> } */ source) {
     for await (const obj of source) {
-      const updatedLine = JSON.stringify(toOpenTelemetry(obj, mapperOptions, resourceOptions)) + '\n';
+      const line = toOpenTelemetry(obj, mapperOptions, resourceOptions);
+      let updatedLine;
+
+      if (process.env.NODE_ENV != 'production') {
+        let timestamp = parseInt(line.Timestamp.replace(ZEROS_FROM_MILLI_TO_NANO, ''));
+        let date = new Date(timestamp)
+
+        let dateString = new Intl.DateTimeFormat('en-IN', { dateStyle: 'short', timeStyle: 'medium',timeZone: 'Asia/Kolkata' }).format(date);
+        updatedLine = `${dateString} [${line.SeverityText}] ${line.TraceId ?? ''} ${line.SpanId ?? ''} ${line.Attributes.workflow_name ?? ''} ${line.Attributes.task_id ?? ''} ${line.Body}\n`
+      } else {
+        updatedLine = JSON.stringify(line) + '\n';
+      }
+
       const writeResult = destination.write(updatedLine);
       const toDrain = !writeResult;
       // This block will handle backpressure
