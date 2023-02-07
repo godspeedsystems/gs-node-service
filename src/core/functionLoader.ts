@@ -11,7 +11,7 @@ import loadModules from './codeLoader';
 
 let lastIfFn: GSIFFunction | null;
 
-export function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, onError: PlainObject | null): GSFunction {
+export function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, onError: PlainObject | null): GSFunction | null {
 
     logger.debug('Creating GSFunction %s workflow_name %s', workflowJson.id, workflowJson.workflow_name);
 
@@ -32,6 +32,8 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 taskJson.workflow_name = workflowJson.workflow_name;
                 return createGSFunction(taskJson, workflows, nativeFunctions, onError);
             });
+
+            tasks = tasks.filter(Boolean)
             return new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.dynamic_fn':
@@ -39,6 +41,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 taskJson.workflow_name = workflowJson.workflow_name;
                 return createGSFunction(taskJson, workflows, nativeFunctions, onError);
             });
+            tasks = tasks.filter(Boolean)
             return new GSDynamicFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.parallel':
@@ -46,6 +49,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 taskJson.workflow_name = workflowJson.workflow_name;
                 return createGSFunction(taskJson, workflows, nativeFunctions, onError);
             });
+            tasks = tasks.filter(Boolean)
             return new GSParallelFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.switch': {
@@ -76,6 +80,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 taskJson.workflow_name = workflowJson.workflow_name;
                 return createGSFunction(taskJson, workflows, nativeFunctions, onError);
             });
+            tasks = tasks.filter(Boolean)
             let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
             args.push(task);
@@ -92,6 +97,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 taskJson.workflow_name = workflowJson.workflow_name;
                 return createGSFunction(taskJson, workflows, nativeFunctions, onError);
             });
+            tasks = tasks.filter(Boolean)
             let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
             args.push(task);
@@ -106,7 +112,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
             }
 
             lastIfFn = fn;
-            return lastIfFn;
+            return null;
         }
 
         case 'com.gs.else': {
@@ -114,6 +120,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 taskJson.workflow_name = workflowJson.workflow_name;
                 return createGSFunction(taskJson, workflows, nativeFunctions, onError);
             });
+            tasks = tasks.filter(Boolean)
             let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
             if (!lastIfFn) {
@@ -124,7 +131,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
             }
 
             lastIfFn = null;
-            return task;
+            return null;
         }
 
         case 'com.gs.each_parallel': {
@@ -135,6 +142,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                     taskJson.isEachParallel = true;
                     return createGSFunction(taskJson, workflows, nativeFunctions, onError);
                 });
+                tasks = tasks.filter(Boolean)
                 let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
                 args.push(task);
@@ -151,6 +159,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                     taskJson.workflow_name = workflowJson.workflow_name;
                     return createGSFunction(taskJson, workflows, nativeFunctions, onError);
                 });
+                tasks = tasks.filter(Boolean)
                 let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
                 args.push(task);
 
