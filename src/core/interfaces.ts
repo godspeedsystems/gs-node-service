@@ -144,15 +144,19 @@ export class GSFunction extends Function {
       this.logs = this.yaml.logs;
 
       if (this.logs?.before) {
-        this.logs.before.attributes.task_id = this.id;
-        this.logs.before.attributes.workflow_name = this.workflow_name;
-        this.logs.before.attributes = compileScript(this.logs.before.attributes);
+        if ( !(this.logs.before.attributes instanceof Function) ) {
+          this.logs.before.attributes.task_id = this.id;
+          this.logs.before.attributes.workflow_name = this.workflow_name;
+          this.logs.before.attributes = compileScript(this.logs.before.attributes);  
+        }
       }
 
       if (this.logs?.after) {
-        this.logs.after.attributes.task_id = this.id;
-        this.logs.after.attributes.workflow_name = this.workflow_name;
-        this.logs.after.attributes = compileScript(this.logs.after.attributes);
+        if ( !(this.logs.after.attributes instanceof Function) ) {
+          this.logs.after.attributes.task_id = this.id;
+          this.logs.after.attributes.workflow_name = this.workflow_name;
+          this.logs.after.attributes = compileScript(this.logs.after.attributes);
+          }
       }
     }
 
