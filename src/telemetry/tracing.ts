@@ -15,9 +15,18 @@ const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express');
 const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-otlp-grpc');
+const { ConsoleSpanExporter } = require('@opentelemetry/sdk-trace-base');
 const { ElasticsearchInstrumentation } = require('@heliosphere/opentelemetry-instrumentation-elasticsearch');
 
-const traceExporter = new OTLPTraceExporter();
+let traceExporter;
+
+if (process.env.NODE_ENV == 'production') {
+  traceExporter = new OTLPTraceExporter();
+} else {
+  traceExporter = new ConsoleSpanExporter();
+  process.env.OTEL_TRACES_SAMPLER='parentbased_traceidratio';
+  process.env.OTEL_TRACES_SAMPLER_ARG="0.25";
+}
 
 const tracerProvider = new NodeTracerProvider({
   plugins: {
