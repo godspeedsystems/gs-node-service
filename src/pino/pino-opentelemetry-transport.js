@@ -54,7 +54,7 @@ module.exports = async function (opts) {
         let date = new Date(timestamp)
 
         let dateString = new Intl.DateTimeFormat('en-IN', { dateStyle: 'short', timeStyle: 'medium',timeZone: 'Asia/Kolkata' }).format(date);
-        updatedLine = `${dateString} [${line.SeverityText}] ${line.TraceId ?? ''} ${line.SpanId ?? ''} ${line.Attributes.workflow_name ?? ''} ${line.Attributes.task_id ?? ''} ${line.Body}\n`
+        updatedLine = `${dateString} [${line.SeverityText}] ${line.TraceId ?? ''} ${line.SpanId ?? ''} ${line.Attributes.values.join(' ')} ${line.Body}\n`
       } else {
         updatedLine = JSON.stringify(line) + '\n';
       }
