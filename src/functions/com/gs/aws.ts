@@ -3,7 +3,7 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import { GSStatus } from '../../../core/interfaces';
-import { logger } from '../../../core/logger';
+import { childLogger } from '../../../app';
 
 export default async function (args: any) {
   const awsClient = args?.datasource?.client;
@@ -15,8 +15,8 @@ export default async function (args: any) {
     const data = await client[method](...args.params);
     return data;
   } catch (error: any) {
-    logger.error('Caught exception: %o', error.stack);
-    logger.error('Error executing aws %s command. %s', service, method);
+    childLogger.error('Caught exception: %o', error.stack);
+    childLogger.error('Error executing aws %s command. %s', service, method);
     return new GSStatus(
       false,
       400,
