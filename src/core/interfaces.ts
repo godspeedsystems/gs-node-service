@@ -320,7 +320,7 @@ export class GSFunction extends Function {
         let headers = ds.headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
-          Object.assign(args.config.headers, headers);
+          args.config.headers = JSON.parse(JSON.stringify({ ...headers, ...args.config.headers }));
           logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `settings datasource headers: %o`, args.config.headers);
         }
 
