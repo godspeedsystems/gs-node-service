@@ -3,11 +3,10 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import { randomUUID } from "crypto";
-import { logger } from "../../../core/logger";
-
+import { childLogger } from '../../../app';
 
 export default async function kafka(args:{[key:string]:any;}) {
-    logger.debug('com.gs.kafka args: %o',args);
+    childLogger.debug('com.gs.kafka args: %o',args);
     let kafka;
     if(args.datasource) {
         kafka = args.datasource.client;
@@ -23,8 +22,8 @@ export default async function kafka(args:{[key:string]:any;}) {
 
     let producer = await kafka.producer();
 
-    logger.info('Sending messages to topic %s', args.config.topic);
-    logger.debug('Sending messages to topic %s %o', args.config.topic, data);
+    childLogger.info('Sending messages to topic %s', args.config.topic);
+    childLogger.debug('Sending messages to topic %s %o', args.config.topic, data);
 
     return producer.send({
         topic: args.config.topic,

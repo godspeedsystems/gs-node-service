@@ -2,7 +2,7 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
-import { logger } from "../../../core/logger";
+import { childLogger } from '../../../app';
 import {GSStatus} from '../../../core/interfaces';
 import { PlainObject } from "../../../core/common";
 import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
@@ -11,7 +11,7 @@ const tracer = trace.getTracer('name');
 let datastoreSpan: Span;
 
 export default async function elasticgraph(args:{[key:string]:any;}) {
-    logger.debug('com.gs.elasticgraph args.data: %o',args.data);
+    childLogger.debug('com.gs.elasticgraph args.data: %o',args.data);
     
     const es = args.datasource.client;
     const method = args.config.method;
@@ -54,7 +54,7 @@ export default async function elasticgraph(args:{[key:string]:any;}) {
             resData = res.body;
         }
     } catch (err:any) {
-        logger.error('Caught exception %o', err);
+        childLogger.error('Caught exception %o', err);
         datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: err.message});
         datastoreSpan.setAttribute('status_code', 500);
         datastoreSpan.end();

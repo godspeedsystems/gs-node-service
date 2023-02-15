@@ -13,6 +13,7 @@ import { compileScript, isPlainObject } from './utils';  // eslint-disable-line
 import evaluateScript from '../scriptRuntime'; // eslint-disable-line
 import { promClient } from '../telemetry/monitoring';
 import authnWorkflow from './authnWorkflow';
+import { childLogger } from '../app';
 
 const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
@@ -217,7 +218,7 @@ export class GSFunction extends Function {
     if (this.logs?.before) {
       const log = this.logs.before;
       //@ts-ignore
-      logger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue): null, `${log.message} %o`, log.params);
+      childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue): null, `${log.message} %o`, log.params);
     }
 
     const timers = [];
@@ -252,7 +253,7 @@ export class GSFunction extends Function {
     if (this.logs?.after) {
       const log = this.logs.after;
       //@ts-ignore
-      logger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue): null, `${log.message} %o`, log.params);
+      childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue): null, `${log.message} %o`, log.params);
     }
 
     return status;
@@ -293,7 +294,7 @@ export class GSFunction extends Function {
   async _executefn(ctx: GSContext, taskValue: any):Promise<GSStatus> {
     let status: GSStatus; //Final status to return
     try {
-      logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Executing handler %s %o', this.id, this.args);
+      childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Executing handler %s %o', this.id, this.args);
       let args = this.args;
       if (Array.isArray(this.args)) {
         args = [...this.args];
@@ -301,16 +302,16 @@ export class GSFunction extends Function {
         args = {...this.args};
       }
 
-      logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Retry logic is %o', this.retry);
+      childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Retry logic is %o', this.retry);
       if (args?.datasource) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
         const datasource: any = ctx.datasources[args.datasource];
         if (datasource instanceof Function) {
           args.datasource = await evaluateScript(ctx, datasource, taskValue);
-          logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'datasource evaluated');
+          childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'datasource evaluated');
         } else {
           args.datasource = datasource;
-          logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'datasource %o', args.datasource);
+          childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'datasource %o', args.datasource);
         }
 
         let ds = args.datasource;
@@ -325,7 +326,7 @@ export class GSFunction extends Function {
         }
 
         if (ds.authn && !datasource.authn_response) {
-          logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Executing datasource authn workflow');
+          childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Executing datasource authn workflow');
           datasource.authn_response = await authnWorkflow(ds, ctx);
         }
       }
@@ -341,12 +342,12 @@ export class GSFunction extends Function {
       let res;
 
       if (Array.isArray(args)) {
-        res = await this.fn!(...args.concat({logger, promClient, tracer}));
+        res = await this.fn!(...args.concat({childLogger, promClient, tracer}));
       } else {
-        res = await this.fn!(args, {logger, promClient, tracer});
+        res = await this.fn!(args, {childLogger, promClient, tracer});
       }
 
-      logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `Result of _executeFn ${this.id} %o`, res);
+      childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `Result of _executeFn ${this.id} %o`, res);
 
       if (res instanceof GSStatus) {
         status = res;
@@ -375,7 +376,7 @@ export class GSFunction extends Function {
         }
       }
     } catch (err: any) {
-      logger.error({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Caught error from execution in task id: %s, error: %s',this.id, err);
+      childLogger.error({'task_id': this.id, 'workflow_name': this.workflow_name}, 'Caught error from execution in task id: %s, error: %s',this.id, err);
       status = new GSStatus(
           false,
           500,
@@ -421,7 +422,7 @@ export class GSFunction extends Function {
         }
 
         if (this.onError.continue === false) {
-          logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'exiting on error %s', this.id);
+          childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'exiting on error %s', this.id);
           ctx.exitWithStatus = status;
         }
       }
@@ -439,11 +440,11 @@ export class GSFunction extends Function {
    */
   async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
 
-    logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, '_call invoked with task value %s %o', this.id, taskValue);
+    childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, '_call invoked with task value %s %o', this.id, taskValue);
     let status, prismaArgs;
 
     if (this.yaml.authz) {
-      logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'invoking authz workflow, creating new ctx');
+      childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'invoking authz workflow, creating new ctx');
       let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
 
       const newCtx = ctx.cloneWithNewData(args);
@@ -462,11 +463,11 @@ export class GSFunction extends Function {
     if (this.args_script) {
       args = await evaluateScript(ctx, this.args_script, taskValue);
     }
-    logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `args after evaluation: ${this.id} ${JSON.stringify(args)}`);
+    childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `args after evaluation: ${this.id} ${JSON.stringify(args)}`);
 
     if (prismaArgs) {
       args.data = _.merge(args.data, prismaArgs);
-      logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `merged args with authz args.data: ${JSON.stringify(args)}`);
+      childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `merged args with authz args.data: ${JSON.stringify(args)}`);
     }
 
     if (this.fnScript) {
@@ -478,17 +479,17 @@ export class GSFunction extends Function {
         this.isSubWorkflow = true;
       }
 
-      logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `invoking dynamic fn: ${s}`);
+      childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `invoking dynamic fn: ${s}`);
     }
 
     if (this.fn instanceof GSFunction) {
       if (this.isSubWorkflow) {
-        logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'isSubWorkflow, creating new ctx');
+        childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'isSubWorkflow, creating new ctx');
 
         const newCtx = ctx.cloneWithNewData(args);
         status = await this.fn(newCtx, taskValue);
       } else {
-        logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'No isSubWorkflow, continuing in the same ctx');
+        childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'No isSubWorkflow, continuing in the same ctx');
         status = await this.fn(ctx, taskValue);
       }
     }
@@ -504,14 +505,14 @@ export class GSFunction extends Function {
 export class GSSeriesFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
     let ret;
 
     for (const child of this.args!) {
       ret = await child(ctx, taskValue);
       if (ctx.exitWithStatus) {
         if (child.yaml.isEachParallel) {
-          logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
+          childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
           ctx.outputs[this.id] = ret;
           return ret;
         } else {
@@ -520,7 +521,7 @@ export class GSSeriesFunction extends GSFunction {
         }
       }
     }
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'this.id: %s, output: %o', this.id, ret.data);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
     return ret;
   }
@@ -529,7 +530,7 @@ export class GSSeriesFunction extends GSFunction {
 export class GSDynamicFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSDynamicFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSDynamicFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
     let ret;
 
     for (const child of this.args!) {
@@ -539,7 +540,7 @@ export class GSDynamicFunction extends GSFunction {
         return ctx.exitWithStatus;
       }
     }
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'this.id: %s, output: %s', this.id, ret.data);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'this.id: %s, output: %s', this.id, ret.data);
 
     if (ret.success && typeof(ret.data) === 'string') {
       ctx.outputs[this.id] = await this.workflows![ret.data](ctx, taskValue);
@@ -553,7 +554,7 @@ export class GSDynamicFunction extends GSFunction {
 export class GSParallelFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
     const promises = [];
 
@@ -591,11 +592,11 @@ export class GSSwitchFunction extends GSFunction {
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'GSSwitchFunction');
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'inside switch executor: %o',this.args);
+    childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'GSSwitchFunction');
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'inside switch executor: %o',this.args);
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, cases] = this.args!;
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'condition: %s' , value);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'condition: %s' , value);
     if (this.condition_script) {
       value = await evaluateScript(ctx, this.condition_script, taskValue);
     }
@@ -636,11 +637,11 @@ export class GSIFFunction extends GSFunction {
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    logger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'GSSwitchFunction');
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'inside switch executor: %o',this.args);
+    childLogger.info({'task_id': this.id, 'workflow_name': this.workflow_name}, 'GSSwitchFunction');
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'inside switch executor: %o',this.args);
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, task] = this.args!;
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'condition: %s' , value);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'condition: %s' , value);
     if (this.condition_script) {
       value = await evaluateScript(ctx, this.condition_script, taskValue);
     }
@@ -672,10 +673,10 @@ export class GSEachParallelFunction extends GSFunction {
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSEachParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSEachParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
     let [value, task] = this.args!;
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'value: %o' , value);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'value: %o' , value);
     if (this.value_script) {
       value = await evaluateScript(ctx, this.value_script, taskValue);
     }
@@ -729,7 +730,7 @@ export class GSEachSeriesFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
     let [value, task] = this.args!;
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'value: %o' , value);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, 'value: %o' , value);
     if (this.value_script) {
       value = await evaluateScript(ctx, this.value_script, taskValue);
     }
@@ -739,7 +740,7 @@ export class GSEachSeriesFunction extends GSFunction {
       return ctx.outputs[this.id];
     }
 
-    logger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSEachSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.debug({'task_id': this.id, 'workflow_name': this.workflow_name}, `GSEachSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
     //const outputs:[GSStatus] = <any>[];
     const outputs:any[] = [];
@@ -883,7 +884,7 @@ export class GSContext { //span executions
     this.mappings = mappings;
     this.plugins = plugins;
 
-    logger.debug('inputs for context %o', event.data);
+    childLogger.debug('inputs for context %o', event.data);
   }
 
   public cloneWithNewData(data: PlainObject): GSContext {
