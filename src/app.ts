@@ -300,9 +300,11 @@ async function main() {
     for ( const att of logAttributes) {
       const obj = `event.data?.${att}`;
       const key = att.split(".").pop();
+      // eslint-disable-next-line no-eval
       childLogAttributes[key] = eval(obj);
     }
 
+    logger.debug('childLogAttributes: %o', childLogAttributes);
     childLogger = logger.child(childLogAttributes);
 
     childLogger.info('Processing event %s', event.type);
