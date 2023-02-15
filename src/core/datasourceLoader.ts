@@ -57,7 +57,14 @@ export default async function loadDatasources(pathString: string) {
     logger.info('evaluating datasource: %s', ds);
 
     let datasourceScript = compileScript(datasources[ds]);
-    datasources[ds] = datasourceScript(config, {}, {}, appConfig.app.mappings, {});
+
+    try {
+      datasources[ds] = datasourceScript(config, {}, {}, appConfig.app.mappings, {});
+    } catch(err: any) {
+      logger.error('Error in parsing script: %s',JSON.stringify(err.stack));
+      process.exit(1);
+    }
+
     logger.info('evaluated datasource %s: %o', ds, datasources[ds]);
 
     if (datasources[ds].type === 'api') {
