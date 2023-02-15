@@ -298,17 +298,9 @@ async function main() {
     const logAttributes = (config as any).log_attributes || [];
 
     for ( const att of logAttributes) {
-      if ( event.data?.params?.hasOwnProperty(att) ) { 
-        childLogAttributes[att] = event.data?.params[att];
-      } else if ( event.data?.query?.hasOwnProperty(att) ) {
-        childLogAttributes[att] = event.data?.query[att];
-      } else if ( event.data?.body?.hasOwnProperty(att) ) {
-        childLogAttributes[att] = event.data?.body[att];
-      } else if ( event.data?.headers?.hasOwnProperty(att) ) {
-        childLogAttributes[att] = event.data?.headers[att];
-      } else if ( event.data?.cookie?.hasOwnProperty(att) ) {
-        childLogAttributes[att] = event.data?.cookie[att];
-      }
+      const obj = `event.data?.${att}`;
+      const key = att.split(".").pop();
+      childLogAttributes[key] = eval(obj);
     }
 
     childLogger = logger.child(childLogAttributes);

@@ -51,10 +51,10 @@ module.exports = async function (opts) {
 
       if (process.env.NODE_ENV != 'production') {
         let timestamp = parseInt(line.Timestamp.replace(ZEROS_FROM_MILLI_TO_NANO, ''));
-        let date = new Date(timestamp)
+        let date = new Date(timestamp);
 
         let dateString = new Intl.DateTimeFormat('en-IN', { dateStyle: 'short', timeStyle: 'medium',timeZone: 'Asia/Kolkata' }).format(date);
-        updatedLine = `${dateString} [${line.SeverityText}] ${line.TraceId ?? ''} ${line.SpanId ?? ''} ${line.Attributes.workflow_name ?? ''} ${line.Attributes.task_id ?? ''} ${line.Body}\n`
+        updatedLine = `${dateString} [${line.SeverityText}] ${line.TraceId ?? ''} ${line.SpanId ?? ''} `+ Object.values(line.Attributes).join(' ') + ` ${line.Body}\n`;
       } else {
         updatedLine = JSON.stringify(line) + '\n';
       }
