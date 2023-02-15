@@ -27,7 +27,7 @@ import {
 import config from 'config';
 const axiosTime = require('axios-time');
 
-const secret = (config as any).prismaSecret || 'prismaEncryptionSecret';
+const secret = (config as any).prisma_secret || 'prismaEncryptionSecret';
 const password_hash = crypto
   .createHash('md5')
   .update(secret, 'utf-8')
