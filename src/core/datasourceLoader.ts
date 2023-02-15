@@ -11,9 +11,9 @@ import crypto from 'crypto';
 import { logger } from './logger';
 import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
-import expandVariables from './expandVariables';
+import { config as appConfig } from './loader';
 import glob from 'glob';
-import { PROJECT_ROOT_DIRECTORY } from './utils';
+import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
 import loadAWSClient from '../aws';
 import loadRedisClient from '../redis';
@@ -54,10 +54,18 @@ export default async function loadDatasources(pathString: string) {
   const loadedDatasources: PlainObject = {};
 
   for (let ds in datasources) {
-    logger.info('Loaded datasource: %s', ds);
+    logger.info('evaluating datasource: %s', ds);
 
-    // Expand config variables
-    datasources[ds] = expandVariables(datasources[ds]);
+    let datasourceScript = compileScript(datasources[ds]);
+
+    try {
+      datasources[ds] = datasourceScript(config, {}, {}, appConfig.app.mappings, {});
+    } catch(err: any) {
+      logger.error('Error in parsing script: %s',JSON.stringify(err.stack));
+      process.exit(1);
+    }
+
+    logger.info('evaluated datasource %s: %o', ds, datasources[ds]);
 
     if (datasources[ds].type === 'api') {
       if (isValidApiDatasource(datasources[ds])) {
