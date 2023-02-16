@@ -307,8 +307,8 @@ async function main() {
     logger.debug('childLogAttributes: %o', childLogAttributes);
     childLogger = logger.child(childLogAttributes);
 
-    childLogger.info('Processing event %s', event.type);
-    childLogger.debug('event spec: %o', events[event.type]);
+    childLogger.info({ workflow_name: events[event.type].fn }, 'Processing event %s', event.type);
+    childLogger.debug({ workflow_name: events[event.type].fn }, 'event spec: %o', events[event.type]);
     const responseStructure: GSResponse = {
       apiVersion: (config as any).api_version || '1.0',
     };
@@ -322,7 +322,7 @@ async function main() {
     );
 
     if (valid_status.success === false) {
-      childLogger.error('Failed to validate Request JSON Schema %o', valid_status);
+      childLogger.error({ workflow_name: events[event.type].fn }, 'Failed to validate Request JSON Schema %o', valid_status);
       const response_data: PlainObject = {
         message: 'request validation error',
         error: valid_status.message,
@@ -338,7 +338,9 @@ async function main() {
           .status(valid_status.code)
           .send(response_data);
       } else {
-        childLogger.debug('on_validation_error: %s',
+        childLogger.debug(
+          { workflow_name: events[event.type].fn },
+          'on_validation_error: %s',
           events[event.type].on_validation_error
         );
 
@@ -356,6 +358,7 @@ async function main() {
       }
     } else {
       childLogger.info(
+        { workflow_name: events[event.type].fn },
         'Request JSON Schema validated successfully %o',
         valid_status
       );
@@ -419,6 +422,7 @@ async function main() {
     //eventHandlerStatus being undefined means there was no error. Because on error,
     //we are initializing the eventHandlerStatus with the error data, in the catch block above.
     const successfulExecution = !eventHandlerStatus;
+    childLogger.setBindings({ 'task_id': '' });
     if (successfulExecution) {
       // Means no error happened
 
@@ -430,9 +434,9 @@ async function main() {
         valid_status = validateResponseSchema(event.type, eventHandlerStatus);
 
         if (valid_status.success) {
-          childLogger.info('Validate Response JSON Schema Success', valid_status);
+          childLogger.info({ workflow_name: events[event.type].fn }, 'Validate Response JSON Schema Success', valid_status);
         } else {
-          childLogger.error('Failed to validate Response JSON Schema', valid_status);
+          childLogger.error({ workflow_name: events[event.type].fn }, 'Failed to validate Response JSON Schema', valid_status);
           const response_data: PlainObject = {
             message: 'response validation error',
             error: valid_status.message,
@@ -454,13 +458,13 @@ async function main() {
       data = data.toString();
     }
 
-    childLogger.debug(
-      { workflow_name: events[event.type].fn },
-      'return value %o %o %o',
-      data,
-      code,
-      headers
-    );
+    if (code < 400) {
+      childLogger.info( { workflow_name: events[event.type].fn },
+        'return value %o %o %o', data, code, headers );  
+    } else {
+      childLogger.error( { workflow_name: events[event.type].fn },
+        'return value %o %o %o', data, code, headers );  
+    }
 
     (event.metadata?.http?.express.res as express.Response)
       .status(code)
