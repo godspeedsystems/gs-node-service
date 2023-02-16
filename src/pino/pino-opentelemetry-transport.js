@@ -54,7 +54,7 @@ module.exports = async function (opts) {
         let date = new Date(timestamp);
 
         let dateString = new Intl.DateTimeFormat('en-IN', { dateStyle: 'short', timeStyle: 'medium',timeZone: 'Asia/Kolkata' }).format(date);
-        updatedLine = `${dateString} [${line.SeverityText}] ${line.TraceId ?? ''} ${line.SpanId ?? ''} `+ Object.values(line.Attributes).join(' ') + ` ${line.Body}\n`;
+        updatedLine = `${dateString} [${line.SeverityText}] ${line.TraceId ?? ''} ${line.SpanId ?? ''} ${JSON.stringify(line.Attributes)} ${line.Body}\n`;
       } else {
         updatedLine = JSON.stringify(line) + '\n';
       }
