@@ -444,6 +444,7 @@ export class GSFunction extends Function {
     childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
     let status, prismaArgs;
 
+    childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
     if (this.yaml.authz) {
       childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'invoking authz workflow, creating new ctx');
       let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
@@ -471,8 +472,11 @@ export class GSFunction extends Function {
       childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `merged args with authz args.data: ${JSON.stringify(args)}`);
     }
 
+    childLogger.setBindings({ 'workflow_name': '','task_id': ''});
     if (this.fnScript) {
+      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
       let s: string = await evaluateScript(ctx, this.fnScript, taskValue);
+      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
       this.fn = this.nativeFunctions?.[s];
 
       if (!this.fn) {
@@ -487,7 +491,9 @@ export class GSFunction extends Function {
       if (this.isSubWorkflow) {
         childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isSubWorkflow, creating new ctx');
 
+        childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
         const newCtx = ctx.cloneWithNewData(args);
+        childLogger.setBindings({ 'workflow_name': '','task_id': ''});
         status = await this.fn(newCtx, taskValue);
       } else {
         childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'No isSubWorkflow, continuing in the same ctx');
@@ -599,7 +605,9 @@ export class GSSwitchFunction extends GSFunction {
     let [value, cases] = this.args!;
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'condition: %s' , value);
     if (this.condition_script) {
+      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
       value = await evaluateScript(ctx, this.condition_script, taskValue);
+      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
     }
     if (cases[value]) {
       await cases[value](ctx, taskValue);
@@ -644,7 +652,9 @@ export class GSIFFunction extends GSFunction {
     let [value, task] = this.args!;
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'condition: %s' , value);
     if (this.condition_script) {
+      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
       value = await evaluateScript(ctx, this.condition_script, taskValue);
+      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
     }
 
     if (value) {
@@ -679,7 +689,9 @@ export class GSEachParallelFunction extends GSFunction {
     let [value, task] = this.args!;
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'value: %o' , value);
     if (this.value_script) {
+      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
       value = await evaluateScript(ctx, this.value_script, taskValue);
+      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
     }
 
     let i = 0;
@@ -733,7 +745,9 @@ export class GSEachSeriesFunction extends GSFunction {
     let [value, task] = this.args!;
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'value: %o' , value);
     if (this.value_script) {
+      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
       value = await evaluateScript(ctx, this.value_script, taskValue);
+      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
     }
 
     if (!Array.isArray(value)) {
