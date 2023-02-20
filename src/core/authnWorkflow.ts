@@ -1,14 +1,14 @@
 import { PlainObject } from "./common";
 
 import createAuthRefreshInterceptor from 'axios-auth-refresh';
-import { logger } from "./logger";
+import { childLogger } from '../app';
 
 async function refreshToken(ds: PlainObject, ctx: any,  failedRequest?: any) {
     const response = await ds.authn(ctx);
 
     if (response.success) {
         let result = response.data;
-        logger.info('response from authn %o', result);
+        childLogger.info('response from authn %o', result);
         
         if (result.headers) {
             for (let header in result.headers) {

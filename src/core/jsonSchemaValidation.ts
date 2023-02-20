@@ -7,6 +7,7 @@ import { GSStatus } from './interfaces';
 import { PlainObject } from './common';
 import { logger } from './logger';
 import ajvInstance, { isValidEvent } from './validation';
+import { childLogger } from '../app';
 
 export function loadJsonSchemaForEvents(eventObj: PlainObject) {
   logger.info('Loading JSON Schema for events %s', Object.keys(eventObj));
@@ -110,13 +111,13 @@ export function validateRequestSchema(
   // Validate event.data.body
   const hasSchema: any = eventSpec?.body || eventSpec?.data?.schema?.body;
   if (event.data.body && hasSchema) {
-    logger.info('event body and eventSpec exist');
-    logger.debug('event.data.body: %o', event.data.body);
+    childLogger.info('event body and eventSpec exist');
+    childLogger.debug('event.data.body: %o', event.data.body);
     const ajv_validate = ajvInstance.getSchema(topic);
     if (ajv_validate) {
-      logger.debug('ajv_validate for body');
+      childLogger.debug('ajv_validate for body');
       if (!ajv_validate(event.data.body)) {
-        logger.error('ajv_validate failed');
+        childLogger.error('ajv_validate failed');
         status = {
           success: false,
           code: 400,
@@ -125,7 +126,7 @@ export function validateRequestSchema(
         };
         return status;
       } else {
-        logger.info('ajv_validate success for body');
+        childLogger.info('ajv_validate success for body');
         status = { success: true };
       }
     } else {
@@ -160,14 +161,14 @@ export function validateRequestSchema(
     cookie: 'cookie',
   };
 
-  logger.debug('ajv_validate for params');
+  childLogger.debug('ajv_validate for params');
 
   if (params) {
     for (let param in MAP) {
       const topic_param = topic + ':' + param;
       const ajv_validate = ajvInstance.getSchema(topic_param);
 
-      logger.debug('topic_param: %s', topic_param);
+      childLogger.debug('topic_param: %s', topic_param);
       if (ajv_validate) {
         if (!ajv_validate(event.data[MAP[param]])) {
           ajv_validate.errors![0].message += ' in ' + param;
@@ -179,7 +180,7 @@ export function validateRequestSchema(
           };
           return status;
         } else {
-          logger.info('ajv_validate success for params');
+          childLogger.info('ajv_validate success for params');
           status = { success: true };
         }
       }
@@ -201,7 +202,7 @@ export function validateResponseSchema(
     const ajv_validate = ajvInstance.getSchema(topic_response);
     if (ajv_validate) {
       if (!ajv_validate(gs_status.data)) {
-        logger.error('ajv_validate failed');
+        childLogger.error('ajv_validate failed');
         status = {
           success: false,
           code: 500,
@@ -210,7 +211,7 @@ export function validateResponseSchema(
         };
         return status;
       } else {
-        logger.info('ajv_validate success');
+        childLogger.info('ajv_validate success');
         status = { success: true };
       }
     } else {

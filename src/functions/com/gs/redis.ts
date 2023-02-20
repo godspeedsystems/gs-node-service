@@ -4,7 +4,7 @@
 */
 import { PlainObject } from '../../../core/common';
 import { GSStatus } from '../../../core/interfaces';
-import { logger } from '../../../core/logger';
+import { childLogger } from '../../../app';
 
 export default async function (args: PlainObject) {
   const redisClient = args?.datasource?.client;
@@ -25,7 +25,7 @@ export default async function (args: PlainObject) {
     const response = await redisMethod.bind(redisClient)(key, value);
     return response;
   } catch (error) {
-    logger.error('Error executing redis command. %s', redisMethod);
+    childLogger.error('Error executing redis command. %s', redisMethod);
     return new GSStatus(
       false,
       400,

@@ -3,7 +3,7 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import {GSStatus} from '../../../core/interfaces';
-import { logger } from '../../../core/logger';
+import { childLogger } from '../../../app';
 import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
 import { PlainObject } from '../../../core/common';
 
@@ -18,7 +18,7 @@ let datastoreSpan: Span;
  * data: arguments specific to the prisma method being invoked
  */
 export default async function(args:{[key:string]:any;}) {
-  logger.debug('args %o', args.data);
+  childLogger.debug('args %o', args.data);
   
   const ds = args.datasource;
   let prismaMethod: any; let status_message: string; 
@@ -45,7 +45,7 @@ export default async function(args:{[key:string]:any;}) {
     prismaMethod = ds.client[entityType][method];
   } catch (err:any) {
     if (!prismaMethod) { //Oops!
-      logger.error('Caught exception %o', err.stack);
+      childLogger.error('Caught exception %o', err.stack);
       //Check whether the entityType specified is wrong or the method
       if (!ds.client[entityType]) {
         attributes.status_code = 400;

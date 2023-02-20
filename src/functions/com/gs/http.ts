@@ -2,7 +2,7 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
-import { logger } from "../../../core/logger";
+import { childLogger } from '../../../app';
 
 import FormData from 'form-data'; // npm install --save form-data
 import fs from 'fs';
@@ -34,20 +34,20 @@ export default async function(args:{[key:string]:any;}) {
     try {
         const ds = args.datasource;
         let res;
-        logger.info('calling http client with args %o', args);
-        logger.info('http client baseURL %s', ds.client?.defaults?.baseURL);
-        logger.info('http client headers %o', { ...ds.client?.defaults?.headers?.common, ...args?.config?.headers});
-        logger.info('http client params %o', { ...ds.client?.defaults?.params, ...args?.params});
+        childLogger.info('calling http client with args %o', args);
+        childLogger.info('http client baseURL %s', ds.client?.defaults?.baseURL);
+        childLogger.info('http client headers %o', { ...ds.client?.defaults?.headers?.common, ...args?.config?.headers});
+        childLogger.info('http client params %o', { ...ds.client?.defaults?.params, ...args?.params});
 
         if (ds.schema) {
-            logger.info('invoking with schema');
+            childLogger.info('invoking with schema');
             res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config);
         } else {
-            logger.info('invoking wihout schema');
+            childLogger.info('invoking wihout schema');
             let form;
 
             if (args.files) {
-                logger.info('args.files: %o', args.files);
+                childLogger.info('args.files: %o', args.files);
                 form = new FormData();
 
                 if (Array.isArray(args.files)) {
@@ -111,16 +111,16 @@ export default async function(args:{[key:string]:any;}) {
                 }
             }
 
-            logger.info('args.retry %s', JSON.stringify(args.retry));
+            childLogger.info('args.retry %s', JSON.stringify(args.retry));
 
             if (args.retry) {
                 axiosRetry(ds.client, {
                     retries: args.retry.max_attempts,
                     retryDelay: function(retryNumber: number, error: AxiosError<any, any>) {
-                        logger.debug('called retryDelay function %s', args.retry.type);
+                        childLogger.debug('called retryDelay function %s', args.retry.type);
                         switch (args.retry.type) {
                             case 'constant':
-                                logger.debug('called retryDelay return %s', args.retry.interval);
+                                childLogger.debug('called retryDelay return %s', args.retry.interval);
 
                                 return args.retry.interval;
 
@@ -133,7 +133,7 @@ export default async function(args:{[key:string]:any;}) {
                                 return delay + randomSum;
                         }
 
-                        logger.debug('returning retryDelay function with 0');
+                        childLogger.debug('returning retryDelay function with 0');
 
                         return 0;
                     }
@@ -141,7 +141,7 @@ export default async function(args:{[key:string]:any;}) {
             }
 
             if (form) {
-                logger.info('form data: %o', form);
+                childLogger.info('form data: %o', form);
             }
 
             res = await ds.client({
@@ -156,14 +156,14 @@ export default async function(args:{[key:string]:any;}) {
         const route = args.config?.url;
         const method = args.config?.method.toUpperCase();
         const status_code = res.status;
-        logger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
+        childLogger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
         southboundCount.inc({route, method, status_code});
 
-        logger.debug('res: %o', res);
+        childLogger.debug('res: %o', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex: any) {
         HttpMetricsCollector.collect(ex);
-        logger.error('Caught exception %o', (ex as Error).stack);
+        childLogger.error('Caught exception %o', (ex as Error).stack);
         //@ts-ignore
         let res = ex.response;
 
@@ -180,7 +180,7 @@ export default async function(args:{[key:string]:any;}) {
         const route = args.config?.url;
         const method = args.config?.method.toUpperCase();
         const status_code = res.status || ex.status;
-        logger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
+        childLogger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
         southboundCount.inc({route, method, status_code});
 
         return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
