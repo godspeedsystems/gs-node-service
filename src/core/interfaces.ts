@@ -534,7 +534,7 @@ export class GSFunction extends Function {
     }
 
     status = this.handleError(ctx, status, taskValue);
-    if (caching) {
+    if (caching && caching.key) {
       if (status.success || caching.cache_on_failure) {
         await redisClient.set(caching.key, status, {EX: caching.expires});
       }
