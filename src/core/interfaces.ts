@@ -474,7 +474,7 @@ export class GSFunction extends Function {
     if (this.caching) {
       caching = await evaluateScript(ctx, this.caching, taskValue)
 
-      redisClient = ctx.datasources[(config as any).caching]
+      redisClient = ctx.datasources[(config as any).caching].client;
       if (caching?.invalidate) {
         await redisClient.del(caching.invalidate);
       }
