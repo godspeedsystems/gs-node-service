@@ -284,7 +284,7 @@ async function main() {
     datasources[ds] = datasourceScript;
   }
 
-  const plugins = await loadModules(__dirname + '/plugins', true);
+  const plugins = await loadModules(__dirname + '/plugins');
   importAll(plugins, global);
 
   logger.debug('plugins: %s', Object.keys(plugins));
