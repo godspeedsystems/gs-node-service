@@ -14,6 +14,7 @@ import evaluateScript from '../scriptRuntime'; // eslint-disable-line
 import { promClient } from '../telemetry/monitoring';
 import authnWorkflow from './authnWorkflow';
 import { childLogger } from '../app';
+import config from 'config';
 
 const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
@@ -91,6 +92,8 @@ export class GSFunction extends Function {
 
   fnScript?: Function;
 
+  caching?: Function;
+
   constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
@@ -148,7 +151,7 @@ export class GSFunction extends Function {
         if ( !(this.logs.before.attributes instanceof Function) ) {
           this.logs.before.attributes.task_id = this.id;
           this.logs.before.attributes.workflow_name = this.workflow_name;
-          this.logs.before.attributes = compileScript(this.logs.before.attributes);  
+          this.logs.before.attributes = compileScript(this.logs.before.attributes);
         }
       }
 
@@ -211,6 +214,11 @@ export class GSFunction extends Function {
           }
         }
       }
+    }
+
+    //caching
+    if (this.yaml.caching) {
+      this.caching = compileScript(this.yaml.caching)
     }
   }
 
@@ -389,7 +397,7 @@ export class GSFunction extends Function {
     return status;
   }
 
-  async handleError (ctx: GSContext, status: GSStatus, taskValue: any): Promise<GSStatus> {
+  async handleError(ctx: GSContext, status: GSStatus, taskValue: any): Promise<GSStatus> {
 
     if (!status.success) {
       /**
@@ -461,6 +469,26 @@ export class GSFunction extends Function {
       }
     }
 
+    let caching: PlainObject | null = null, redisClient;
+
+    if (this.caching) {
+      caching = await evaluateScript(ctx, this.caching, taskValue)
+
+      redisClient = ctx.datasources[(config as any).caching]
+      if (caching?.invalidate) {
+        await redisClient.del(caching.invalidate);
+      }
+
+      if (!caching?.force) {
+        // check in cache and return
+        status = await redisClient.get(caching?.key);
+        if (status) {
+          ctx.outputs[this.id] = status;
+          return status;
+        }
+      }
+    }
+
     let args = this.args;
     if (this.args_script) {
       args = await evaluateScript(ctx, this.args_script, taskValue);
@@ -505,7 +533,14 @@ export class GSFunction extends Function {
       status = await this._executefn(ctx, taskValue);
     }
 
-    return this.handleError(ctx, status, taskValue);
+    status = this.handleError(ctx, status, taskValue);
+    if (caching) {
+      if (status.success || caching.cache_on_failure) {
+        await redisClient.set(caching.key, status, {EX: caching.expires});
+      }
+    }
+
+    return status;
   };
 }
 
