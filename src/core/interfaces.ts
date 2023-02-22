@@ -322,7 +322,12 @@ export class GSFunction extends Function {
         let headers = ds.headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
-          args.config.headers = { ...headers, ...args.config.headers };
+          let tempObj: any={};
+          Object.keys({...headers,...args.config.headers}).map(key=>{
+            tempObj[key]=args.config.headers[key]||headers[key];
+          });
+          Object.assign(args.config.headers, tempObj);
+          Object.keys(args.config.headers).forEach(key => args.config.headers[key] === undefined && delete args.config.headers[key]);
           childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `settings datasource headers: %o`, args.config.headers);
         }
 
