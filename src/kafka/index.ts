@@ -85,15 +85,15 @@ export default class KafkaMessageBus {
         if (!this.consumers[groupId]) {
             let fn = this.consumers[groupId] = this.kafka.consumer({ groupId });
             try {
-              await  this.consumers[groupId].connect();
-            } catch(error){
+                await  this.consumers[groupId].connect();
+                nodeCleanup(function() {
+                  console.log('calling kafka consumer disconnect...');
+                  //@ts-ignore
+                  this.disconnect();
+                }.bind(fn));
+              } catch(error){
               logger.error('Caught error in consumer %o', error);
             }
-            nodeCleanup(function() {
-              console.log('calling kafka consumer disconnect...');
-              //@ts-ignore
-              this.disconnect();
-            }.bind(fn));
         }
 
         return this.consumers[groupId];
@@ -101,14 +101,13 @@ export default class KafkaMessageBus {
 
     async subscribe(topic: string, groupId: string, datasourceName: string,  processEvent:(event: GSCloudEvent)=>Promise<any>) {
 
-        if (this.subscribers[topic]) {
-          logger.info('kafka consumer already setup and running...');
-          return;
-        }
-
-        let consumer = await this.consumer(groupId);
-
         try {
+          if (this.subscribers[topic]) {
+            logger.info('kafka consumer already setup and running...');
+            return;
+          }
+
+          let consumer = await this.consumer(groupId);
           await consumer.subscribe({ topic });
 
           const self = this;
