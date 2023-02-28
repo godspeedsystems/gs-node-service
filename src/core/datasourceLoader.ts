@@ -60,9 +60,8 @@ export default async function loadDatasources(pathString: string) {
 
     try {
       datasources[ds] = datasourceScript(config, {}, {}, appConfig.app.mappings, {});
-    } catch(err: any) {
-      logger.error('Error in parsing script: %s',JSON.stringify(err.stack));
-      process.exit(1);
+    } catch(err) {
+      //console.error(err);
     }
 
     logger.info('evaluated datasource %s: %o', ds, datasources[ds]);
