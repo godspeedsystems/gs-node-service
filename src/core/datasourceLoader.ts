@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import { logger } from './logger';
 import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
+import expandVariables from './expandVariables';
 import { config as appConfig } from './loader';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
@@ -56,13 +57,8 @@ export default async function loadDatasources(pathString: string) {
   for (let ds in datasources) {
     logger.info('evaluating datasource: %s', ds);
 
-    let datasourceScript = compileScript(datasources[ds]);
-
-    try {
-      datasources[ds] = datasourceScript(config, {}, {}, appConfig.app.mappings, {});
-    } catch(err) {
-      //console.error(err);
-    }
+    // Expand config variables
+    datasources[ds] = expandVariables(datasources[ds]);
 
     logger.info('evaluated datasource %s: %o', ds, datasources[ds]);
 
