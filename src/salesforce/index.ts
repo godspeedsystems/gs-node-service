@@ -3,6 +3,7 @@ import subscribeSalesforceStream from './subscribe';
 
 import { logger } from '../core/logger';
 import { GSActor, GSCloudEvent } from '../core/interfaces';
+import config from 'config';
 
 const salesforceCacheTTL = 86400; // 24-hours
 
@@ -13,7 +14,7 @@ async function fetchSalesforceObjectWithCache(conn, sfid, type) {
     const cacheKey = `salesforce-cache:${sfid}`;
     const contextKey = `${type}Name`;
 
-    let redisClient;
+    const redisClient = global.datasources[(config as any).caching].client;
 
     let cachedValue = await redisClient.get(cacheKey);
     if (cachedValue == null) {
