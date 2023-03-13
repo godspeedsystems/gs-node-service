@@ -80,11 +80,7 @@ export default async function loadDatasources(pathString: string) {
         process.exit(1);
       }
     } else if (datasources[ds].type === 'salesforce') {
-      if (isValidKafkaDatasource(datasources[ds])) {
         loadedDatasources[ds] = await salesforce.init(datasources[ds]);
-      } else {
-        process.exit(1);
-      }
     } else if (datasources[ds].type === 'redis') {
       if (isValidRedisDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
