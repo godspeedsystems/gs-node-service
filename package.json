@@ -56,6 +56,7 @@
     "form-data": "^4.0.0",
     "glob": "^8.0.1",
     "js-yaml": "^4.1.0",
+    "jsforce": "^1.11.0",
     "kafkajs": "^2.2.3",
     "lodash": "^4.17.21",
     "node-cleanup": "^2.1.2",

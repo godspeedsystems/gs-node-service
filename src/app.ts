@@ -32,6 +32,7 @@ import _ from 'lodash';
 import { promClient } from './telemetry/monitoring';
 import { importAll } from './scriptRuntime';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
+import salesforce from './salesforce';
 
 let childLogger: Pino.Logger;
 export { childLogger };
@@ -190,6 +191,10 @@ function subscribeToEvents(
       let [topic, groupId] = route.split('.kafka.');
       logger.info('registering kafka handler %s %s', topic, groupId);
       kafka.subscribe(topic, groupId, 'kafka', processEvent);
+    } else if (route.includes('.salesforce.')) {
+      let [topic, datasourceName] = route.split('.salesforce.');
+      logger.info('registering salesforce handler %s %s', topic, datasourceName);
+      salesforce.subscribe(topic, datasourceName, processEvent);
     } else {
       // for kafka event source like {topic}.kafka1.{groupid}
       // here we are assuming that various event sources for kafka are defined in the above format.
@@ -260,6 +265,8 @@ async function main() {
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
+
+  global.datasources = datasources;
 
   const loadFnStatus = await loadFunctions(
     datasources,
