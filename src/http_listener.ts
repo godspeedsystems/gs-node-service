@@ -13,6 +13,7 @@ import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
 import promMid from '@mindgrep/express-prometheus-middleware';
 
+
 //File Path for api-docs
 const file = PROJECT_ROOT_DIRECTORY.split('/');
 file.pop();
@@ -27,6 +28,17 @@ const app: express.Express = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(loggerExpress);
+
+(async () => {
+  try {
+    //@ts-ignore
+    const middlewares = await import('./middlewares');
+    for (const middleware of middlewares) {
+      app.use(middleware);
+    }
+  } catch (e) {
+  }
+})();
 
 const port = process.env.PORT || 3000;
 app.use(
