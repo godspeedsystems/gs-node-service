@@ -192,6 +192,7 @@ function subscribeToEvents(
       logger.info('registering kafka handler %s %s', topic, groupId);
       kafka.subscribe(topic, groupId, 'kafka', processEvent);
     } else if (route.includes('.salesforce.')) {
+
       let [topic, datasourceName] = route.split('.salesforce.');
       logger.info('registering salesforce handler %s %s', topic, datasourceName);
       salesforce.subscribe(topic, datasourceName, processEvent);
@@ -266,8 +267,7 @@ async function main() {
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
   // @ts-ignore
-  global.datasources = _.cloneDeep(datasources);
-
+  global.datasources = _.clone(datasources);
   const loadFnStatus = await loadFunctions(
     datasources,
     PROJECT_ROOT_DIRECTORY + '/functions'
