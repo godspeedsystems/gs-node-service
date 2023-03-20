@@ -482,6 +482,7 @@ export class GSFunction extends Function {
       // @ts-ignore
       redisClient = global.datasources[(config as any).caching].client;
       if (caching?.invalidate) {
+        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'invalidating cache for %s', caching?.invalidate);
         await redisClient.del(caching.invalidate);
       }
 
@@ -489,6 +490,7 @@ export class GSFunction extends Function {
         // check in cache and return
         status = await redisClient.get(caching?.key);
         if (status) {
+          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'reading result from cache');
           status = JSON.parse(status);
           ctx.outputs[this.id] = status;
           return status;
@@ -543,6 +545,7 @@ export class GSFunction extends Function {
     status = await this.handleError(ctx, status, taskValue);
     if (caching && caching.key) {
       if (status?.success || caching.cache_on_failure) {
+        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Store result in cache');
         await redisClient.set(caching.key, JSON.stringify(status), {EX: caching.expires});
       }
     }
