@@ -5,7 +5,7 @@ import config from 'config';
 import { logger } from '../core/logger';
 
 
-function subscribeSalesforceStream(salesforceApi: any, topicName: any, messageCallback: any) {
+function subscribeSalesforceStream(salesforceApi: any, topicName: any, messageCallback: any){
 
     if (salesforceApi == null) {
         throw new Error('Requires salesforceApi, a jsForce connection.');
@@ -59,23 +59,24 @@ function subscribeSalesforceStream(salesforceApi: any, topicName: any, messageCa
     //                 reject(err);
     //             } else {
     //                 resolve(res);
+
     //             }
     //         });
     //     });
     // }
+
     // @ts-ignore
-    // return redisClient.get(replayKey).then((v: string) => {
-    // const replayId = v == null ? null : parseInt(v, 10);
-    const replayId = null;
-    return subscribeAndPush(
-        salesforceApi,
-        fayeClient,
-        topicName,
-        replayId,
-        saveReplayId,
-        messageCallback,
-        logger);
-    // })
+    return redisClient.get(replayKey).then((v: string) => {
+        const replayId = v == null ? null : parseInt(v, 10);
+        return subscribeAndPush(
+            salesforceApi,
+            fayeClient,
+            topicName,
+            replayId,
+            saveReplayId,
+            messageCallback,
+            logger);
+    });
 }
 
 function subscribeAndPush(

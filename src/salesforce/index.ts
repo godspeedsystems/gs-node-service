@@ -36,9 +36,9 @@ async function fetchSalesforceDetails(message: any, conn: any) {
         fetches.push(fetchSalesforceObjectWithCache(conn, header.commitUser, 'User'));
     }
 
-    if (header.recordIds[0] != null) {
+    if (header.recordIds != null) {
         // @ts-ignore
-        fetches.push(fetchSalesforceObjectWithCache(conn, header.recordIds[0], header.entityName));
+        fetches.push(fetchSalesforceObjectWithCache(conn, header.recordIds, header.entityName));
     }
 
     return Promise.all(fetches)
