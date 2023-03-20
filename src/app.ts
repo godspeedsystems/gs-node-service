@@ -261,6 +261,9 @@ async function main() {
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
 
+  // @ts-ignore
+  global.datasources = _.clone(datasources);
+
   const loadFnStatus = await loadFunctions(
     datasources,
     PROJECT_ROOT_DIRECTORY + '/functions'
@@ -448,8 +451,13 @@ async function main() {
       }
     }
 
-    let code =
-      eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500);
+    let code: number;
+    if (Number.isInteger(eventHandlerStatus?.code)) {
+      code = eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500);
+    } else {
+      code = 500;
+    }
+
     let data = eventHandlerStatus?.data;
     let headers = eventHandlerStatus?.headers;
 
