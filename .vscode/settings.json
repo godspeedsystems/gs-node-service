@@ -1,0 +1,6 @@
+{
+    "yaml.schemas": {
+        "https://raw.githubusercontent.com/ashu17706/godspeed-vscode-extension-pack/main/schemas/events.json": "src/events/**/*.yaml",
+        "https://raw.githubusercontent.com/ashu17706/godspeed-vscode-extension-pack/main/schemas/workflow.json": "src/functions/**/*.yaml"
+    }
+}

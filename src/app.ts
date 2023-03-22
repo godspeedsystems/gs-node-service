@@ -32,6 +32,7 @@ import _ from 'lodash';
 import { promClient } from './telemetry/monitoring';
 import { importAll } from './scriptRuntime';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
+import salesforce from "./salesforce";
 
 let childLogger: Pino.Logger;
 export { childLogger };
@@ -190,6 +191,11 @@ function subscribeToEvents(
       let [topic, groupId] = route.split('.kafka.');
       logger.info('registering kafka handler %s %s', topic, groupId);
       kafka.subscribe(topic, groupId, 'kafka', processEvent);
+    } else if (route.includes('.salesforce.')) {
+
+      let [topic, datasourceName] = route.split('.salesforce.');
+      logger.info('registering salesforce handler %s %s', topic, datasourceName);
+      salesforce.subscribe(topic, datasourceName, processEvent);
     } else {
       // for kafka event source like {topic}.kafka1.{groupid}
       // here we are assuming that various event sources for kafka are defined in the above format.
@@ -260,10 +266,8 @@ async function main() {
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
-
   // @ts-ignore
   global.datasources = _.clone(datasources);
-
   const loadFnStatus = await loadFunctions(
     datasources,
     PROJECT_ROOT_DIRECTORY + '/functions'
@@ -295,13 +299,13 @@ async function main() {
   async function processEvent(event: GSCloudEvent) {
     //GSCLoudEvent
 
-    const childLogAttributes: PlainObject = {};  
+    const childLogAttributes: PlainObject = {};
     childLogAttributes.event = event.type;
     childLogAttributes.workflow_name = events[event.type].fn;
 
     const logAttributes = (config as any).log_attributes || [];
 
-    for ( const key in logAttributes) {
+    for (const key in logAttributes) {
       const obj = `event.data?.${logAttributes[key]}`;
       // eslint-disable-next-line no-eval
       childLogAttributes[key] = eval(obj);
@@ -390,8 +394,7 @@ async function main() {
     } catch (err: any) {
       childLogger.error(
         { workflow_name: events[event.type].fn },
-        `Error in executing handler ${events[event.type].fn} for the event ${
-          event.type
+        `Error in executing handler ${events[event.type].fn} for the event ${event.type
         }. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`
       );
       // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
@@ -402,8 +405,7 @@ async function main() {
       eventHandlerStatus = new GSStatus(
         false,
         err.code || 500, //Treat as internal server error by default
-        `Error in executing handler ${events[event.type].fn} for the event ${
-          event.type
+        `Error in executing handler ${events[event.type].fn} for the event ${event.type
         }`,
         err //status data
       );
@@ -466,9 +468,9 @@ async function main() {
     }
 
     if (code < 400) {
-      childLogger.info( 'return value %o %o %o', data, code, headers );  
+      childLogger.info('return value %o %o %o', data, code, headers);
     } else {
-      childLogger.error( 'return value %o %o %o', data, code, headers );  
+      childLogger.error('return value %o %o %o', data, code, headers);
     }
 
     (event.metadata?.http?.express.res as express.Response)

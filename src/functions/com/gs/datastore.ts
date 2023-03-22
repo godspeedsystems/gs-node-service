@@ -43,8 +43,9 @@ export default async function(args:{[key:string]:any;}) {
 
   try {
     prismaMethod = ds.client[entityType][method];
-
+  } catch (err:any) {
     if (!prismaMethod) { //Oops!
+      childLogger.error('Caught exception %o', err.stack);
       //Check whether the entityType specified is wrong or the method
       if (!ds.client[entityType]) {
         attributes.status_code = 400;
@@ -60,14 +61,6 @@ export default async function(args:{[key:string]:any;}) {
       cleanupTraces(attributes);
       return new GSStatus(false, attributes.status_code, undefined, status_message);
     }  
-
-  } catch (err:any) {
-    childLogger.error('Caught exception %o', err.stack);
-    attributes.status_code = 400;
-    status_message = err.message || 'Error in getting prisma method from client!';
-    datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
-    cleanupTraces(attributes);
-    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
   }
 
   try {
