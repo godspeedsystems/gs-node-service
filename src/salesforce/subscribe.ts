@@ -3,9 +3,10 @@ import jsforce from 'jsforce';
 import config from 'config';
 
 import { logger } from '../core/logger';
+import { GSStatus } from '../core/interfaces';
 
 
-function subscribeSalesforceStream(salesforceApi: any, topicName: any, messageCallback: any){
+async function subscribeSalesforceStream(salesforceApi: any, topicName: any, messageCallback: any): Promise<GSStatus> {
 
     if (salesforceApi == null) {
         throw new Error('Requires salesforceApi, a jsForce connection.');
@@ -52,21 +53,18 @@ function subscribeSalesforceStream(salesforceApi: any, topicName: any, messageCa
             }
         });
     }
-    // function readReplayId() {
-    //     return new Promise((resolve, reject) => {
-    //         redisClient.get(replayKey, (err: any, res: any) => {
-    //             if (err) {
-    //                 reject(err);
-    //             } else {
-    //                 resolve(res);
-
-    //             }
-    //         });
-    //     });
-    // }
+    function readReplayId() {
+        return new Promise((resolve, reject) => {
+            redisClient.get(replayKey).then((v: string) => {
+                resolve(v);
+            }).catch((error: any) => {
+                reject(error);
+            });
+        });
+    }
 
     // @ts-ignore
-    return redisClient.get(replayKey).then((v: string) => {
+    return readReplayId().then((v: string) => {
         const replayId = v == null ? null : parseInt(v, 10);
         return subscribeAndPush(
             salesforceApi,
