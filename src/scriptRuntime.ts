@@ -38,5 +38,6 @@
              err.message,
              err.stack
          );
+         return 'Error in parsing script';
      }
  }

@@ -7,8 +7,29 @@ import yaml from 'yaml';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 import fs from 'fs-extra';
-import { removeNulls } from '../core/utils';
 import swaggerCommonPart from './basic-spec';
+
+// add it here, because of circular dependency of logger
+function removeNulls(obj: PlainObject) {
+  const isArray = Array.isArray(obj);
+  for (const k of Object.keys(obj)) {
+    if (obj[k] === null) {
+      if (isArray) {
+        //@ts-ignore
+        obj.splice(k, 1);
+      } else {
+        delete obj[k];
+      }
+    } else if (typeof obj[k] === 'object') {
+      removeNulls(obj[k]);
+    }
+    //@ts-ignore
+    if (isArray && obj.length === k) {
+      removeNulls(obj);
+    }
+  }
+  return obj;
+}
 
 export default async function generateSchema(
   eventsFolderPath: string,
@@ -29,7 +50,10 @@ export default async function generateSchema(
       summary: eventSchema.summary,
       description: eventSchema.description,
       requestBody: eventSchema.body || eventSchema.data?.schema?.body,
-      parameters: eventSchema.parameters || eventSchema.params || eventSchema.data?.schema?.params,
+      parameters:
+        eventSchema.parameters ||
+        eventSchema.params ||
+        eventSchema.data?.schema?.params,
       responses: eventSchema.responses,
     };
 

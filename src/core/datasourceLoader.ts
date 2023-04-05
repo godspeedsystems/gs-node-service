@@ -12,7 +12,6 @@ import { logger } from './logger';
 import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
-import { config as appConfig } from './loader';
 import glob from 'glob';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
 import KafkaMessageBus from '../kafka';
@@ -26,6 +25,8 @@ import {
   isValidElasticgraphDatasource,
 } from './validation';
 import config from 'config';
+import salesforce from '../salesforce';
+
 const axiosTime = require('axios-time');
 
 const secret = (config as any).prisma_secret || 'prismaEncryptionSecret';
@@ -78,6 +79,8 @@ export default async function loadDatasources(pathString: string) {
       } else {
         process.exit(1);
       }
+    } else if (datasources[ds].type === 'salesforce') {
+        loadedDatasources[ds] = await salesforce.init(datasources[ds]);
     } else if (datasources[ds].type === 'redis') {
       if (isValidRedisDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadRedisClient(datasources[ds]);

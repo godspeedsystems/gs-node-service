@@ -431,6 +431,10 @@ export class GSFunction extends Function {
           childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'exiting on error %s', this.id);
           ctx.exitWithStatus = status;
         }
+      } else {
+        if (ctx.exitWithStatus) {
+          ctx.exitWithStatus = status;
+        }
       }
     }
 
@@ -444,70 +448,84 @@ export class GSFunction extends Function {
    * @param instruction
    * @param ctx
    */
-  async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
+   async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
 
-    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
-    let status, prismaArgs;
-
-    childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
-    if (this.yaml.authz) {
-      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'invoking authz workflow, creating new ctx');
-      let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
-
-      const newCtx = ctx.cloneWithNewData(args);
-      let allow = await this.yaml.authz(newCtx, taskValue);
-      if (allow.success) {
-        if (allow.data === false) {
-          ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
-          return ctx.exitWithStatus;
-        } else if (isPlainObject(allow.data)) {
-          prismaArgs = allow.data;
-        }
-      }
-    }
-
-    let args = this.args;
-    if (this.args_script) {
-      args = await evaluateScript(ctx, this.args_script, taskValue);
-    }
-    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `args after evaluation: ${this.id} ${JSON.stringify(args)}`);
-
-    if (prismaArgs) {
-      args.data = _.merge(args.data, prismaArgs);
-      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `merged args with authz args.data: ${JSON.stringify(args)}`);
-    }
-
-    childLogger.setBindings({ 'workflow_name': '','task_id': ''});
-    if (this.fnScript) {
-      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
-      let s: string = await evaluateScript(ctx, this.fnScript, taskValue);
-      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
-      this.fn = this.nativeFunctions?.[s];
-
-      if (!this.fn) {
-        this.fn = this.workflows?.[s];
-        this.isSubWorkflow = true;
-      }
-
-      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `invoking dynamic fn: ${s}`);
-    }
-
-    if (this.fn instanceof GSFunction) {
-      if (this.isSubWorkflow) {
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isSubWorkflow, creating new ctx');
-
+    let status: GSStatus;
+    try {
+        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
+        let prismaArgs;
+    
         childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
-        const newCtx = ctx.cloneWithNewData(args);
+        if (this.yaml.authz) {
+          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'invoking authz workflow, creating new ctx');
+          let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
+    
+          const newCtx = ctx.cloneWithNewData(args);
+          let allow = await this.yaml.authz(newCtx, taskValue);
+          if (allow.success) {
+            if (allow.data === false) {
+              ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
+              return ctx.exitWithStatus;
+            } else if (isPlainObject(allow.data)) {
+              prismaArgs = allow.data;
+            }
+          }
+        }
+    
+        let args = this.args;
+        if (this.args_script) {
+          args = await evaluateScript(ctx, this.args_script, taskValue);
+          if (args == 'Error in parsing script') {
+            throw ctx.exitWithStatus;
+          }
+        }
+        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `args after evaluation: ${this.id} ${JSON.stringify(args)}`);
+    
+        if (prismaArgs) {
+          args.data = _.merge(args.data, prismaArgs);
+          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `merged args with authz args.data: ${JSON.stringify(args)}`);
+        }
+    
         childLogger.setBindings({ 'workflow_name': '','task_id': ''});
-        status = await this.fn(newCtx, taskValue);
-      } else {
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'No isSubWorkflow, continuing in the same ctx');
-        status = await this.fn(ctx, taskValue);
-      }
-    }
-    else {
-      this.args = args;
-      status = await this._executefn(ctx, taskValue);
+        if (this.fnScript) {
+          childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
+          let s: string = await evaluateScript(ctx, this.fnScript, taskValue);
+          childLogger.setBindings({ 'workflow_name': '','task_id': ''});
+          this.fn = this.nativeFunctions?.[s];
+    
+          if (!this.fn) {
+            this.fn = this.workflows?.[s];
+            this.isSubWorkflow = true;
+          }
+    
+          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `invoking dynamic fn: ${s}`);
+        }
+    
+        if (this.fn instanceof GSFunction) {
+          if (this.isSubWorkflow) {
+            childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isSubWorkflow, creating new ctx');
+    
+            childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
+            const newCtx = ctx.cloneWithNewData(args);
+            childLogger.setBindings({ 'workflow_name': '','task_id': ''});
+            status = await this.fn(newCtx, taskValue);
+          } else {
+            childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'No isSubWorkflow, continuing in the same ctx');
+            status = await this.fn(ctx, taskValue);
+          }
+        }
+        else {
+          this.args = args;
+          status = await this._executefn(ctx, taskValue);
+        }
+    }  catch (err: any) {
+      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o',this.id, err);
+      status = new GSStatus(
+          false,
+          500,
+          err.message,
+          `Caught error from execution in task id ${this.id}`
+        );
     }
 
     return this.handleError(ctx, status, taskValue);
