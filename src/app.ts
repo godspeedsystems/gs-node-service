@@ -266,8 +266,10 @@ async function main() {
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
+
   // @ts-ignore
   global.datasources = _.clone(datasources);
+  
   const loadFnStatus = await loadFunctions(
     datasources,
     PROJECT_ROOT_DIRECTORY + '/functions'
