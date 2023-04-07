@@ -766,7 +766,7 @@ export class GSEachParallelFunction extends GSFunction {
     const promises = [];
     let outputs:any[] = [];
     let status: GSStatus;
-    let allTasksFailed = true;
+    let failedTasksCount = 0;
 
     for (const val of value) {
       promises.push(task(ctx, val));
@@ -775,18 +775,19 @@ export class GSEachParallelFunction extends GSFunction {
     status = new GSStatus(true, 200, '', outputs);
 
     for (const output of outputs) {
-      if (output.success) {
-        allTasksFailed = false;
+      if (! output.success) {
+        failedTasksCount++;
       }
     }
 
     delete ctx.exitWithStatus;
     ctx.outputs[this.id] = status;
 
-    if (allTasksFailed) {
+    // if the all the tasks get failed then check on_error at each_parallel loop level
+    if (failedTasksCount == value.length && value.length > 0) {
       status.success = false;
       status.code = 500;
-      return this.handleError(ctx, status, taskValue); // if the all the tasks get failed then check on_error at each_parallel loop level
+      return this.handleError(ctx, status, taskValue);
     }
 
     return status;
@@ -820,34 +821,33 @@ export class GSEachSeriesFunction extends GSFunction {
 
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, `GSEachSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
-    //const outputs:[GSStatus] = <any>[];
     const outputs:any[] = [];
     const status = new GSStatus(true, 200, '', outputs);
     let taskRes: any;
-    let allTasksFailed = true;
+    let failedTasksCount = 0;
 
     for (const val of value) {
       taskRes = await task(ctx, val);
+
+      if(! taskRes.success) {
+        failedTasksCount++;
+      }
 
       if (ctx.exitWithStatus) {
         ctx.outputs[this.id] = ctx.exitWithStatus;
         outputs.push(ctx.outputs[this.id]);
         break;  // break from for loop when continue is false for any task_value in each_sequential.
-      } else {
-        outputs.push(taskRes);
-        if (taskRes.success) {
-          allTasksFailed = false;
-        }
       }
     }
 
     delete ctx.exitWithStatus; // exitWithStatus is removed from ctx so that other tasks (outside each_sequential loop) can be continued.
     ctx.outputs[this.id] = status;
 
-    if (allTasksFailed) {
+     // if the all the tasks get failed then check on_error at each_sequential loop level
+    if (failedTasksCount == value.length && value.length > 0) {
       status.success = false;
       status.code = 500;
-      return this.handleError(ctx, status, taskValue); // if the all the tasks get failed then check on_error at each_sequential loop level
+      return this.handleError(ctx, status, taskValue);
     }
 
     return ctx.outputs[this.id];
