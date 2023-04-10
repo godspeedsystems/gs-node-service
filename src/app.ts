@@ -459,7 +459,11 @@ async function main() {
     if (Number.isInteger(eventHandlerStatus?.code)) {
       code = eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500);
     } else {
-      code = 500;
+      if ( eventHandlerStatus?.success) {
+        code = eventHandlerStatus?.success ? 200 : 500;
+      } else {
+        code = 500;
+      }
     }
 
     let data = eventHandlerStatus?.data;
