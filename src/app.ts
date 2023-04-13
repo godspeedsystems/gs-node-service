@@ -34,6 +34,7 @@ import { importAll } from './scriptRuntime';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
 import cron from './cron';
+import loadMappings from './core/mappingLoader';
 
 let childLogger: Pino.Logger;
 export { childLogger };
@@ -266,6 +267,10 @@ async function main() {
 
   await loadAndRegisterDefinitions(PROJECT_ROOT_DIRECTORY + '/definitions');
 
+  const mappings = await loadMappings(
+    PROJECT_ROOT_DIRECTORY + '/mappings'
+  );
+
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
@@ -387,7 +392,7 @@ async function main() {
       config,
       datasources,
       event,
-      appConfig.app.mappings,
+      mappings,
       plugins
     );
 
