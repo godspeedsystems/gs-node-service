@@ -33,6 +33,7 @@ import { promClient } from './telemetry/monitoring';
 import { importAll } from './scriptRuntime';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
+import cron from './cron';
 
 let childLogger: Pino.Logger;
 export { childLogger };
@@ -196,6 +197,8 @@ function subscribeToEvents(
       let [topic, datasourceName] = route.split('.salesforce.');
       logger.info('registering salesforce handler %s %s', topic, datasourceName);
       salesforce.subscribe(topic, datasourceName, processEvent);
+    } else if (route.includes('.cron.')) {
+      cron(route, processEvent);
     } else {
       // for kafka event source like {topic}.kafka1.{groupid}
       // here we are assuming that various event sources for kafka are defined in the above format.
