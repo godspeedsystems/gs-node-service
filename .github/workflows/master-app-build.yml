@@ -32,23 +32,53 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push
+    - name: Building docker image
+      uses: docker/build-push-action@v2
+      with:
+        load: true
+        context: .
+        file: Dockerfile
+        tags: |
+          godspeedsystems/gs_node_service:latest
+          adminmindgrep/gs_service:latest        
+                    
+    - name: Login to Godspeed DockerHub
+      uses: docker/login-action@v2 
+      with:
+        username: ${{ secrets.GODSPEED_DOCKERHUB_USERNAME }}
+        password: ${{ secrets.GODSPEED_DOCKERHUB_PASSWORD }}
+
+    - name: Pushing image into godspeed registry 
       uses: docker/build-push-action@v2
       with:
         push: true
         context: .
-        file: Dockerfile
-        tags: adminmindgrep/gs_service:latest
+        tags: |
+          godspeedsystems/gs_node_service:latest
+
+    - name: Login to mindgrep DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Pushing image into adminmindgrep registry 
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        context: .
+        tags: |
+          adminmindgrep/gs_service:latest
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'adminmindgrep/gs_service:latest'
+        image-ref: 'godspeedsystems/gs_node_service:latest'
         format: 'table'
         exit-code: '0'
         ignore-unfixed: true
         vuln-type: 'os,library'
-        severity: 'LOW,MEDIUM,CRITICAL,HIGH'      
+        severity: 'LOW,MEDIUM,CRITICAL,HIGH'   
 
     # - name: Setup Node.js v16
     #   uses: actions/setup-node@v3
