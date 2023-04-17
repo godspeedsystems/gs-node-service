@@ -32,7 +32,7 @@ jobs:
         context: .
         file: Dockerfile
         tags: |
-          godspeedsystems/gs_node_service:dev
+          godspeedsystems/gs-node-service:dev
           adminmindgrep/gs_service:dev        
                     
     - name: Login to Godspeed DockerHub
@@ -47,7 +47,7 @@ jobs:
         push: true
         context: .
         tags: |
-          godspeedsystems/gs_node_service:dev
+          godspeedsystems/gs-node-service:dev
 
     - name: Login to mindgrep DockerHub
       uses: docker/login-action@v2
@@ -66,7 +66,7 @@ jobs:
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'godspeedsystems/gs_node_service:dev'
+        image-ref: 'godspeedsystems/gs-node-service:dev'
         format: 'table'
         exit-code: '0'
         ignore-unfixed: true
