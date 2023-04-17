@@ -20,7 +20,7 @@ export default function loadYaml(pathString: string, global: boolean = false):Pl
     logger.info('Loading %s from %s', basePath, pathString);
 
     return new Promise((resolve, reject) => {
-      glob(pathString + '/**/*.?(yaml|yml)', function (err:Error|null, res: string[]) {
+      glob(pathString + '/**/*.?(yaml|yml|json)', function (err:Error|null, res: string[]) {
         logger.debug('parsing files: %s',res);
         if (err) {
             reject(err);
@@ -28,7 +28,7 @@ export default function loadYaml(pathString: string, global: boolean = false):Pl
           Promise.all(
             res.map((file:string) => {
                 module = yaml.parse(readFileSync(file, { encoding: 'utf-8' }));
-                const id = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.').replace(/\.(yaml|yml)/i, '').replace(/\.index$/, '');
+                const id = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.').replace(/\.(yaml|yml|json)/i, '').replace(/\.index$/, '');
 
                 if (global) {
                   api = {
