@@ -36,24 +36,18 @@ export default function loadModules(
                     .replace(/\.(ts|js)/i, '')
                     .replace(/\_index$/, '');
 
-                    if (global) {
+                    api = { ...api,  ...module };
+                    if (id == 'index') {
                       api = {
                         ...api,
-                        ...module
+                        ...module,
                       };
                     } else {
-                      if (id == 'index') {
-                        api = {
-                          ...api,
-                          ...module,
-                        };
-                      } else {
-                        for (let f in module) {
-                          if (f == 'default') {
-                            api[id] = module[f];
-                          } else {
-                            api[id + '_' + f] = module[f];
-                          }
+                      for (let f in module) {
+                        if (f == 'default') {
+                          api[id] = module[f];
+                        } else {
+                          api[id + '_' + f] = module[f];
                         }
                       }
                     }
