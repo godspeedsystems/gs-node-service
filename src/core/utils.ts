@@ -164,7 +164,8 @@ export function prepareScript(str: string): Function {
   logger.debug('script: %s', str);
 
   str = str.trim();
-
+  const initialStr = str;
+  
   if (!/\breturn\b/.test(str)) {
     str = 'return ' + str;
   }
@@ -173,7 +174,15 @@ export function prepareScript(str: string): Function {
     str = CoffeeScript.compile(str ,{bare: true});
   }
 
-  return Function('config', 'inputs', 'outputs', 'mappings', 'task_value', str);
+  let prepareScriptFunction: any;
+  try {
+    prepareScriptFunction = Function('config', 'inputs', 'outputs', 'mappings', 'task_value', str);
+  } catch(err: any) {
+    logger.error('Caught exception in script compilation, script: %s', initialStr);
+    logger.error('exception: %o', err.stack);
+  }
+
+  return prepareScriptFunction;
 }
 
 export function compileScript(args: any) {
