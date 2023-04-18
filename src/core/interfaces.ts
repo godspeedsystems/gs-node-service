@@ -838,6 +838,7 @@ export class GSEachSeriesFunction extends GSFunction {
         outputs.push(ctx.outputs[this.id]);
         break;  // break from for loop when continue is false for any task_value in each_sequential.
       }
+      outputs.push(taskRes);
     }
 
     delete ctx.exitWithStatus; // exitWithStatus is removed from ctx so that other tasks (outside each_sequential loop) can be continued.
