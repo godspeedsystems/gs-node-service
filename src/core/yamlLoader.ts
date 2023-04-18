@@ -21,7 +21,7 @@ export default function loadYaml(pathString: string, global: boolean = false):Pl
 
     return new Promise((resolve, reject) => {
       let fileTypes: string;
-      if (pathString.match(/.*?\/mappings\//)) {
+      if (pathString.match(/.*?\/mappings/)) {
         fileTypes = pathString + '/**/*.?(yaml|yml|json)';
       } else {
         fileTypes = pathString + '/**/*.?(yaml|yml)';
