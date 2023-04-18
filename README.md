@@ -130,9 +130,9 @@ enum OrderStatus {
 
 ## Evaluation
   Your solution will be only evaluated if,
-    1. You follow the GodspeedSystems github org. [link](https://github.com/godspeedsystems)
-    2. You have starred, *gs-node-service* repository of Godspeed. [link](https://github.com/godspeedsystems/gs-node-service)
-    3. Your code is hosted in a public repository.
+  1. You follow the GodspeedSystems github org. [link](https://github.com/godspeedsystems)
+  2. You have starred, *gs-node-service* repository of Godspeed. [link](https://github.com/godspeedsystems/gs-node-service)
+  3. Your code is hosted in a public repository.
 
 ## References
 1. [Getting started guide](https://docs.godspeed.systems/docs/microservices/setup/getting-started)
