@@ -15,7 +15,6 @@ import config from 'config';
 import Pino from 'pino';
 import authn from './authn';
 import app, { router } from './http_listener';
-import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
 import loadModules from './core/codeLoader';
@@ -34,8 +33,10 @@ import { importAll } from './scriptRuntime';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
 import cron from './cron';
+import loadMappings from './core/mappingLoader';
 
 let childLogger: Pino.Logger;
+let mappings: PlainObject;
 export { childLogger };
 
 function subscribeToEvents(
@@ -211,7 +212,7 @@ function subscribeToEvents(
             config,
             {},
             {},
-            appConfig.app.mappings
+            mappings
           );
           logger.debug('evaluatedDatasources: %o', evaluatedDatasources);
           const kafkaClient = evaluatedDatasources.client;
@@ -265,7 +266,8 @@ async function main() {
   let functions: PlainObject;
 
   await loadAndRegisterDefinitions(PROJECT_ROOT_DIRECTORY + '/definitions');
-
+  mappings = loadMappings();
+  
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
@@ -387,7 +389,7 @@ async function main() {
       config,
       datasources,
       event,
-      appConfig.app.mappings,
+      mappings,
       plugins
     );
 

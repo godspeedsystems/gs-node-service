@@ -6,7 +6,9 @@ import config from 'config';
 
 import { logger } from './logger';
 import { PlainObject } from './common';
-import { config as appConfig } from './loader';
+import loadMappings from './mappingLoader';
+
+const mappings = loadMappings();
 
 function substitute(value: string): any {
   try {
@@ -15,7 +17,7 @@ function substitute(value: string): any {
 
       let script = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
       //TODO: pass other context variables
-      value = Function('config', 'mappings', 'return ' + script)(config, appConfig.app.mappings);
+      value = Function('config', 'mappings', 'return ' + script)(config, mappings);
       logger.debug('value after %s', value);
     }
   } catch (ex) {

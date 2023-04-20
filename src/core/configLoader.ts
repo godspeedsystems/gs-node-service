@@ -26,7 +26,7 @@ function iterate_yaml_directories(current_yaml_root:any) {
 
   for (const file of files) {
     let temp_obj:any;
-    if (file.endsWith('.yaml')) {
+    if (file.endsWith('.yaml') || file.endsWith('.yml') || file.endsWith('.json')) {
       temp_obj = yaml.load(
         fs.readFileSync(current_yaml_root + '/' + file, { encoding: 'utf-8' })
       );
@@ -36,7 +36,7 @@ function iterate_yaml_directories(current_yaml_root:any) {
         for (var key in temp_obj_keys) {
           key = temp_obj_keys[key];
 
-          if (file == 'index.yaml') {
+          if (file == 'index.yaml' || file == 'index.yml' || file == 'index.json') {
             recursive_object_state[current_property][key] = temp_obj[key];
           } else {
             const file_name = file.slice(0,-5);
