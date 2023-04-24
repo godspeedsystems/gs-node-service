@@ -15,7 +15,6 @@ import config from 'config';
 import Pino from 'pino';
 import authn from './authn';
 import app, { router } from './http_listener';
-import { config as appConfig } from './core/loader';
 import { PlainObject } from './core/common';
 import { logger } from './core/logger';
 import loadModules from './core/codeLoader';
@@ -33,8 +32,11 @@ import { promClient } from './telemetry/monitoring';
 import { importAll } from './scriptRuntime';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
+import cron from './cron';
+import loadMappings from './core/mappingLoader';
 
 let childLogger: Pino.Logger;
+let mappings: PlainObject;
 export { childLogger };
 
 function subscribeToEvents(
@@ -79,28 +81,28 @@ function subscribeToEvents(
                 req.files
               );
               //passing all properties of req
-              let data = _.pick(req, [
-                'baseUrl',
-                'body',
-                'cookies',
-                'fresh',
-                'hostname',
-                'ip',
-                'user',
-                'ips',
-                'method',
-                'originalUrl',
-                'params',
-                'path',
-                'protocol',
-                'query',
-                'route',
-                'secure',
-                'signedCookies',
-                'stale',
-                'subdomains',
-                'xhr',
-                'headers',
+              let data = _.omit(req, [
+                // 'baseUrl',
+                // 'body',
+                // 'cookies',
+                // 'fresh',
+                // 'hostname',
+                // 'ip',
+                // 'user',
+                // 'ips',
+                // 'method',
+                // 'originalUrl',
+                // 'params',
+                // 'path',
+                // 'protocol',
+                // 'query',
+                // 'route',
+                // 'secure',
+                // 'signedCookies',
+                // 'stale',
+                // 'subdomains',
+                // 'xhr',
+                // 'headers',
               ]);
 
               //@ts-ignore
@@ -144,27 +146,27 @@ function subscribeToEvents(
             req.files
           );
           //passing all properties of req
-          let data = _.pick(req, [
-            'baseUrl',
-            'body',
-            'cookies',
-            'fresh',
-            'hostname',
-            'ip',
-            'ips',
-            'method',
-            'originalUrl',
-            'params',
-            'path',
-            'protocol',
-            'query',
-            'route',
-            'secure',
-            'signedCookies',
-            'stale',
-            'subdomains',
-            'xhr',
-            'headers',
+          let data = _.omit(req, [
+            // 'baseUrl',
+            // 'body',
+            // 'cookies',
+            // 'fresh',
+            // 'hostname',
+            // 'ip',
+            // 'ips',
+            // 'method',
+            // 'originalUrl',
+            // 'params',
+            // 'path',
+            // 'protocol',
+            // 'query',
+            // 'route',
+            // 'secure',
+            // 'signedCookies',
+            // 'stale',
+            // 'subdomains',
+            // 'xhr',
+            // 'headers',
           ]);
 
           //@ts-ignore
@@ -196,6 +198,8 @@ function subscribeToEvents(
       let [topic, datasourceName] = route.split('.salesforce.');
       logger.info('registering salesforce handler %s %s', topic, datasourceName);
       salesforce.subscribe(topic, datasourceName, processEvent);
+    } else if (route.includes('.cron.')) {
+      cron(route, processEvent);
     } else {
       // for kafka event source like {topic}.kafka1.{groupid}
       // here we are assuming that various event sources for kafka are defined in the above format.
@@ -208,7 +212,7 @@ function subscribeToEvents(
             config,
             {},
             {},
-            appConfig.app.mappings
+            mappings
           );
           logger.debug('evaluatedDatasources: %o', evaluatedDatasources);
           const kafkaClient = evaluatedDatasources.client;
@@ -262,7 +266,8 @@ async function main() {
   let functions: PlainObject;
 
   await loadAndRegisterDefinitions(PROJECT_ROOT_DIRECTORY + '/definitions');
-
+  mappings = loadMappings();
+  
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
@@ -384,7 +389,7 @@ async function main() {
       config,
       datasources,
       event,
-      appConfig.app.mappings,
+      mappings,
       plugins
     );
 

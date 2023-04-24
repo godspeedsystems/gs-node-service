@@ -1,0 +1,66 @@
+/*
+ * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
+ * © 2022 Mindgrep Technologies Pvt Ltd
+ */
+
+/*
+TYPESCRIPT
+*/
+import { uuid } from 'uuidv4';
+
+function addUuid(req: any, res: any, next: any) {
+    // Set data
+    req.body.uuid = uuid();
+    
+    // Go to next middleware
+    next();
+}
+
+function addTitle(req: any, res: any, next: any) {
+    // Set data
+    req.body.title = "Title from middleware/ts";
+    
+    // Go to next middleware
+    next();
+}
+
+function addName(req: any, res: any, next: any) {
+    // Set data
+    req.body.name = "Name from middleware/ts";
+    
+    // Go to next middleware
+    next();
+}
+
+export default [addUuid, addTitle, addName];
+
+/*
+JAVASCRIPT
+*/
+const { uuid } = require('uuidv4');
+
+function addUuid(req, res, next) {
+    // Set data
+    req.body.uuid = uuid();
+    
+    // Go to next middleware
+    next();
+}
+
+function addTitle(req, res, next) {
+    // Set data
+    req.body.title = "Title from middleware/js";
+    
+    // Go to next middleware
+    next();
+}
+
+function addName(req, res, next) {
+    // Set data
+    req.body.name = "Name from middleware/js";
+    
+    // Go to next middleware
+    next();
+}
+
+module.exports = [addUuid, addTitle, addName];

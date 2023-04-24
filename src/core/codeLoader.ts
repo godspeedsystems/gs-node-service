@@ -28,33 +28,63 @@ export default function loadModules(
               return import(
                 path.relative(__dirname, file).replace(/\.(ts|js)/, '')
               ).then((module) => {
-                const id = file
-                  .replace(/.*?\/(functions|plugins)\//, '')
-                  .replace(/\//g, '.')
-                  .replace(/\.(ts|js)/i, '')
-                  .replace(/\.index$/, '');
+                
+                if (file.match(/.*?\/plugins\//)) {
+                    const id = file
+                    .replace(/.*?\/(plugins)\//, '')
+                    .replace(/\//g, '_')
+                    .replace(/\.(ts|js)/i, '')
+                    .replace(/\_index$/, '');
 
-                if (global) {
-                  api = {
-                    ...api,
-                    ...module
-                  };
-                } else {
-                  if (id == 'index') {
-                    api = {
-                      ...api,
-                      ...module,
-                    };
-                  } else {
-                    for (let f in module) {
-                      if (f == 'default') {
-                        api[id] = module[f];
-                      } else {
-                        api[id + '.' + f] = module[f];
+                    // Load plugins at global level to provide backward compatibilty
+                    api = { ...api,  ...module };
+
+                    // Load plugins with namespace using underscore notation
+                    if (id == 'index') {
+                      api = {
+                        ...api,
+                        ...module,
+                      };
+                    } else {
+                      for (let f in module) {
+                        if (f == 'default') {
+                          api[id] = module[f];
+                        } else {
+                          api[id + '_' + f] = module[f];
+                        }
                       }
                     }
-                  }
+                } else {
+                    const id = file
+                    .replace(/.*?\/functions\//, '')
+                    .replace(/\//g, '.')
+                    .replace(/\.(ts|js)/i, '')
+                    .replace(/\.index$/, '');
+
+                    if (global) {
+                      api = {
+                        ...api,
+                        ...module
+                      };
+                    } else {
+                      if (id == 'index') {
+                        api = {
+                          ...api,
+                          ...module,
+                        };
+                      } else {
+                        for (let f in module) {
+                          if (f == 'default') {
+                            api[id] = module[f];
+                          } else {
+                            api[id + '.' + f] = module[f];
+                          }
+                        }
+                      }
+                    }
+
                 }
+                
               });
             })
           ).then(() => {

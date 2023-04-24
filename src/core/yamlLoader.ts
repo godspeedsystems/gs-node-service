@@ -20,6 +20,7 @@ export default function loadYaml(pathString: string, global: boolean = false):Pl
     logger.info('Loading %s from %s', basePath, pathString);
 
     return new Promise((resolve, reject) => {
+
       glob(pathString + '/**/*.?(yaml|yml)', function (err:Error|null, res: string[]) {
         logger.debug('parsing files: %s',res);
         if (err) {

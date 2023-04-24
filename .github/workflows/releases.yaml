@@ -41,3 +41,47 @@ jobs:
         context: .
         file: Dockerfile
         tags: adminmindgrep/gs_service:${{ github.ref_name }}
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v1 
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Building docker image
+      uses: docker/build-push-action@v2
+      with:
+        load: true
+        context: .
+        file: Dockerfile
+        tags: |
+          godspeedsystems/gs-node-service:${{ github.ref_name }}
+          adminmindgrep/gs_service:${{ github.ref_name }}        
+                    
+    - name: Login to Godspeed DockerHub
+      uses: docker/login-action@v2 
+      with:
+        username: ${{ secrets.GODSPEED_DOCKERHUB_USERNAME }}
+        password: ${{ secrets.GODSPEED_DOCKERHUB_PASSWORD }}
+
+    - name: Pushing image into godspeed registry 
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        context: .
+        tags: |
+          godspeedsystems/gs-node-service:${{ github.ref_name }}
+
+    - name: Login to mindgrep DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name:  Pushing image into adminmindgrep registry
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        context: .
+        tags: |
+          adminmindgrep/gs_service:${{ github.ref_name }}
