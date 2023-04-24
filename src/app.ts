@@ -82,27 +82,12 @@ function subscribeToEvents(
               );
               //passing all properties of req
               let data = _.omit(req, [
-                // 'baseUrl',
-                // 'body',
-                // 'cookies',
-                // 'fresh',
-                // 'hostname',
-                // 'ip',
-                // 'user',
-                // 'ips',
-                // 'method',
-                // 'originalUrl',
-                // 'params',
-                // 'path',
-                // 'protocol',
-                // 'query',
-                // 'route',
-                // 'secure',
-                // 'signedCookies',
-                // 'stale',
-                // 'subdomains',
-                // 'xhr',
-                // 'headers',
+                '_readableState',
+                'socket',
+                'client',
+                '_parsedUrl',
+                'res',
+                'app'
               ]);
 
               //@ts-ignore
@@ -147,26 +132,12 @@ function subscribeToEvents(
           );
           //passing all properties of req
           let data = _.omit(req, [
-            // 'baseUrl',
-            // 'body',
-            // 'cookies',
-            // 'fresh',
-            // 'hostname',
-            // 'ip',
-            // 'ips',
-            // 'method',
-            // 'originalUrl',
-            // 'params',
-            // 'path',
-            // 'protocol',
-            // 'query',
-            // 'route',
-            // 'secure',
-            // 'signedCookies',
-            // 'stale',
-            // 'subdomains',
-            // 'xhr',
-            // 'headers',
+            '_readableState',
+            'socket',
+            'client',
+            '_parsedUrl',
+            'res',
+            'app'
           ]);
 
           //@ts-ignore
