@@ -81,7 +81,7 @@ function subscribeToEvents(
                 req.files
               );
               //passing all properties of req
-              let data = _.omit(req, [
+              const reqProp = _.omit(req, [
                 '_readableState',
                 'socket',
                 'client',
@@ -89,6 +89,12 @@ function subscribeToEvents(
                 'res',
                 'app'
               ]);
+
+              const reqHeaders = _.pick(req, [
+                'headers'
+              ]);
+
+              let data = { ...reqProp, ...reqHeaders };
 
               //@ts-ignore
               data.file_obj = req.files;
@@ -131,7 +137,7 @@ function subscribeToEvents(
             req.files
           );
           //passing all properties of req
-          let data = _.omit(req, [
+          const reqProp = _.omit(req, [
             '_readableState',
             'socket',
             'client',
@@ -139,6 +145,12 @@ function subscribeToEvents(
             'res',
             'app'
           ]);
+
+          const reqHeaders = _.pick(req, [
+            'headers'
+          ]);
+
+          let data = { ...reqProp, ...reqHeaders };
 
           //@ts-ignore
           data.file_obj = req.files;
