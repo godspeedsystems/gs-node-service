@@ -180,6 +180,7 @@ export function prepareScript(str: string): Function {
   } catch(err: any) {
     logger.error('Caught exception in script compilation, script: %s', initialStr);
     logger.error('exception: %o', err.stack);
+    process.exit(1);
   }
 
   return prepareScriptFunction;
