@@ -245,7 +245,7 @@ function subscribeToEvents(
 }
 
 async function main() {
-  logger.info('Main execution');
+  logger.info('Main execution NODE_ENV: %s', process.env.NODE_ENV);
   let functions: PlainObject;
 
   await loadAndRegisterDefinitions(PROJECT_ROOT_DIRECTORY + '/definitions');
