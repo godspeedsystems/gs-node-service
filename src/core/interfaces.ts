@@ -97,7 +97,7 @@ export class GSFunction extends Function {
   constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
-    this.id = yaml.id || randomUUID();
+    this.id = yaml.id || yaml.workflow_name;
     this.fn = _fn;
     this.workflow_name = yaml.workflow_name;
     this.workflows = workflows;
@@ -591,6 +591,7 @@ export class GSSeriesFunction extends GSFunction {
         }
       }
     }
+    childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
     return ret;
