@@ -1,9 +1,3 @@
-## Introduction
-We are working on the draft of the license under which we wish to release our source code as *Source Available* which is free for non-commercial use but paid for commercial use. Your comments and feedback are most welcome.
-
-
-## BEGIN LICENCE TEXT
-
 # Godspeed Source Available License 1.0
 
 #### Acceptance
@@ -79,10 +73,3 @@ The **licensor** is the entity offering these terms, and the **software** is the
 **trademark** means trademarks, service marks, and similar rights.
 
 **violence** refers to activities which are against peace and physical safety of humans or animals.
-
-## THE END OF LICENSE TERMS
-
-References
-[[0](https://www.mysql.com/about/legal/licensing/oem/)]
-[[1]](https://opensource.stackexchange.com/questions/12642/how-is-commercial-use-of-software-defined)
-[[2]](https://www.indeed.com/career-advice/career-development/commercial-use)
