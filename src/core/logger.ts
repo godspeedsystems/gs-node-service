@@ -11,7 +11,9 @@ let redactAttrs: Array<string> = [];
 for (const redactAttr of configRedact) {
     if (redactAttr.match(/^\*\*/)) {
       const fieldName = redactAttr.replace(/^\*\*\./, '');
-      redactAttrs.push(`${fieldName}`, `*.${fieldName}`, `*.*.${fieldName}`, `*.*.*.${fieldName}`);
+      redactAttrs.push(`${fieldName}`, `*.${fieldName}`, `*.*.${fieldName}`, `*.*.*.${fieldName}`, `*.*.*.*.${fieldName}`, `*.*.*.*.*.${fieldName}`,
+        `*.*.*.*.*.*.${fieldName}`, `*.*.*.*.*.*.*.${fieldName}`, `*.*.*.*.*.*.*.*.${fieldName}`, `*.*.*.*.*.*.*.*.*.${fieldName}`
+      );
   } else {
       redactAttrs.push(redactAttr);
     }
