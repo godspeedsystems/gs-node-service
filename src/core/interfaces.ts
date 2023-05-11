@@ -512,11 +512,11 @@ export class GSFunction extends Function {
             throw ctx.exitWithStatus;
           }
         }
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `args after evaluation: ${this.id} ${JSON.stringify(args)}`);
+        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
     
         if (prismaArgs) {
           args.data = _.merge(args.data, prismaArgs);
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `merged args with authz args.data: ${JSON.stringify(args)}`);
+          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'merged args with authz args.data: %o', args);
         }
     
         childLogger.setBindings({ 'workflow_name': '','task_id': ''});

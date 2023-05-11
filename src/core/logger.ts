@@ -6,6 +6,19 @@ import Pino from 'pino';
 import pinoDebug from 'pino-debug';
 import config from 'config';
 
+const configRedact = (config as any).redact || [];
+let redactAttrs: Array<string> = [];
+for (const redactAttr of configRedact) {
+    if (redactAttr.match(/^\*\*/)) {
+      const fieldName = redactAttr.replace(/^\*\*\./, '');
+      redactAttrs.push(`${fieldName}`, `*.${fieldName}`, `*.*.${fieldName}`, `*.*.*.${fieldName}`, `*.*.*.*.${fieldName}`, `*.*.*.*.*.${fieldName}`,
+        `*.*.*.*.*.*.${fieldName}`, `*.*.*.*.*.*.*.${fieldName}`, `*.*.*.*.*.*.*.*.${fieldName}`, `*.*.*.*.*.*.*.*.*.${fieldName}`
+      );
+  } else {
+      redactAttrs.push(redactAttr);
+    }
+}
+
 const logger: Pino.Logger = Pino({
   level: (config as any).log_level || 'debug',
   transport: {
@@ -16,7 +29,7 @@ const logger: Pino.Logger = Pino({
               }
   },
   redact: {
-    paths: (config as any).redact || [],
+    paths: redactAttrs,
     censor: '*****'
   }
 });
