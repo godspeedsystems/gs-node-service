@@ -22,6 +22,9 @@ const southboundCount = new promClient.Counter({
     labelNames: labels
 });
 
+
+let childLoggerBindings: any;
+
 HttpMetricsCollector.init({ countClientErrors: true });
 
 function getRandomInt(min: number, max: number) {
@@ -32,6 +35,7 @@ function getRandomInt(min: number, max: number) {
 
 export default async function(args:{[key:string]:any;}) {
     try {
+        childLoggerBindings = childLogger.bindings();
         const ds = args.datasource;
         let res;
         childLogger.info('calling http client with args %o', args);
@@ -152,7 +156,7 @@ export default async function(args:{[key:string]:any;}) {
         }
 
         HttpMetricsCollector.collect(res);
-
+        childLogger.setBindings(childLoggerBindings);
         const route = args.config?.url;
         const method = args.config?.method.toUpperCase();
         const status_code = res.status;
@@ -163,6 +167,7 @@ export default async function(args:{[key:string]:any;}) {
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
     } catch(ex: any) {
         HttpMetricsCollector.collect(ex);
+        childLogger.setBindings(childLoggerBindings);
         childLogger.error('Caught exception %o', (ex as Error).stack);
         //@ts-ignore
         let res = ex.response;

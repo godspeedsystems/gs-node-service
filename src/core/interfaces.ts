@@ -355,6 +355,7 @@ export class GSFunction extends Function {
 
       let res;
 
+      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
       if (Array.isArray(args)) {
         res = await this.fn!(...args.concat({childLogger, promClient, tracer}));
       } else {
