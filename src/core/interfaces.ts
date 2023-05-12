@@ -710,8 +710,8 @@ export class GSIFFunction extends GSFunction {
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'GSSwitchFunction');
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'inside switch executor: %o',this.args);
+    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'GSIFFunction');
+    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'inside GSIFFunction executor: %o',this.args);
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, task] = this.args!;
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'condition: %s' , value);
