@@ -1,16 +1,43 @@
-## Godspeed Micro-service Framework & Platform
-> 4th Generation Declarative Microservice Framework and Platform
+## Godspeed Node.js Service
+> 4th Generation Declarative Microservice Framework
 
-Godspeed systems provides a **4th generation declarative modern microservice framework & platform**,  for building, operating and observing modern distributed backends. It is designed with a High level declarative paradigm, schema driven development with a unified handling of incoming API requests and events and a way to  work with multiple databases. It has an easy way to invoke other APIs, and also a Built-in  authentication, fine grained authorization and Open telemetry. Designed for shift left & best practices, it brings standardisation with batteries included functionalities which increase  dev & ops productivity, lowering at the same time talent bar and tech cost.To know more about us you can checkout us here [link](https://godspeed.systems)
+Godspeed is the  ultimate **4th generation microservices framework** built over Nodejs with “batteries included", "shift left", and "configuration over code" approach, allowing even entry-level developers to build robust microservices. This repository contains the source code for the Godspeed Node.js service. To know more about us you can checkout us here [link](https://godspeed.systems)
 
+## Key Features
 
-## Show your Love ❤️ & Support 🙏
-  
-  1. By following the  Godspeed Systems github org. [link](https://github.com/godspeedsystems)
-  2. By giving us the star at the repo, *gs-node-service* repository of Godspeed. [link](https://github.com/godspeedsystems/gs-node-service)
+* Declarative programming model
+* Schema-driven development
+* Unified handling of all kinds of requests whether async and sync events for example kafka, cron, S3 etc. 
+* Auto generate CRUD API, Swagger spec, and Postman collection.
+* Support for multiple databases
+* Graph search and analytics over Elasticsearch 
+* Easy integration with external APIs
+* Remote container based development-last
+* Built-in authentication and fine-grained authorization
+* OpenTelemetry for observability
 
-## References 🔗
-1. [Getting started guide](https://docs.godspeed.systems/docs/microservices/setup/getting-started)
-2. [Documentation](https://docs.godspeed.systems/docs/preface)
-3. Demo video of the godspeed framework [part one](https://www.youtube.com/watch?v=eEfqTAPAVlY), [part two](https://www.youtube.com/watch?v=4CiOBULwkAU).
-4. [License](LICENSE.md)
+## Show Your Love ❤️ & Support 🙏
+If you find Godspeed Node.js Service helpful or interesting, we would appreciate your support through stars and forks.
+* Give us a star ⭐️ at the repository to show your appreciation.
+* Fork the repository 🍴 and start building your own projects using Godspeed Node.js Service.
+
+Your support motivates us to continue improving the framework and providing new features.
+
+## Building your first microservice 
+
+If you want to learn and develop a microservice here is the [step by step walkthrough of Godspeed]( https://docs.godspeed.systems/docs/preface)
+
+Video Walkthrough of Godspeed tutorials are -
+1. [Godspeed Features Demonstration]( https://youtu.be/zCLzvoSvF7E)
+2. [Getting Started with Godspeed Part 1]( https://youtu.be/eEfqTAPAVlY)
+3. [Getting Started with Godspeed Part 2]( https://youtu.be/4CiOBULwkAU)
+
+For any queries you can hope on to our [discord server]( https://discord.gg/mjBa3RvTP5)
+
+## Contributing to Godspeed 
+
+We welcome contributions from the community to help improve Godspeed Node.js Service. If you want to contribute do join us on our [discord server](https://discord.gg/mjBa3RvTP5)
+
+## License
+
+This repo is made available under the [Godspeed Licence 1.0]( https://github.com/godspeedsystems/gs-node-service/blob/master/LICENSE.md)
