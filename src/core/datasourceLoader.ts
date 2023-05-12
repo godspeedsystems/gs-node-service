@@ -2,6 +2,8 @@
  * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
  * © 2022 Mindgrep Technologies Pvt Ltd
  */
+import http from 'http';
+import https from 'https';
 import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 import path from 'path';
@@ -176,7 +178,11 @@ async function loadHttpDatasource(
     api.init();
     ds.client = await api.getClient();
   } else {
-    ds.client = axios.create({ baseURL: datasource.base_url });
+    ds.client = axios.create({
+      baseURL: datasource.base_url,
+      httpAgent: new http.Agent({ keepAlive: true }),
+      httpsAgent: new https.Agent({ keepAlive: true }),
+    });
 
     const security = datasource.security;
     const securitySchemes = datasource.securitySchemes;

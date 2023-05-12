@@ -97,7 +97,7 @@ export class GSFunction extends Function {
   constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
-    this.id = yaml.id || randomUUID();
+    this.id = yaml.id || yaml.workflow_name;
     this.fn = _fn;
     this.workflow_name = yaml.workflow_name;
     this.workflows = workflows;
@@ -355,6 +355,7 @@ export class GSFunction extends Function {
 
       let res;
 
+      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
       if (Array.isArray(args)) {
         res = await this.fn!(...args.concat({childLogger, promClient, tracer}));
       } else {
@@ -511,11 +512,11 @@ export class GSFunction extends Function {
             throw ctx.exitWithStatus;
           }
         }
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `args after evaluation: ${this.id} ${JSON.stringify(args)}`);
+        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
     
         if (prismaArgs) {
           args.data = _.merge(args.data, prismaArgs);
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `merged args with authz args.data: ${JSON.stringify(args)}`);
+          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'merged args with authz args.data: %o', args);
         }
     
         childLogger.setBindings({ 'workflow_name': '','task_id': ''});
@@ -591,6 +592,7 @@ export class GSSeriesFunction extends GSFunction {
         }
       }
     }
+    childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
     return ret;
@@ -709,8 +711,8 @@ export class GSIFFunction extends GSFunction {
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'GSSwitchFunction');
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'inside switch executor: %o',this.args);
+    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'GSIFFunction');
+    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'inside GSIFFunction executor: %o',this.args);
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, task] = this.args!;
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'condition: %s' , value);
