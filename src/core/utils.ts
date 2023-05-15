@@ -188,12 +188,13 @@ export function compileScript(args: any) {
         out[k] = compileScript(args[k]);
       }
       return function(config:any, inputs:any, outputs:any, mappings: any, task_value: any) {
+        let returnObj: any = {};
         for (let k in out) {
-          if (typeof out[k] === "function") {
-            out[k] = out[k](config, inputs, outputs, mappings, task_value);
+          if (out[k] instanceof Function) {
+            returnObj[k] = out[k](config, inputs, outputs, mappings, task_value);
           }
         }
-        return out;
+        return returnObj;
       };
     } else if (Array.isArray(args)) {
       let out:[any] = <any>[];
@@ -201,15 +202,18 @@ export function compileScript(args: any) {
         out[k] = compileScript(args[k]);
       }
       return function(config:any, inputs:any, outputs:any, mappings: any, task_value: any) {
+        let returnObj: any = [];
         for (let k in out) {
-          if (typeof out[k] === "function") {
-            out[k] = out[k](config, inputs, outputs, mappings, task_value);
+          if (out[k] instanceof Function) {
+            returnObj.push(out[k](config, inputs, outputs, mappings, task_value));
+          } else {
+            returnObj.push(out[k])
           }
         }
-        return out;
+        return returnObj;
       };
     } else {
-      return args;
+      return () => args;
     }
   } else if (typeof(args) == 'string') {
 
@@ -224,7 +228,7 @@ export function compileScript(args: any) {
     }
   }
 
-  return args;
+  return () => args;
 }
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {
