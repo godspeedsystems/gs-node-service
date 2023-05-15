@@ -209,7 +209,7 @@ export function compileScript(args: any) {
         return out;
       };
     } else {
-      return () => args;
+      return args;
     }
   } else if (typeof(args) == 'string') {
 
@@ -224,7 +224,7 @@ export function compileScript(args: any) {
     }
   }
 
-  return () => args;
+  return args;
 }
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {
