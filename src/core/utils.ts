@@ -193,20 +193,34 @@ export function compileScript(args: any) {
 
   if (typeof(args) == 'object') {
     if (isPlainObject(args)) {
+      let out: PlainObject = {};
+      for (let k in args) {
+        out[k] = compileScript(args[k]);
+      }
       return function(config:any, inputs:any, outputs:any, mappings: any, task_value: any) {
-        let out: PlainObject = {};
-        for (let k in args) {
-          out[k] = compileScript(args[k])(config, inputs, outputs, mappings, task_value);
+        let returnObj: any = {};
+        for (let k in out) {
+          if (out[k] instanceof Function) {
+            returnObj[k] = out[k](config, inputs, outputs, mappings, task_value);
+          }
         }
-        return out;
+        return returnObj;
       };
     } else if (Array.isArray(args)) {
+      let out:[any] = <any>[];
+      for (let k in <[any]>args) {
+        out[k] = compileScript(args[k]);
+      }
       return function(config:any, inputs:any, outputs:any, mappings: any, task_value: any) {
-        let out:[any] = <any>[];
-        for (let k in <[any]>args) {
-          out[k] = compileScript(args[k])(config, inputs, outputs, mappings, task_value);
+        let returnObj: any = [];
+        for (let k in out) {
+          if (out[k] instanceof Function) {
+            returnObj.push(out[k](config, inputs, outputs, mappings, task_value));
+          } else {
+            returnObj.push(out[k])
+          }
         }
-        return out;
+        return returnObj;
       };
     } else {
       return () => args;
