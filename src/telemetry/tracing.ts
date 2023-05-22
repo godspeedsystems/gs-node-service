@@ -20,7 +20,7 @@ const { ElasticsearchInstrumentation } = require('@heliosphere/opentelemetry-ins
 
 let traceExporter;
 
-if (process.env.NODE_ENV == 'production') {
+if (process.env.NODE_ENV != 'dev') {
   traceExporter = new OTLPTraceExporter();
 } else {
   traceExporter = new ConsoleSpanExporter();

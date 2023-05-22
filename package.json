@@ -32,7 +32,7 @@
     "@opentelemetry/instrumentation": "^0.31.0",
     "@opentelemetry/instrumentation-express": "^0.30.0",
     "@opentelemetry/instrumentation-http": "^0.31.0",
-    "@opentelemetry/instrumentation-pino": "^0.30.0",
+    "@opentelemetry/instrumentation-pino": "^0.32.0",
     "@opentelemetry/sdk-node": "^0.31.0",
     "@opentelemetry/sdk-trace-base": "^1.10.0",
     "@opentelemetry/sdk-trace-node": "^1.5.0",
