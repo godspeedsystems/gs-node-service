@@ -396,7 +396,7 @@ export class GSFunction extends Function {
           false,
           500,
           err.message,
-          `Caught error from execution in task id ${this.id}`
+          `Caught error from execution in task id: ${this.id}, error: ${err}`
         );
     }
 
