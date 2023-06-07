@@ -15,6 +15,7 @@ import promMid from '@mindgrep/express-prometheus-middleware';
 import middlewares from './middlewares';
 
 //File Path for api-docs
+// Test comment
 const file = PROJECT_ROOT_DIRECTORY.split('/');
 file.pop();
 
