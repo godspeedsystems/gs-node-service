@@ -292,7 +292,10 @@ async function main() {
     const childLogAttributes: PlainObject = {};
     childLogAttributes.event = event.type;
     childLogAttributes.workflow_name = events[event.type].fn;
-
+    
+    childLogAttributes.file_name = events[event.type].fn
+    childLogAttributes.msgparameters = events[event.type].log_attributes.msgparameters
+    
     const logAttributes = (config as any).log_attributes || [];
 
     for (const key in logAttributes) {
