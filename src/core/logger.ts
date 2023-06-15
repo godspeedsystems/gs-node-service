@@ -25,7 +25,7 @@ const logger: Pino.Logger = Pino({
     target: '../pino/pino-opentelemetry-transport',
     options:  { 
                 destination: 1, 
-                Resource: { 'service.name': process.env.OTEL_SERVICE_NAME || 'unknown_service:node' } 
+                Resource: { 'service.name': process.env.OTEL_SERVICE_NAME || 'unknown_service:node',env:process.env.NODE_ENV } 
               }
   },
   redact: {
