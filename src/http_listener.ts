@@ -18,7 +18,9 @@ import middlewares from './middlewares';
 const file = PROJECT_ROOT_DIRECTORY.split('/');
 file.pop();
 
+// @ts-ignore
 const loggerExpress = expressPinoLogger({
+  // @ts-ignore
   logger: logger,
   autoLogging: true,
 });
