@@ -292,13 +292,24 @@ async function main() {
     const childLogAttributes: PlainObject = {};
     childLogAttributes.event = event.type;
     childLogAttributes.workflow_name = events[event.type].fn;
-
+    childLogAttributes.file_name = events[event.type].fn
+    
     const logAttributes = (config as any).log_attributes || [];
 
     for (const key in logAttributes) {
       const obj = `event.data?.${logAttributes[key]}`;
       // eslint-disable-next-line no-eval
       childLogAttributes[key] = eval(obj);
+    }
+
+    
+    const overrideEventLogAttributres = events[event.type].log_attributes || [];
+
+    for (const key in overrideEventLogAttributres) {
+      const obj = overrideEventLogAttributres[key];
+      // eslint-disable-next-line no-eval
+      childLogAttributes[key] = obj;
+       
     }
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
