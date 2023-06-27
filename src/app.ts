@@ -297,20 +297,21 @@ async function main() {
     const logAttributes = (config as any).log_attributes || [];
 
     for (const key in logAttributes) {
-      const obj = `event.data?.${logAttributes[key]}`;
-      // eslint-disable-next-line no-eval
-      childLogAttributes[key] = eval(obj);
-    }
-
-    
-    const overrideEventLogAttributres = events[event.type].log_attributes || [];
-
-    for (const key in overrideEventLogAttributres) {
-      const obj = overrideEventLogAttributres[key];
+      let obj = eval(`events[event.type]?.log_attributes?.${key}`)
+      if(obj){
+        // do nothing
+      }else{
+        obj = eval(`event.data?.${logAttributes[key]}`);
+      }
+      
+      if(obj instanceof String && obj.match(/<(.*?)%/) && obj.includes('%>')){
+        obj = compileScript(obj)
+      }
       // eslint-disable-next-line no-eval
       childLogAttributes[key] = obj;
-       
+      
     }
+
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
     childLogger = logger.child(childLogAttributes);
