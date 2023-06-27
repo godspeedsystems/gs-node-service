@@ -301,9 +301,10 @@ export class GSFunction extends Function {
 
   async _executefn(ctx: GSContext, taskValue: any):Promise<GSStatus> {
     let status: GSStatus; //Final status to return
+    let args = this.args;
+
     try {
       childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
-      let args = this.args;
       if (Array.isArray(this.args)) {
         args = [...this.args];
       } else if (_.isPlainObject(this.args)) {
@@ -343,6 +344,10 @@ export class GSFunction extends Function {
           childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Executing datasource authn workflow');
           datasource.authn_response = await authnWorkflow(ds, ctx);
         }
+
+        if (ds.before_method_hook) {
+          await ds.before_method_hook(ctx);
+        }
       }
 
       if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
@@ -376,7 +381,6 @@ export class GSFunction extends Function {
           //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
           if (exitWithStatus) {
             ctx.exitWithStatus = status;
-            return status;
           }
         } else {
           //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
@@ -400,6 +404,10 @@ export class GSFunction extends Function {
         );
     }
 
+    if (args.datasource.after_method_hook) {
+      ctx.outputs['current_output'] = status;
+      await args.datasource.after_method_hook(ctx);
+    }
     return status;
   }
 
