@@ -13,6 +13,7 @@ import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
 import promMid from '@mindgrep/express-prometheus-middleware';
 import middlewares from './middlewares';
+import config from 'config';
 
 //File Path for api-docs
 const file = PROJECT_ROOT_DIRECTORY.split('/');
@@ -25,8 +26,13 @@ const loggerExpress = expressPinoLogger({
 
 const app: express.Express = express();
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+//@ts-ignore
+const request_body_limit = config.request_body_limit || 50 * 1024 * 1024;
+//@ts-ignore
+const file_size_limit = config.file_size_limit || 50 * 1024 * 1024;
+
+app.use(bodyParser.urlencoded({ extended: true, limit: request_body_limit }));
+app.use(bodyParser.json({limit: request_body_limit}));
 app.use(loggerExpress);
 
 try {
@@ -41,7 +47,8 @@ const port = process.env.PORT || 3000;
 app.use(
   fileUpload({
     useTempFiles: true,
-    limits: { fileSize: 50 * 1024 * 1024 },
+    //@ts-ignore
+    limits: { fileSize: file_size_limit },
   })
 );
 
