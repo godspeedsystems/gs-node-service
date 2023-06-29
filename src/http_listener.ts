@@ -11,6 +11,7 @@ import { logger } from './core/logger';
 import fileUpload from 'express-fileupload';
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
+//@ts-ignore
 import promMid from '@mindgrep/express-prometheus-middleware';
 import middlewares from './middlewares';
 import config from 'config';
