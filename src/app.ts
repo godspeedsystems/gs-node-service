@@ -34,6 +34,7 @@ import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
 import cron from './cron';
 import loadMappings from './core/mappingLoader';
+import {run} from 'node-jq';
 
 let childLogger: Pino.Logger;
 let mappings: PlainObject;
@@ -296,22 +297,22 @@ async function main() {
     
     const logAttributes = (config as any).log_attributes || [];
 
+
     for (const key in logAttributes) {
-      let obj = eval(`events[event.type]?.log_attributes?.${key}`)
+      let obj = eval(`events[event.type]?.log_attributes?.${key}`);
+      let filter = `${key}`
       if(obj){
         // do nothing
       }else{
-        obj = eval(`event.data?.${logAttributes[key]}`);
+        obj = eval(`event.data`);
+        filter = `${logAttributes[key]}`
       }
-      
-      if(obj instanceof String && obj.match(/<(.*?)%/) && obj.includes('%>')){
-        obj = compileScript(obj)
-      }
-      // eslint-disable-next-line no-eval
-      childLogAttributes[key] = obj;
-      
+      // JQ.run
+      await run(`.${filter}`,JSON.stringify(obj),{input:'string',output:'json'}).then((output) =>{
+        childLogAttributes[key] = output;
+      })
+       
     }
-
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
     childLogger = logger.child(childLogAttributes);
