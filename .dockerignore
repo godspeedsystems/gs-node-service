@@ -1,6 +1,6 @@
 # Ignore everything
 *
-
+!.swcrc
 !src
 !package.json
 !tsconfig.json
