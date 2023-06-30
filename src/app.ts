@@ -299,16 +299,18 @@ async function main() {
 
 
     for (const key in logAttributes) {
-      let obj = eval(`events[event.type]?.log_attributes?.${key}`);
+      let obj = eval(`events[event.type]?.log_attributes`);
+
       let filter = `${key}`
-      if(obj){
+
+      if(obj) {
         // do nothing
-      }else{
+      } else {
         obj = eval(`event.data`);
         filter = `${logAttributes[key]}`
       }
       // JQ.run
-      await run(`.${filter}`,JSON.stringify(obj),{input:'string',output:'json'}).then((output) =>{
+      await run(`.${filter}`,obj,{input:'json',output:'json'}).then((output) =>{
         childLogAttributes[key] = output;
       })
        
