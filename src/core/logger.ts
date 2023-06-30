@@ -3,6 +3,7 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import Pino from 'pino';
+//@ts-ignore
 import pinoDebug from 'pino-debug';
 import config from 'config';
 
