@@ -122,6 +122,6 @@
     "nyc": "^15.1.0",
     "pino-pretty": "^7.6.1",
     "prettier": "2.6.2",
-    "typescript": "^4.6.3"
+    "typescript": "^4.7.0"
   }
 }
