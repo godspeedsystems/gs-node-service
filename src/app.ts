@@ -34,7 +34,7 @@ import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
 import cron from './cron';
 import loadMappings from './core/mappingLoader';
-import jsonata from "jsonata"
+import jsonata from "jsonata";
 
 let childLogger: Pino.Logger;
 let mappings: PlainObject;
@@ -293,26 +293,30 @@ async function main() {
     const childLogAttributes: PlainObject = {};
     childLogAttributes.event = event.type;
     childLogAttributes.workflow_name = events[event.type].fn;
-    childLogAttributes.file_name = events[event.type].fn
+    childLogAttributes.file_name = events[event.type].fn;
     
     const logAttributes = (config as any).log_attributes || [];
 
 
     for (const key in logAttributes) {
+      // eslint-disable-next-line no-eval
       let obj = eval(`events[event.type]?.log_attributes`);
 
-      let filter = `${key}`
+      let filter = `${key}`;
 
       if(obj) {
         // do nothing
       } else {
+        // eslint-disable-next-line no-eval
         obj = eval(`event.data`);
-        filter = `${logAttributes[key]}`
+        filter = `${logAttributes[key]}`;
       }
-      // Jsonata
-      const extractFilteredData = jsonata(filter);
-      childLogAttributes[key] = await extractFilteredData.evaluate(obj)
-       
+
+      if(obj[filter]){
+        // Jsonata
+        childLogAttributes[key] = await jsonata(filter).evaluate(obj);
+      }
+         
     }
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
@@ -334,12 +338,22 @@ async function main() {
     );
 
     if (valid_status.success === false) {
-      childLogger.error('Failed to validate Request JSON Schema %o', valid_status);
+
       const response_data: PlainObject = {
         message: 'request validation error',
         error: valid_status.message,
         data: valid_status.data,
       };
+
+      childLogAttributes.error = {
+        error_type: response_data.error,
+        error_message: response_data.message,
+      };
+
+      childLogger = logger.child(childLogAttributes);
+
+      childLogger.error('Failed to validate Request JSON Schema %o', valid_status);
+      
 
       if (!events[event.type].on_validation_error) {
         // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
@@ -397,7 +411,7 @@ async function main() {
       await eventHandlerWorkflow(ctx);
     } catch (err: any) {
       childLogger.error(
-        { workflow_name: events[event.type].fn },
+        { workflow_name: events[event.type].fn, error: {error_trace: err.stack,error_message: err.message}},
         `Error in executing handler ${events[event.type].fn} for the event ${event.type
         }. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`
       );

@@ -391,7 +391,7 @@ export class GSFunction extends Function {
         }
       }
     } catch (err: any) {
-      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error from execution in task id: %s, error: %s',this.id, err);
+      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id, error: {error_message: err.message, error_trace: err.stack} }, 'Caught error from execution in task id: %s, error: %s',this.id, err);
       status = new GSStatus(
           false,
           500,
@@ -552,7 +552,7 @@ export class GSFunction extends Function {
           status = await this._executefn(ctx, taskValue);
         }
     }  catch (err: any) {
-      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o',this.id, err);
+      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id, error: {error_message: err.message, error_trace: err.stack} }, 'Caught error in evaluation in task id: %s, error: %o',this.id, err);
       status = new GSStatus(
           false,
           500,
@@ -592,6 +592,13 @@ export class GSSeriesFunction extends GSFunction {
         }
       }
     }
+
+    if(ret.data?.error){
+      // error object for logging
+      const error = { error_type: ret?.data?.error?.type, error_message: ret?.data?.error?.message };
+      childLogger.setBindings({error});
+    }
+
     childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
