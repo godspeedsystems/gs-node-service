@@ -34,7 +34,7 @@ import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
 import cron from './cron';
 import loadMappings from './core/mappingLoader';
-import {run} from 'node-jq';
+import jsonata from "jsonata"
 
 let childLogger: Pino.Logger;
 let mappings: PlainObject;
@@ -309,10 +309,9 @@ async function main() {
         obj = eval(`event.data`);
         filter = `${logAttributes[key]}`
       }
-      // JQ.run
-      await run(`.${filter}`,obj,{input:'json',output:'json'}).then((output) =>{
-        childLogAttributes[key] = output;
-      })
+      // Jsonata
+      const extractFilteredData = jsonata(filter);
+      childLogAttributes[key] = await extractFilteredData.evaluate(obj)
        
     }
 
