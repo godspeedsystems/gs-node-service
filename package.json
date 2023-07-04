@@ -1,5 +1,5 @@
 {
-  "name": "mindgrep",
+  "name": "godspeed",
   "version": "1.0.15",
   "description": "",
   "main": "index.js",
@@ -12,8 +12,8 @@
     "service-build": "mkdir -p build && cp -r src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && npm install && ./node_modules/typescript/bin/tsc",
     "build": "mkdir -p build project/src && cp -r src/* project/src/* typings/* build/ && rsync -rv --ignore-missing-args project/package.json build/ && rsync -rv --delete --exclude='*.ts' --exclude='node_modules' --exclude='package-lock.json' build/ dist/ && rsync -rv --delete --exclude='*.ts' --exclude='node_modules' --exclude='package-lock.json' project/config dist/ && if [ ! -f dist/package.json ]; then cp package.json dist/; fi && npm install dist/ && npm run elasticbuild && npx swc ./build -d dist --config-file .swcrc",
     "elasticbuild": "npm install elasticgraph/",
-    "prepare": "husky install",
     "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 15000",
+    "prepare": "if [ ! -f .git ] && ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then husky install; fi",
     "test-one": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/loadDatasources.test.js --timeout 15000",
     "test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/*.test.js --timeout 15000",
     "test-cov": "nyc --reporter=html --reporter=text npm test"
@@ -125,6 +125,6 @@
     "nyc": "^15.1.0",
     "pino-pretty": "^7.6.1",
     "prettier": "2.6.2",
-    "typescript": "^4.6.3"
+    "typescript": "^4.7.0"
   }
 }
