@@ -404,7 +404,7 @@ export class GSFunction extends Function {
         );
     }
 
-    if (args.datasource.after_method_hook) {
+    if (args.datasource?.after_method_hook) {
       ctx.outputs['current_output'] = status;
       await args.datasource.after_method_hook(ctx);
     }

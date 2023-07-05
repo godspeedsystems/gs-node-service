@@ -303,27 +303,18 @@ async function main() {
     childLogAttributes.workflow_name = events[event.type].fn;
     childLogAttributes.file_name = events[event.type].fn;
 
-    const logAttributes = (config as any).log_attributes || [];
+    const commonLogAttributes = (config as any).log_attributes || [];
 
-    for (const key in logAttributes) {
-      // eslint-disable-next-line no-eval
-      let obj = eval(`events[event.type]?.log_attributes`);
+    for (const key in commonLogAttributes) {
+      const obj = eval(`event.data.${commonLogAttributes[key]}`);
+      childLogAttributes[key] = obj;
+    }
 
-      let filter = `${key}`;
-
-      if(obj) {
-        // do nothing
-      } else {
-        // eslint-disable-next-line no-eval
-        obj = eval(`event.data`);
-        filter = `${logAttributes[key]}`;
-      }
-
-      if(obj[filter]){
-        // Jsonata
-        childLogAttributes[key] = await jsonata(filter).evaluate(obj);
-      }
-
+    const overrideEventLogAttributres = events[event.type].log_attributes || [];
+    
+    // overriding common log_attributes
+    for (const key in overrideEventLogAttributres) {
+      childLogAttributes[key] = overrideEventLogAttributres[key];
     }
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
