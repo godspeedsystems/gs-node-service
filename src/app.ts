@@ -275,6 +275,14 @@ async function main() {
       datasources[ds].authn = functions[datasources[ds].authn];
     }
 
+    if (datasources[ds].before_method_hook) {
+      datasources[ds].before_method_hook = functions[datasources[ds].before_method_hook];
+    }
+
+    if (datasources[ds].after_method_hook) {
+      datasources[ds].after_method_hook = functions[datasources[ds].after_method_hook];
+    }
+
     datasources[ds].gsName = ds;
     let datasourceScript = compileScript(datasources[ds]);
     logger.debug('datasourceScript: %s', datasourceScript);
