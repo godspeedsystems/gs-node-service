@@ -26,6 +26,12 @@
         },
         "securitySchemes": {
             "type": "object"
+        },
+        "before_method_hook":{
+            "type": "string"
+        },
+        "after_method_hook":{
+            "type": "string"
         }
     },
     "anyOf": [
