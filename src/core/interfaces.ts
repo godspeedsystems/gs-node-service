@@ -404,7 +404,7 @@ export class GSFunction extends Function {
         );
     }
 
-    if (args.datasource.after_method_hook) {
+    if (args.datasource?.after_method_hook) {
       ctx.outputs['current_output'] = status;
       await args.datasource.after_method_hook(ctx);
     }
@@ -444,6 +444,17 @@ export class GSFunction extends Function {
           status = await this.onError.tasks(ctx);
         }
 
+        if(this.onError.log_attributes){
+          const error: PlainObject = {};
+          const logAttributes: PlainObject = this.onError.log_attributes
+          
+          for(let key in logAttributes){
+            const script = compileScript(logAttributes[key]);
+            error[key] = await evaluateScript(ctx, script, taskValue)
+          }
+          childLogger.setBindings({error})
+        }
+        
         if (this.onError.continue === false) {
           childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'exiting on error %s', this.id);
           ctx.exitWithStatus = status;

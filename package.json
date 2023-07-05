@@ -66,6 +66,7 @@
     "lodash": "^4.17.21",
     "node-cleanup": "^2.1.2",
     "node-cron": "^3.0.2",
+    "jsonata": "^2.0.3",
     "openapi-client-axios": "^5.1.2",
     "opentelemetry-instrumentation-kafkajs": "^0.27.1",
     "opentelemetry-node-metrics": "^2.0.0",
