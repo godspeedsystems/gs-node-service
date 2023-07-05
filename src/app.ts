@@ -276,6 +276,14 @@ async function main() {
       datasources[ds].authn = functions[datasources[ds].authn];
     }
 
+    if (datasources[ds].before_method_hook) {
+      datasources[ds].before_method_hook = functions[datasources[ds].before_method_hook];
+    }
+
+    if (datasources[ds].after_method_hook) {
+      datasources[ds].after_method_hook = functions[datasources[ds].after_method_hook];
+    }
+
     datasources[ds].gsName = ds;
     let datasourceScript = compileScript(datasources[ds]);
     logger.debug('datasourceScript: %s', datasourceScript);
@@ -294,9 +302,8 @@ async function main() {
     childLogAttributes.event = event.type;
     childLogAttributes.workflow_name = events[event.type].fn;
     childLogAttributes.file_name = events[event.type].fn;
-    
-    const logAttributes = (config as any).log_attributes || [];
 
+    const logAttributes = (config as any).log_attributes || [];
 
     for (const key in logAttributes) {
       // eslint-disable-next-line no-eval
@@ -316,7 +323,7 @@ async function main() {
         // Jsonata
         childLogAttributes[key] = await jsonata(filter).evaluate(obj);
       }
-         
+
     }
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
@@ -338,22 +345,12 @@ async function main() {
     );
 
     if (valid_status.success === false) {
-
+      childLogger.error('Failed to validate Request JSON Schema %o', valid_status);
       const response_data: PlainObject = {
         message: 'request validation error',
         error: valid_status.message,
         data: valid_status.data,
       };
-
-      childLogAttributes.error = {
-        error_type: response_data.error,
-        error_message: response_data.message,
-      };
-
-      childLogger = logger.child(childLogAttributes);
-
-      childLogger.error('Failed to validate Request JSON Schema %o', valid_status);
-      
 
       if (!events[event.type].on_validation_error) {
         // For non-REST events, we can stop now. Now that the error is logged, nothing more needs to be done.
@@ -411,7 +408,7 @@ async function main() {
       await eventHandlerWorkflow(ctx);
     } catch (err: any) {
       childLogger.error(
-        { workflow_name: events[event.type].fn, error: {error_trace: err.stack,error_message: err.message}},
+        { workflow_name: events[event.type].fn },
         `Error in executing handler ${events[event.type].fn} for the event ${event.type
         }. \n Error message: ${err.message}. \n Error Stack: ${err.stack}`
       );

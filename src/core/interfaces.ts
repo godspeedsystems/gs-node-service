@@ -301,9 +301,10 @@ export class GSFunction extends Function {
 
   async _executefn(ctx: GSContext, taskValue: any):Promise<GSStatus> {
     let status: GSStatus; //Final status to return
+    let args = this.args;
+
     try {
       childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
-      let args = this.args;
       if (Array.isArray(this.args)) {
         args = [...this.args];
       } else if (_.isPlainObject(this.args)) {
@@ -343,6 +344,10 @@ export class GSFunction extends Function {
           childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Executing datasource authn workflow');
           datasource.authn_response = await authnWorkflow(ds, ctx);
         }
+
+        if (ds.before_method_hook) {
+          await ds.before_method_hook(ctx);
+        }
       }
 
       if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
@@ -376,7 +381,6 @@ export class GSFunction extends Function {
           //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
           if (exitWithStatus) {
             ctx.exitWithStatus = status;
-            return status;
           }
         } else {
           //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
@@ -391,7 +395,7 @@ export class GSFunction extends Function {
         }
       }
     } catch (err: any) {
-      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id, error: {error_message: err.message, error_trace: err.stack} }, 'Caught error from execution in task id: %s, error: %s',this.id, err);
+      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error from execution in task id: %s, error: %s',this.id, err);
       status = new GSStatus(
           false,
           500,
@@ -400,6 +404,10 @@ export class GSFunction extends Function {
         );
     }
 
+    if (args.datasource.after_method_hook) {
+      ctx.outputs['current_output'] = status;
+      await args.datasource.after_method_hook(ctx);
+    }
     return status;
   }
 
@@ -436,6 +444,16 @@ export class GSFunction extends Function {
           status = await this.onError.tasks(ctx);
         }
 
+        if(this.onError.log_attributes){
+          const error: PlainObject = {};
+          const logAttributes: PlainObject = this.onError.log_attributes
+          
+          for(let key in logAttributes){
+            error[key] = logAttributes[key]
+          }
+          childLogger.setBindings({error})
+        }
+        
         if (this.onError.continue === false) {
           childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'exiting on error %s', this.id);
           ctx.exitWithStatus = status;
@@ -552,7 +570,7 @@ export class GSFunction extends Function {
           status = await this._executefn(ctx, taskValue);
         }
     }  catch (err: any) {
-      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id, error: {error_message: err.message, error_trace: err.stack} }, 'Caught error in evaluation in task id: %s, error: %o',this.id, err);
+      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o',this.id, err);
       status = new GSStatus(
           false,
           500,
@@ -592,13 +610,6 @@ export class GSSeriesFunction extends GSFunction {
         }
       }
     }
-
-    if(ret.data?.error){
-      // error object for logging
-      const error = { error_type: ret?.data?.error?.type, error_message: ret?.data?.error?.message };
-      childLogger.setBindings({error});
-    }
-
     childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
