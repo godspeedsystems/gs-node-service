@@ -449,7 +449,8 @@ export class GSFunction extends Function {
           const logAttributes: PlainObject = this.onError.log_attributes
           
           for(let key in logAttributes){
-            error[key] = logAttributes[key]
+            const script = compileScript(logAttributes[key]);
+            error[key] = await evaluateScript(ctx, script, taskValue)
           }
           childLogger.setBindings({error})
         }
