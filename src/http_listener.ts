@@ -7,14 +7,15 @@ import bodyParser from 'body-parser';
 import expressPinoLogger from 'express-pino-logger';
 import swaggerUI from 'swagger-ui-express';
 import path from 'path';
-import { logger } from './core/logger';
+import config from 'config';
+import Prometheus from 'prom-client';
 import fileUpload from 'express-fileupload';
-import { PROJECT_ROOT_DIRECTORY } from './core/utils';
-import generateSchema from './api-specs/api-spec';
 //@ts-ignore
 import promMid from '@mindgrep/express-prometheus-middleware';
+import { logger } from './core/logger';
+import { PROJECT_ROOT_DIRECTORY } from './core/utils';
+import generateSchema from './api-specs/api-spec';
 import middlewares from './middlewares';
-import config from 'config';
 
 //File Path for api-docs
 const file = PROJECT_ROOT_DIRECTORY.split('/');
@@ -58,9 +59,9 @@ app.listen(port);
 app.use(
   promMid({
     collectDefaultMetrics: true,
-    requestDurationBuckets: [0.1, 0.5, 1, 1.5],
-    requestLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400],
-    responseLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400],
+    requestDurationBuckets: Prometheus.exponentialBuckets(0.2, 3, 6),
+    requestLengthBuckets: Prometheus.exponentialBuckets(512, 2, 10),
+    responseLengthBuckets: Prometheus.exponentialBuckets(512, 2, 10),
   })
 );
 
