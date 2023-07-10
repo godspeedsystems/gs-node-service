@@ -29,10 +29,7 @@
             "type": "object"
         },
         "authn": {
-            "oneOf": [
-                { "type": "boolean" },
-                { "type": "string"}
-            ]
+            "type": "boolean"
         },
         "on_validation_error": {
             "type": "string"
