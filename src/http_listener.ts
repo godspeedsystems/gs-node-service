@@ -4,7 +4,7 @@
  */
 import express from 'express';
 import bodyParser from 'body-parser';
-import expressPinoLogger from 'express-pino-logger';
+import pinoHttp from 'pino-http';
 import swaggerUI from 'swagger-ui-express';
 import path from 'path';
 import config from 'config';
@@ -21,7 +21,7 @@ import middlewares from './middlewares';
 const file = PROJECT_ROOT_DIRECTORY.split('/');
 file.pop();
 
-const loggerExpress = expressPinoLogger({
+const loggerExpress = pinoHttp({
   logger: logger,
   autoLogging: true,
 });
