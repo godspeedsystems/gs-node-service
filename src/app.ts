@@ -299,6 +299,7 @@ async function main() {
     //GSCLoudEvent
 
     const childLogAttributes: PlainObject = {};
+    const eventData = event.data
     childLogAttributes.event = event.type;
     childLogAttributes.workflow_name = events[event.type].fn;
     childLogAttributes.file_name = events[event.type].fn;
@@ -306,7 +307,7 @@ async function main() {
     const commonLogAttributes = (config as any).log_attributes || [];
 
     for (const key in commonLogAttributes) {
-      const obj = eval(`event.data.${commonLogAttributes[key]}`);
+      const obj = eval(`eventData.${commonLogAttributes[key]}`);
       childLogAttributes[key] = obj;
     }
 
