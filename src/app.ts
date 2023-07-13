@@ -306,7 +306,7 @@ async function main() {
     const commonLogAttributes = (config as any).log_attributes || [];
 
     for (const key in commonLogAttributes) {
-      const obj = eval(`event.data.${commonLogAttributes[key]}`);
+      const obj = Function('event','filter','return eval(`event.data.${filter}`)')(event,commonLogAttributes[key]);
       childLogAttributes[key] = obj;
     }
 
