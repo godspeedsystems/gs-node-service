@@ -4,29 +4,37 @@
  */
 import express from 'express';
 import bodyParser from 'body-parser';
-import expressPinoLogger from 'express-pino-logger';
+import pinoHttp from 'pino-http';
 import swaggerUI from 'swagger-ui-express';
 import path from 'path';
-import { logger } from './core/logger';
+import config from 'config';
+import Prometheus from 'prom-client';
 import fileUpload from 'express-fileupload';
+//@ts-ignore
+import promMid from '@mindgrep/express-prometheus-middleware';
+import { logger } from './core/logger';
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
-import promMid from '@mindgrep/express-prometheus-middleware';
 import middlewares from './middlewares';
 
 //File Path for api-docs
 const file = PROJECT_ROOT_DIRECTORY.split('/');
 file.pop();
 
-const loggerExpress = expressPinoLogger({
+const loggerExpress = pinoHttp({
   logger: logger,
   autoLogging: true,
 });
 
 const app: express.Express = express();
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+//@ts-ignore
+const request_body_limit = config.request_body_limit || 50 * 1024 * 1024;
+//@ts-ignore
+const file_size_limit = config.file_size_limit || 50 * 1024 * 1024;
+
+app.use(bodyParser.urlencoded({ extended: true, limit: request_body_limit }));
+app.use(bodyParser.json({limit: request_body_limit}));
 app.use(loggerExpress);
 
 try {
@@ -41,7 +49,8 @@ const port = process.env.PORT || 3000;
 app.use(
   fileUpload({
     useTempFiles: true,
-    limits: { fileSize: 50 * 1024 * 1024 },
+    //@ts-ignore
+    limits: { fileSize: file_size_limit },
   })
 );
 
@@ -50,9 +59,9 @@ app.listen(port);
 app.use(
   promMid({
     collectDefaultMetrics: true,
-    requestDurationBuckets: [0.1, 0.5, 1, 1.5],
-    requestLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400],
-    responseLengthBuckets: [512, 1024, 5120, 10240, 51200, 102400],
+    requestDurationBuckets: Prometheus.exponentialBuckets(0.2, 3, 6),
+    requestLengthBuckets: Prometheus.exponentialBuckets(512, 2, 10),
+    responseLengthBuckets: Prometheus.exponentialBuckets(512, 2, 10),
   })
 );
 

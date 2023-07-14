@@ -34,6 +34,7 @@ import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
 import cron from './cron';
 import loadMappings from './core/mappingLoader';
+import jsonata from "jsonata";
 
 let childLogger: Pino.Logger;
 let mappings: PlainObject;
@@ -275,6 +276,14 @@ async function main() {
       datasources[ds].authn = functions[datasources[ds].authn];
     }
 
+    if (datasources[ds].before_method_hook) {
+      datasources[ds].before_method_hook = functions[datasources[ds].before_method_hook];
+    }
+
+    if (datasources[ds].after_method_hook) {
+      datasources[ds].after_method_hook = functions[datasources[ds].after_method_hook];
+    }
+
     datasources[ds].gsName = ds;
     let datasourceScript = compileScript(datasources[ds]);
     logger.debug('datasourceScript: %s', datasourceScript);
@@ -292,13 +301,20 @@ async function main() {
     const childLogAttributes: PlainObject = {};
     childLogAttributes.event = event.type;
     childLogAttributes.workflow_name = events[event.type].fn;
+    childLogAttributes.file_name = events[event.type].fn;
 
-    const logAttributes = (config as any).log_attributes || [];
+    const commonLogAttributes = (config as any).log_attributes || [];
 
-    for (const key in logAttributes) {
-      const obj = `event.data?.${logAttributes[key]}`;
-      // eslint-disable-next-line no-eval
-      childLogAttributes[key] = eval(obj);
+    for (const key in commonLogAttributes) {
+      const obj = Function('event','filter','return eval(`event.data.${filter}`)')(event,commonLogAttributes[key]);
+      childLogAttributes[key] = obj;
+    }
+
+    const overrideEventLogAttributres = events[event.type].log_attributes || [];
+    
+    // overriding common log_attributes
+    for (const key in overrideEventLogAttributres) {
+      childLogAttributes[key] = overrideEventLogAttributres[key];
     }
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
