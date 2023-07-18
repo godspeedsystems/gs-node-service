@@ -1,4 +1,4 @@
-FROM node:16.15.1-slim
+FROM node:16.20.1-slim
 
 
 RUN apt update && apt install rsync cmake g++ sudo -y && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && rm -rf /var/cache/apt/* && rm -rf /var/log/apt && usermod -G sudo node 
