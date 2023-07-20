@@ -33,11 +33,47 @@ function removeNulls(obj: PlainObject) {
 
 export default async function generateSchema(
   eventsFolderPath: string,
-  definitionsFolderPath: string
+  definitionsFolderPath: string,
+  configPath: string
 ): Promise<PlainObject> {
   const eventsSchema: PlainObject = await loadEventsYaml(eventsFolderPath);
   const definitions: PlainObject = await loadYaml(definitionsFolderPath, false);
-  const finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart)); //Make a deep clone copy
+  
+  //const configPathSpec: PlainObject = await loadJson(configPath, false);
+   
+  // changes done by gnani
+// ********************************************************************************************************************
+let finalSpec;
+let baseinfodefault = JSON.parse(JSON.stringify(swaggerCommonPart));
+
+try {
+
+  // const swaggerfilePath = "/workspace/development/app/config/swagger.json" ;
+  const swaggerfilePath = path.resolve(PROJECT_ROOT_DIRECTORY + '/config/swagger.json'); // __dirname + /config/swagger.json
+  //console.log("swagger spec file path ");
+  const fileStats = fs.statSync(swaggerfilePath);
+  
+  if (fileStats.isFile()) {
+    const fileContent = fs.readFileSync(swaggerfilePath, 'utf-8');
+
+    let infocontent = JSON.parse(fileContent); 
+    infocontent["servers"] = baseinfodefault.servers // adding servers from default swagger spec file
+    infocontent["paths"] = baseinfodefault.paths // adding paths  from default swagger spec file
+    infocontent["openapi"] = baseinfodefault.openapi // adding openapi from default swagger spec file
+
+    finalSpec = infocontent
+    logger.info("swagger.json file is loaded from config/swagger.json")
+
+  } else {
+    logger.error("unable to find swagger.json file in config");
+  }
+} catch (error) {
+  
+  logger.info("developer has not created a file, lets use our default specs");
+  finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart));
+}
+  
+  //const finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart)); //Make a deep clone copy
 
   Object.keys(eventsSchema).forEach((event: any) => {
     let apiEndPoint = event.split('.')[0];
@@ -80,7 +116,10 @@ async function loadEventsYaml(path: string) {
 if (require.main === module) {
   const eventPath = '/workspace/development/app/src/events';
   const definitionsPath = '/workspace/development/app/src/definitions';
-  generateSchema(eventPath, definitionsPath)
+  // gnani
+  const configPath = '/workspace/development/app/config'
+ 
+  generateSchema(eventPath, definitionsPath,configPath)
     .then((schema) => {
       fs.outputFile(
         '/workspace/development/app/docs/api-doc.yaml',

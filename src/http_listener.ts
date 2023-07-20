@@ -67,8 +67,9 @@ app.use(
 
 const eventPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/events');
 const definitionsPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/definitions');
+const configPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/config')
 
-generateSchema(eventPath, definitionsPath)
+generateSchema(eventPath, definitionsPath,configPath)
   .then((schema) => {
     logger.debug('api-schema generated at /api-docs');
     app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(schema));
