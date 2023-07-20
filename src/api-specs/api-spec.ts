@@ -7,6 +7,8 @@ import yaml from 'yaml';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 import fs from 'fs-extra';
+import {PROJECT_ROOT_DIRECTORY} from '../core/utils'
+import path from 'path'
 import swaggerCommonPart from './basic-spec';
 
 // add it here, because of circular dependency of logger
