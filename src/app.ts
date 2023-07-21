@@ -314,7 +314,12 @@ async function main() {
     
     // overriding common log_attributes
     for (const key in overrideEventLogAttributres) {
-      childLogAttributes[key] = overrideEventLogAttributres[key];
+      if(overrideEventLogAttributres[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.)/)){
+        const obj = Function('event','filter','return eval(`event.data.${filter}`)')(event,overrideEventLogAttributres[key]);
+        childLogAttributes[key] = obj;
+      }else{
+        childLogAttributes[key] = overrideEventLogAttributres[key]
+      }
     }
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
