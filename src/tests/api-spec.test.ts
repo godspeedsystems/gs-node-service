@@ -11,13 +11,15 @@ const finalRootDir = projectRootDir.split('/');
 finalRootDir.splice(finalRootDir.length - 1, 1);
 const eventPath = path.resolve(finalRootDir.join('/') + '/events');
 const definitionsPath = path.resolve(finalRootDir.join('/') + '/definitions');
+const configPath = path.resolve(finalRootDir.join('/') + '/config');
+
 const testName = path.basename(__filename).split('.')[0];
 const fixDir = path.join(__dirname, 'fixtures', testName);
 
 describe(testName, () => {
   it('Checking if a paths key exists in a api-spec', async () => {
     try {
-      const result = await generateSchema(eventPath, definitionsPath);
+      const result = await generateSchema(eventPath, definitionsPath,configPath);
       logger.debug('result: %o', result);
       expect(result.hasOwnProperty('paths')).to.equal(true);
     } catch (error) {
@@ -27,7 +29,7 @@ describe(testName, () => {
   });
   it('Check if paths is Empty  ', async () => {
     try {
-      const result = await generateSchema(eventPath, definitionsPath);
+      const result = await generateSchema(eventPath, definitionsPath,configPath);
       logger.debug('result: %o', result);
       expect(Object.keys(result.paths).length === 0).to.equal(false);
     } catch (error) {

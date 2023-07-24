@@ -34,14 +34,14 @@ const request_body_limit = config.request_body_limit || 50 * 1024 * 1024;
 const file_size_limit = config.file_size_limit || 50 * 1024 * 1024;
 
 app.use(bodyParser.urlencoded({ extended: true, limit: request_body_limit }));
-app.use(bodyParser.json({limit: request_body_limit}));
+app.use(bodyParser.json({ limit: request_body_limit }));
 app.use(loggerExpress);
 
 try {
   for (const middleware of middlewares) {
     app.use(middleware);
-  }  
-} catch(err: any) {
+  }
+} catch (err: any) {
   logger.error('Caught exception in initializing middlwares: %o', err.stack);
 }
 
@@ -65,10 +65,12 @@ app.use(
   })
 );
 
+
 const eventPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/events');
 const definitionsPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/definitions');
+const configPath = path.resolve(PROJECT_ROOT_DIRECTORY + '/config');
 
-generateSchema(eventPath, definitionsPath)
+generateSchema(eventPath, definitionsPath, configPath)
   .then((schema) => {
     logger.debug('api-schema generated at /api-docs');
     app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(schema));
