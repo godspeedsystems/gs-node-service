@@ -7,8 +7,7 @@ import yaml from 'yaml';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 import fs from 'fs-extra';
-import {PROJECT_ROOT_DIRECTORY} from '../core/utils'
-import path from 'path'
+import path from 'path';
 import swaggerCommonPart from './basic-spec';
 
 // add it here, because of circular dependency of logger
@@ -40,72 +39,53 @@ export default async function generateSchema(
 ): Promise<PlainObject> {
   const eventsSchema: PlainObject = await loadEventsYaml(eventsFolderPath);
   const definitions: PlainObject = await loadYaml(definitionsFolderPath, false);
-  
-  //const configPathSpec: PlainObject = await loadJson(configPath, false);
-   
-  // changes done by gnani
-// ********************************************************************************************************************
-let finalSpec;
-let baseinfodefault = JSON.parse(JSON.stringify(swaggerCommonPart));
 
-try {
+  let finalSpec;
+  let swaggerSpecBase = JSON.parse(JSON.stringify(swaggerCommonPart));
 
-  // const swaggerfilePath = "/workspace/development/app/config/swagger.json" ;
-  const swaggerfilePath = path.resolve(PROJECT_ROOT_DIRECTORY + '/config/swagger.json'); // __dirname + /config/swagger.json
-  //console.log("swagger spec file path ");
-  const fileStats = fs.statSync(swaggerfilePath);
-  
-  if (fileStats.isFile()) {
-    const fileContent = fs.readFileSync(swaggerfilePath, 'utf-8');
+  try {
+    const swaggerfilePath = path.resolve(path.join(configPath, 'swagger.json'));
+    if (fs.existsSync(swaggerfilePath)) {
+      let swaggerSpecCustom = JSON.parse(fs.readFileSync(swaggerfilePath, 'utf-8'));
+      swaggerSpecBase = { ...swaggerSpecBase, info: { ...swaggerSpecCustom.info } };
+    }
 
-    let infocontent = JSON.parse(fileContent); 
-    infocontent["servers"] = baseinfodefault.servers // adding servers from default swagger spec file
-    infocontent["paths"] = baseinfodefault.paths // adding paths  from default swagger spec file
-    infocontent["openapi"] = baseinfodefault.openapi // adding openapi from default swagger spec file
+    finalSpec = swaggerSpecBase;
 
-    finalSpec = infocontent
-    logger.info("swagger.json file is loaded from config/swagger.json")
+    Object.keys(eventsSchema).forEach((event: any) => {
+      let apiEndPoint = event.split('.')[0];
+      apiEndPoint = apiEndPoint.replaceAll(/:([^\/]+)/g, '{$1}'); //We take :path_param. OAS3 takes {path_param}
+      const method = event.split('.')[2];
+      const eventSchema = eventsSchema[event];
 
-  } else {
-    logger.error("unable to find swagger.json file in config");
+      //Initialize the schema for this method, for given event
+      let methodSpec: PlainObject = {
+        summary: eventSchema.summary,
+        description: eventSchema.description,
+        requestBody: eventSchema.body || eventSchema.data?.schema?.body,
+        parameters:
+          eventSchema.parameters ||
+          eventSchema.params ||
+          eventSchema.data?.schema?.params,
+        responses: eventSchema.responses,
+      };
+
+      //Set it in the overall schema
+      finalSpec.paths[apiEndPoint] = {
+        ...finalSpec.paths[apiEndPoint],
+        [method]: methodSpec,
+      };
+    });
+    // add definitions{models} in swagger specs
+    finalSpec.definitions = definitions;
+  } catch (error) {
+    logger.error(error);
   }
-} catch (error) {
-  
-  logger.info("developer has not created a file, lets use our default specs");
-  finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart));
-}
-  
-  //const finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart)); //Make a deep clone copy
 
-  Object.keys(eventsSchema).forEach((event: any) => {
-    let apiEndPoint = event.split('.')[0];
-    apiEndPoint = apiEndPoint.replaceAll(/:([^\/]+)/g, '{$1}'); //We take :path_param. OAS3 takes {path_param}
-    const method = event.split('.')[2];
-    const eventSchema = eventsSchema[event];
-
-    //Initialize the schema for this method, for given event
-    let methodSpec: PlainObject = {
-      summary: eventSchema.summary,
-      description: eventSchema.description,
-      requestBody: eventSchema.body || eventSchema.data?.schema?.body,
-      parameters:
-        eventSchema.parameters ||
-        eventSchema.params ||
-        eventSchema.data?.schema?.params,
-      responses: eventSchema.responses,
-    };
-
-    //Set it in the overall schema
-    finalSpec.paths[apiEndPoint] = {
-      ...finalSpec.paths[apiEndPoint],
-      [method]: methodSpec,
-    };
-  });
-  // add definitions{models} in swagger specs
-  finalSpec.definitions = definitions;
   removeNulls(finalSpec);
   return finalSpec;
 }
+
 async function loadEventsYaml(path: string) {
   try {
     return await loadYaml(path, true);
@@ -118,10 +98,8 @@ async function loadEventsYaml(path: string) {
 if (require.main === module) {
   const eventPath = '/workspace/development/app/src/events';
   const definitionsPath = '/workspace/development/app/src/definitions';
-  // gnani
-  const configPath = '/workspace/development/app/config'
- 
-  generateSchema(eventPath, definitionsPath,configPath)
+  const configPath = '/workspace/development/app/config';
+  generateSchema(eventPath, definitionsPath, configPath)
     .then((schema) => {
       fs.outputFile(
         '/workspace/development/app/docs/api-doc.yaml',
