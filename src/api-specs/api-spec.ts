@@ -7,6 +7,7 @@ import yaml from 'yaml';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 import fs from 'fs-extra';
+import path from 'path';
 import swaggerCommonPart from './basic-spec';
 
 // add it here, because of circular dependency of logger
@@ -33,41 +34,58 @@ function removeNulls(obj: PlainObject) {
 
 export default async function generateSchema(
   eventsFolderPath: string,
-  definitionsFolderPath: string
+  definitionsFolderPath: string,
+  configPath: string
 ): Promise<PlainObject> {
   const eventsSchema: PlainObject = await loadEventsYaml(eventsFolderPath);
   const definitions: PlainObject = await loadYaml(definitionsFolderPath, false);
-  const finalSpec = JSON.parse(JSON.stringify(swaggerCommonPart)); //Make a deep clone copy
 
-  Object.keys(eventsSchema).forEach((event: any) => {
-    let apiEndPoint = event.split('.')[0];
-    apiEndPoint = apiEndPoint.replaceAll(/:([^\/]+)/g, '{$1}'); //We take :path_param. OAS3 takes {path_param}
-    const method = event.split('.')[2];
-    const eventSchema = eventsSchema[event];
+  let finalSpec;
+  let swaggerSpecBase = JSON.parse(JSON.stringify(swaggerCommonPart));
 
-    //Initialize the schema for this method, for given event
-    let methodSpec: PlainObject = {
-      summary: eventSchema.summary,
-      description: eventSchema.description,
-      requestBody: eventSchema.body || eventSchema.data?.schema?.body,
-      parameters:
-        eventSchema.parameters ||
-        eventSchema.params ||
-        eventSchema.data?.schema?.params,
-      responses: eventSchema.responses,
-    };
+  try {
+    const swaggerfilePath = path.resolve(path.join(configPath, 'swagger.json'));
+    if (fs.existsSync(swaggerfilePath)) {
+      let swaggerSpecCustom = JSON.parse(fs.readFileSync(swaggerfilePath, 'utf-8'));
+      swaggerSpecBase = { ...swaggerSpecBase, info: { ...swaggerSpecCustom.info } };
+    }
 
-    //Set it in the overall schema
-    finalSpec.paths[apiEndPoint] = {
-      ...finalSpec.paths[apiEndPoint],
-      [method]: methodSpec,
-    };
-  });
-  // add definitions{models} in swagger specs
-  finalSpec.definitions = definitions;
+    finalSpec = swaggerSpecBase;
+
+    Object.keys(eventsSchema).forEach((event: any) => {
+      let apiEndPoint = event.split('.')[0];
+      apiEndPoint = apiEndPoint.replaceAll(/:([^\/]+)/g, '{$1}'); //We take :path_param. OAS3 takes {path_param}
+      const method = event.split('.')[2];
+      const eventSchema = eventsSchema[event];
+
+      //Initialize the schema for this method, for given event
+      let methodSpec: PlainObject = {
+        summary: eventSchema.summary,
+        description: eventSchema.description,
+        requestBody: eventSchema.body || eventSchema.data?.schema?.body,
+        parameters:
+          eventSchema.parameters ||
+          eventSchema.params ||
+          eventSchema.data?.schema?.params,
+        responses: eventSchema.responses,
+      };
+
+      //Set it in the overall schema
+      finalSpec.paths[apiEndPoint] = {
+        ...finalSpec.paths[apiEndPoint],
+        [method]: methodSpec,
+      };
+    });
+    // add definitions{models} in swagger specs
+    finalSpec.definitions = definitions;
+  } catch (error) {
+    logger.error(error);
+  }
+
   removeNulls(finalSpec);
   return finalSpec;
 }
+
 async function loadEventsYaml(path: string) {
   try {
     return await loadYaml(path, true);
@@ -80,7 +98,8 @@ async function loadEventsYaml(path: string) {
 if (require.main === module) {
   const eventPath = '/workspace/development/app/src/events';
   const definitionsPath = '/workspace/development/app/src/definitions';
-  generateSchema(eventPath, definitionsPath)
+  const configPath = '/workspace/development/app/config';
+  generateSchema(eventPath, definitionsPath, configPath)
     .then((schema) => {
       fs.outputFile(
         '/workspace/development/app/docs/api-doc.yaml',
