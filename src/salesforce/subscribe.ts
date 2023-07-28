@@ -7,74 +7,78 @@ import { GSStatus } from '../core/interfaces';
 
 
 async function subscribeSalesforceStream(salesforceApi: any, topicName: any, messageCallback: any): Promise<GSStatus> {
+    try {
 
-    if (salesforceApi == null) {
-        throw new Error('Requires salesforceApi, a jsForce connection.');
-    }
+        if (salesforceApi == null) {
+            throw new Error('Requires salesforceApi, a jsForce connection.');
+        }
 
-    if (typeof messageCallback !== 'function') {
-        throw new Error('Requires messageCallback function to handle each message received.');
-    }
+        if (typeof messageCallback !== 'function') {
+            throw new Error('Requires messageCallback function to handle each message received.');
+        }
 
-    // Handle Salesforce API auth failure by logging and crashing
-    const exitCallback = () => {
-        logger.error(`!      Salesforce API authentication became invalid. Exiting failure.`);
-        process.exit(1);
-    };
-    const authFailureExt = new jsforce.StreamingExtension.AuthFailure(exitCallback);
+        // Handle Salesforce API auth failure by logging and crashing
+        const exitCallback = () => {
+            logger.error(`!      Salesforce API authentication became invalid. Exiting failure.`);
+            process.exit(1);
+        };
+        const authFailureExt = new jsforce.StreamingExtension.AuthFailure(exitCallback);
 
-    // To debug all messages, add this extension to the createClient arg array
-    // @ts-ignore
-    const loggingExt = new LoggingExtension(logger);
+        // To debug all messages, add this extension to the createClient arg array
+        // @ts-ignore
+        const loggingExt = new LoggingExtension(logger);
 
-    // Create the Faye streaming client: https://faye.jcoglan.com/
-    const fayeClient = salesforceApi.streaming.createClient([authFailureExt, loggingExt]);
+        // Create the Faye streaming client: https://faye.jcoglan.com/
+        const fayeClient = salesforceApi.streaming.createClient([authFailureExt, loggingExt]);
 
-    // @ts-ignore
-    const redisClient = global.datasources[(config as any).caching].client;
+        // @ts-ignore
+        const redisClient = global.datasources[(config as any).caching].client;
 
-    // Subscribe to each topic including support for checkpoint persistence
-    logger.info(`-----> Subscribing to Salesforce topic ${topicName}`);
+        // Subscribe to each topic including support for checkpoint persistence
+        logger.info(`-----> Subscribing to Salesforce topic ${topicName}`);
 
-    const replayKey = `replayId:${topicName}`;
-    function saveReplayId(v: any) {
-        return new Promise((resolve, reject) => {
-            if (v != null) {
-                redisClient.set(replayKey, v.toString(), (err: any, res: any) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        logger.debug(`       ⏺  Save checkpoint ${v}`);
-                        resolve(res);
-                    }
-                });
-            } else {
-                resolve(null);
-            }
-        });
-    }
-    function readReplayId() {
-        return new Promise((resolve, reject) => {
-            redisClient.get(replayKey).then((v: string) => {
-                resolve(v);
-            }).catch((error: any) => {
-                reject(error);
+        const replayKey = `replayId:${topicName}`;
+        function saveReplayId(v: any) {
+            return new Promise((resolve, reject) => {
+                if (v != null) {
+                    redisClient.set(replayKey, v.toString(), (err: any, res: any) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            logger.debug(`       ⏺  Save checkpoint ${v}`);
+                            resolve(res);
+                        }
+                    });
+                } else {
+                    resolve(null);
+                }
             });
-        });
-    }
+        }
+        function readReplayId() {
+            return new Promise((resolve, reject) => {
+                redisClient.get(replayKey).then((v: string) => {
+                    resolve(v);
+                }).catch((error: any) => {
+                    reject(error);
+                });
+            });
+        }
 
-    // @ts-ignore
-    return readReplayId().then((v: string) => {
-        const replayId = v == null ? null : parseInt(v, 10);
-        return subscribeAndPush(
-            salesforceApi,
-            fayeClient,
-            topicName,
-            replayId,
-            saveReplayId,
-            messageCallback,
-            logger);
-    });
+        // @ts-ignore
+        return readReplayId().then((v: string) => {
+            const replayId = v == null ? null : parseInt(v, 10);
+            return subscribeAndPush(
+                salesforceApi,
+                fayeClient,
+                topicName,
+                replayId,
+                saveReplayId,
+                messageCallback,
+                logger);
+        });
+    } catch (err) {
+        logger.error('Failed to connect to Salesforce Streaming API %s', err);
+    }
 }
 
 function subscribeAndPush(
