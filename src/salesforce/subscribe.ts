@@ -21,6 +21,7 @@ async function subscribeSalesforceStream(salesforceApi: any, topicName: any, mes
         const exitCallback = () => {
             logger.error(`!      Salesforce API authentication became invalid. Exiting failure.`);
             process.exit(1);
+            // return Promise.resolve({ success: false, code: 401, data: 'Salesforce API authentication failed' });
         };
         const authFailureExt = new jsforce.StreamingExtension.AuthFailure(exitCallback);
 
@@ -77,7 +78,8 @@ async function subscribeSalesforceStream(salesforceApi: any, topicName: any, mes
                 logger);
         });
     } catch (err) {
-        logger.error('Failed to connect to Salesforce Streaming API %s', err);
+        // logger.error('Failed to connect to Salesforce Streaming API %s', err);
+        return Promise.resolve({ success: false, code: 500, data: 'Failed to connect to Salesforce Streaming API' });
     }
 }
 
