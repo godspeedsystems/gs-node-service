@@ -78,8 +78,9 @@ async function subscribeSalesforceStream(salesforceApi: any, topicName: any, mes
                 logger);
         });
     } catch (err) {
-        // logger.error('Failed to connect to Salesforce Streaming API %s', err);
-        return Promise.resolve({ success: false, code: 500, data: 'Failed to connect to Salesforce Streaming API' });
+        logger.error('Failed to connect to Salesforce Streaming API %s', err);
+        return new GSStatus(false, err.code || 500, 'Unable to establish a connection with Salesforce', JSON.stringify(err));
+
     }
 }
 
