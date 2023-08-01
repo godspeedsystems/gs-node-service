@@ -21,12 +21,16 @@ jobs:
       uses: actions/checkout@v3
       with:
         ref: ${{ github.event.inputs.branch }}
-        submodules: true
+        clean: 'true'
+        token: '${{ secrets.GIT_TOKEN }}'
+        submodules: 'recursive'
+        fetch-depth: '0'
         
     - name: Npm install
       uses: actions/setup-node@v3
       with:
-        node-version: 16.14.2
+        node-version: 16.20.1
+
     - run: npm install
     
     - name: Login to DockerHub
@@ -41,12 +45,12 @@ jobs:
         push: true
         context: .
         file: Dockerfile
-        tags: adminmindgrep/gs_service-test:${{ github.event.inputs.gs_service_version }}
+        tags: adminmindgrep/gs_service:${{ github.event.inputs.gs_service_version }}
 
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'adminmindgrep/gs_service-test:${{ github.event.inputs.gs_service_version }}'
+        image-ref: 'adminmindgrep/gs_service:${{ github.event.inputs.gs_service_version }}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
