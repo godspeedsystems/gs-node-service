@@ -315,7 +315,7 @@ async function main() {
     
     // overriding common log_attributes
     for (const key in overrideEventLogAttributres) {
-      if(overrideEventLogAttributres[key] instanceof String && overrideEventLogAttributres[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.)/)){
+      if(typeof overrideEventLogAttributres[key] === "string" && overrideEventLogAttributres[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.)/)){
         // eslint-disable-next-line no-template-curly-in-string
         const obj = Function('event','filter','return eval(`event.data.${filter}`)')(event,overrideEventLogAttributres[key]);
         childLogAttributes[key] = obj;
