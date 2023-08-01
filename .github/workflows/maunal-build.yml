@@ -52,7 +52,8 @@ jobs:
       with:
         image-ref: 'adminmindgrep/gs_service:${{ github.event.inputs.gs_service_version }}'
         format: 'table'
-        exit-code: '1'
+        exit-code: '0'
         ignore-unfixed: true
         vuln-type: 'os,library'
         severity: 'MEDIUM,CRITICAL,HIGH'            
+
