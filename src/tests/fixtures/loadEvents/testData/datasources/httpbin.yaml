@@ -1,3 +1,0 @@
-type: api
-schema:
-base_url: <% config.httpbin.base_url %>

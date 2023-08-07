@@ -1,8 +1,0 @@
-log_level: debug
-api_version: "1.0"
-growthsource:
-  base_url: https://partner-uat.growthsourceft.com
-  api_token: 679e36a018524e6dbfd3f184059b29f0
-httpbin:
-  base_url: https://httpbin.org
-

@@ -1,2 +1,0 @@
-'/test.http.get': # event id. Will include path params. For ex. com.abc.do_kyc/{bank_id}/process/{user_id}
-  fn: com.biz.test
