@@ -3,17 +3,41 @@
  * © 2022 Mindgrep Technologies Pvt Ltd
  */
 
-import { logger } from './logger';
+import path from 'path';
+import { PlainObject } from './common';
+import iterate_yaml_directories from './configLoader';
 import { compileScript } from './utils';
 import config from 'config';
-import { config as appConfig } from './loader';
 
-export default function loadMappings() {
-  logger.info('Loaded mappings: %o', appConfig.app.mappings);
+let mappings: PlainObject;
 
-  const mappingScript: Function = compileScript(appConfig.app.mappings);
-  const evaluatedMappings = mappingScript(config, {}, {}, appConfig.app.mappings, {});
-  logger.info('evaluatedMappings: %o', evaluatedMappings);
+export default function loadMappings(mappingFolderPath?: string) {
+  console.log('Loading mappings...');
+  if (typeof mappings === 'undefined' && mappingFolderPath) {
+    /*
+      iterate_yaml_directories return the object after recussively iterating the directory, and keeping it's content
+      inside the [directory name] key
+      so we are taking the key, on the base path of mappingFolderPath, that's the actual mapping object
+    */
+    let _mappings = iterate_yaml_directories(mappingFolderPath)[path.basename(mappingFolderPath)];
+    console.log('Unevaluated mappings: %o', _mappings);
+    const mappingScript: Function = compileScript(_mappings);
+    const evaluatedMappings = mappingScript(config, {}, {}, mappings, {});
+    console.log('Evaluated mappings: %o', evaluatedMappings);
+    mappings = evaluatedMappings;
+    return mappings;
+  } else {
+    return mappings;
+  }
+};
 
-  return evaluatedMappings;
-}
+
+
+// export default function loadMappings(mappingFolderPath: string) {
+//   let mappings = iterate_yaml_directories(mappingFolderPath);
+//   console.log('Loaded mappings: %o', mappings);
+//   const mappingScript: Function = compileScript(mappings);
+//   const evaluatedMappings = mappingScript(config, {}, {}, mappings, {});
+//   console.log('evaluatedMappings: %o', evaluatedMappings);
+//   return evaluatedMappings;
+// }

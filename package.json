@@ -14,9 +14,6 @@
     "elasticbuild": "npm install elasticgraph/",
     "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 15000",
     "prepare": "if [ ! -f .git ] && ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then husky install; fi",
-    "test-one": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/loadDatasources.test.js --timeout 15000",
-    "test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha ./dist/tests/*.test.js --timeout 15000",
-    "test-cov": "nyc --reporter=html --reporter=text npm test"
   },
   "author": "",
   "license": "ISC",

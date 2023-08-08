@@ -22,14 +22,14 @@ export default async function (datasource: PlainObject) {
   });
 
   client.on('error', (err) => logger.error('Redis Client Error %o', err));
-  client.on('connect', () => logger.info('Redis Client connection started.'));
-  client.on('ready', () => logger.info('Redis Client connection ready.'));
+  client.on('connect', () => console.log('Redis Client connection started.'));
+  client.on('ready', () => console.log('Redis Client connection ready.'));
 
   await client.connect();
 
   nodeCleanup(
     function () {
-      logger.info('calling redis disconnect...');
+      console.log('calling redis disconnect...');
       // @ts-ignore
       this.quit();
     }.bind(client)
