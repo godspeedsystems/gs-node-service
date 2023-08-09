@@ -188,7 +188,7 @@ export class RabbitmqMessageBus {
                     this.config.routingKey,
                     Buffer.from(JSON.stringify(message))
                 );
-                logger.info('Message sent:', message);
+                logger.info('Message sent: %o', message);
             } catch (error) {
                 logger.error('Error producing message:', error);
                 this.bufferMessage(message);
