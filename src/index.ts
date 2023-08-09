@@ -1,4 +1,4 @@
-export function getDataSourceByName(datasourceName:any) {
-    // @ts-ignore
+export function getDataSourceByName(datasourceName: string) {
+    //@ts-ignore
     return global.datasources[datasourceName].client;
 }

@@ -3,29 +3,29 @@
  * © 2022 Mindgrep Technologies Pvt Ltd
  */
 import nodeCleanup from 'node-cleanup';
-import { createClient } from 'redis';
+import createClient  from 'redis';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 
 let client;
 
-export default async function (datasource: PlainObject) {
+export default async function (datasource: PlainObject): Promise<{[key: string]: any;} | null > {
   // @ts-ignore
   if (!datasource) {
-    return;
+    return null;
   }
 
   const { type, ...connectionProps } = datasource;
 
-  client = createClient({
+  client = await createClient({
     ...connectionProps,
   });
 
-  client.on('error', (err) => logger.error('Redis Client Error %o', err));
-  client.on('connect', () => logger.info('Redis Client connection started.'));
-  client.on('ready', () => logger.info('Redis Client connection ready.'));
+  client?.on('error', (err: Error) => logger.error('Redis Client Error %o', err));
+  client?.on('connect', () => logger.info('Redis Client connection started.'));
+  client?.on('ready', () => logger.info('Redis Client connection ready.'));
 
-  await client.connect();
+  await client?.connect();
 
   nodeCleanup(
     function () {
@@ -35,7 +35,7 @@ export default async function (datasource: PlainObject) {
     }.bind(client)
   );
 
-  const ds = {
+  const ds: {[key: string]: any;} = {
     ...datasource,
     client,
   };
