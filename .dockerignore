@@ -3,6 +3,7 @@
 !.swcrc
 !src
 !package.json
+!package-lock.json
 !tsconfig.json
 !typings
 !node_modules
