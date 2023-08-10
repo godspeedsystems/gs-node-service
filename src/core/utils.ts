@@ -3,9 +3,8 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import { PlainObject } from "./common";
-import { logger } from './logger';
 import { GSStatus } from './interfaces'; // eslint-disable-line
-import { dirname } from  'path';
+import { dirname } from 'path';
 
 import CoffeeScript from 'coffeescript';
 import config from "config";
@@ -32,11 +31,12 @@ import * as tls from 'tls';
 import * as url from 'url';
 import * as util from 'util';
 import * as zlib from 'zlib';
+import { logger } from "../logger";
 
 //@ts-ignore
 export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
 
-export const isPlainObject = (value:any) => value?.constructor === Object;
+export const isPlainObject = (value: any) => value?.constructor === Object;
 
 //like Lodash _.get method
 export function getAtPath(obj: PlainObject, path: string) {
@@ -73,24 +73,24 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
 
 export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
   logger.debug('checkDatasource');
-  logger.debug('workflowJson: %o',workflowJson);
+  logger.debug('workflowJson: %o', workflowJson);
 
   for (let task of workflowJson.tasks) {
-      if (task.tasks) {
-          logger.debug('checking nested tasks');
-          const status:GSStatus = checkDatasource(task,datasources);
-      } else {
-          if (task.args?.datasource) {
-              if (!(task.args.datasource in datasources) && !task.args.datasource.match(/<(.*?)%.+%>/)) {
-                //The datasource is neither present in listed datasources and nor is a dynamically evaluated expression, then it is an error
-                logger.error('datasource %s is not present in datasources', task.args.datasource);
-                const msg = `datasource ${task.args.datasource} is not present in datasources`;
-                return new GSStatus(false,500,msg);
-              }
-          }
+    if (task.tasks) {
+      logger.debug('checking nested tasks');
+      const status: GSStatus = checkDatasource(task, datasources);
+    } else {
+      if (task.args?.datasource) {
+        if (!(task.args.datasource in datasources) && !task.args.datasource.match(/<(.*?)%.+%>/)) {
+          //The datasource is neither present in listed datasources and nor is a dynamically evaluated expression, then it is an error
+          logger.error('datasource %s is not present in datasources', task.args.datasource);
+          const msg = `datasource ${task.args.datasource} is not present in datasources`;
+          return new GSStatus(false, 500, msg);
         }
+      }
+    }
   }
-  return new GSStatus(true,undefined);
+  return new GSStatus(true, undefined);
 }
 
 export function prepareScript(str: string): Function {
@@ -146,7 +146,7 @@ export function prepareScript(str: string): Function {
   let langs = (/<(.*?)%/).exec(str);
 
   //@ts-ignore
-  lang = langs[1] ||  config.lang || 'coffee';
+  lang = langs[1] || config.lang || 'coffee';
 
   str = str.trim();
   if (str.match(/^<(.*?)%/) && str.match(/%>$/)) {
@@ -165,19 +165,19 @@ export function prepareScript(str: string): Function {
 
   str = str.trim();
   const initialStr = str;
-  
+
   if (!/\breturn\b/.test(str)) {
     str = 'return ' + str;
   }
 
   if (lang === 'coffee') {
-    str = CoffeeScript.compile(str ,{bare: true});
+    str = CoffeeScript.compile(str, { bare: true });
   }
 
   let prepareScriptFunction: any;
   try {
     prepareScriptFunction = Function('config', 'inputs', 'outputs', 'mappings', 'task_value', str);
-  } catch(err: any) {
+  } catch (err: any) {
     logger.error('Caught exception in script compilation, script: %s', initialStr);
     logger.error('exception: %o', err.stack);
     process.exit(1);
@@ -191,13 +191,13 @@ export function compileScript(args: any) {
     return () => args;
   }
 
-  if (typeof(args) == 'object') {
+  if (typeof (args) == 'object') {
     if (isPlainObject(args)) {
       let out: PlainObject = {};
       for (let k in args) {
         out[k] = compileScript(args[k]);
       }
-      return function(config:any, inputs:any, outputs:any, mappings: any, task_value: any) {
+      return function (config: any, inputs: any, outputs: any, mappings: any, task_value: any) {
         let returnObj: any = {};
         for (let k in out) {
           if (out[k] instanceof Function) {
@@ -207,11 +207,11 @@ export function compileScript(args: any) {
         return returnObj;
       };
     } else if (Array.isArray(args)) {
-      let out:[any] = <any>[];
+      let out: [any] = <any>[];
       for (let k in <[any]>args) {
         out[k] = compileScript(args[k]);
       }
-      return function(config:any, inputs:any, outputs:any, mappings: any, task_value: any) {
+      return function (config: any, inputs: any, outputs: any, mappings: any, task_value: any) {
         let returnObj: any = [];
         for (let k in out) {
           if (out[k] instanceof Function) {
@@ -225,12 +225,12 @@ export function compileScript(args: any) {
     } else {
       return () => args;
     }
-  } else if (typeof(args) == 'string') {
+  } else if (typeof (args) == 'string') {
 
     if (args.match(/(^|\/):([^/]+)/)) {
       logger.debug('before replacing path params %s', args);
       args = args.replace(/(^|\/):([^/]+)/g, '$1<%inputs.params.$2%>');
-      logger.debug('after replacing path params %s', args);  
+      logger.debug('after replacing path params %s', args);
     }
 
     if (args.match(/<(.*?)%/) && args.includes('%>')) {
@@ -243,16 +243,16 @@ export function compileScript(args: any) {
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {
   for (let event in events) {
-    if (! (events[event].fn in functions)) {
+    if (!(events[event].fn in functions)) {
       logger.error('function %s of event %s is not present in functions', events[event].fn, event);
       const msg = `function ${events[event].fn} of event ${event} is not present in functions`;
-      return new GSStatus(false,500,msg);
+      return new GSStatus(false, 500, msg);
     }
   }
   return new GSStatus(true, undefined);
 }
 
-export function removeNulls (obj: PlainObject) {
+export function removeNulls(obj: PlainObject) {
   const isArray = Array.isArray(obj);
   for (const k of Object.keys(obj)) {
     if (obj[k] === null) {

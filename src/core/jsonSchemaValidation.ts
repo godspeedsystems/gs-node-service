@@ -5,99 +5,100 @@
 
 import { GSStatus } from './interfaces';
 import { PlainObject } from './common';
-import { logger } from './logger';
+import { logger, childLogger } from '../logger';
 import ajvInstance, { isValidEvent } from './validation';
-import { childLogger } from '../app';
 
 export function loadJsonSchemaForEvents(eventObj: PlainObject) {
   logger.info('Loading JSON Schema for events %s', Object.keys(eventObj));
   logger.debug('eventObj: %o', eventObj);
 
-  Object.keys(eventObj).forEach(function (topic) {
-    // Add body schema in ajv for each content_type per topic
-    /* TODO: Right now, we are assuming that there is going to be one content_type only i.e. application/json
-                This needs to be enhanced in fututre when multiple content_type will be supported
-        */
-    const eventObjTopic = eventObj[topic];
-    if (isValidEvent(eventObjTopic, topic)) {
-      //Object.keys(eventObjTopic).forEach(function(topic) {
-      const body_content =
-        eventObjTopic?.body?.content || //just like OpenAPI Spec but with body instead of requestBody
-        eventObjTopic?.data?.schema?.body?.content; //Legacy
-      if (body_content) {
-        Object.keys(body_content).forEach(function (k) {
-          const content_schema = body_content[k].schema;
-          if (content_schema) {
-            logger.info('adding body schema for %s', topic);
-            logger.debug('content_schema %o', content_schema);
-            if (!ajvInstance.getSchema(topic)) {
-              ajvInstance.addSchema(content_schema, topic);
+  return new Promise((resolve, reject) => {
+    Object.keys(eventObj).forEach(function (topic) {
+      // Add body schema in ajv for each content_type per topic
+      /* TODO: Right now, we are assuming that there is going to be one content_type only i.e. application/json
+                  This needs to be enhanced in fututre when multiple content_type will be supported
+          */
+      const eventObjTopic = eventObj[topic];
+      if (isValidEvent(eventObjTopic, topic)) {
+        //Object.keys(eventObjTopic).forEach(function(topic) {
+        const body_content =
+          eventObjTopic?.body?.content || //just like OpenAPI Spec but with body instead of requestBody
+          eventObjTopic?.data?.schema?.body?.content; //Legacy
+        if (body_content) {
+          Object.keys(body_content).forEach(function (k) {
+            const content_schema = body_content[k].schema;
+            if (content_schema) {
+              logger.info('adding body schema for %s', topic);
+              logger.debug('content_schema %o', content_schema);
+              if (!ajvInstance.getSchema(topic)) {
+                ajvInstance.addSchema(content_schema, topic);
+              }
             }
-          }
-        });
-      }
+          });
+        }
 
-      // Add params schema in ajv for each param per topic
-      const params = eventObjTopic?.parameters || eventObjTopic?.params || eventObjTopic?.data?.schema?.params;
-      let paramSchema: PlainObject = {};
+        // Add params schema in ajv for each param per topic
+        const params = eventObjTopic?.parameters || eventObjTopic?.params || eventObjTopic?.data?.schema?.params;
+        let paramSchema: PlainObject = {};
 
-      if (params) {
-        for (let param of params) {
-          if (param.schema) {
-            if (!paramSchema[param.in]) {
-              paramSchema[param.in] = {
-                type: 'object',
-                required: [],
-                properties: {},
-              };
+        if (params) {
+          for (let param of params) {
+            if (param.schema) {
+              if (!paramSchema[param.in]) {
+                paramSchema[param.in] = {
+                  type: 'object',
+                  required: [],
+                  properties: {},
+                };
+              }
+
+              if (param.required) {
+                paramSchema[param.in].required.push(param.name);
+              }
+
+              let schema = param.schema;
+              if (param.allow_empty_value) {
+                param.schema.nullable = true;
+              }
+
+              paramSchema[param.in].properties[param.name] = schema;
             }
-
-            if (param.required) {
-              paramSchema[param.in].required.push(param.name);
-            }
-
-            let schema = param.schema;
-            if (param.allow_empty_value) {
-              param.schema.nullable = true;
-            }
-
-            paramSchema[param.in].properties[param.name] = schema;
           }
         }
-      }
 
-      for (let schema in paramSchema) {
-        logger.info('adding param schema for %s', topic);
-        logger.debug('param schema: %o', paramSchema[schema]);
+        for (let schema in paramSchema) {
+          logger.info('adding param schema for %s', topic);
+          logger.debug('param schema: %o', paramSchema[schema]);
 
-        const topic_param = topic + ':' + schema;
-        if (!ajvInstance.getSchema(topic_param)) {
-          ajvInstance.addSchema(paramSchema[schema], topic_param);
-        }
-      }
-
-      // Add responses schema in ajv for each response per topic
-      const responses = eventObjTopic?.responses;
-      if (responses) {
-        Object.keys(responses).forEach(function (k) {
-          const response_s =
-            responses[k]?.content?.['application/json']?.schema || //Exactly as OpenApi spec
-            responses[k]?.schema?.data?.content?.['application/json']?.schema; //Legacy implementation
-          if (response_s) {
-            const response_schema = response_s;
-            const topic_response = topic + ':responses:' + k;
-            //console.log("topic_response: ",topic_response)
-            if (!ajvInstance.getSchema(topic_response)) {
-              ajvInstance.addSchema(response_schema, topic_response);
-            }
+          const topic_param = topic + ':' + schema;
+          if (!ajvInstance.getSchema(topic_param)) {
+            ajvInstance.addSchema(paramSchema[schema], topic_param);
           }
-        });
+        }
+
+        // Add responses schema in ajv for each response per topic
+        const responses = eventObjTopic?.responses;
+        if (responses) {
+          Object.keys(responses).forEach(function (k) {
+            const response_s =
+              responses[k]?.content?.['application/json']?.schema || //Exactly as OpenApi spec
+              responses[k]?.schema?.data?.content?.['application/json']?.schema; //Legacy implementation
+            if (response_s) {
+              const response_schema = response_s;
+              const topic_response = topic + ':responses:' + k;
+              //console.log("topic_response: ",topic_response)
+              if (!ajvInstance.getSchema(topic_response)) {
+                ajvInstance.addSchema(response_schema, topic_response);
+              }
+            }
+          });
+        }
+      } else {
+        process.exit(1);
       }
-    } else {
-      process.exit(1);
-    }
+    });
+    resolve(1);
   });
-  //});
 }
 
 /* Function to validate GSCloudEvent */

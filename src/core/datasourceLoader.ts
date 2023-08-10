@@ -10,16 +10,15 @@ import path from 'path';
 import { fieldEncryptionMiddleware } from '@mindgrep/prisma-deterministic-search-field-encryption';
 import { Buffer } from 'buffer';
 import crypto from 'crypto';
-import { logger } from './logger';
 import loadYaml from './yamlLoader';
 import { PlainObject } from './common';
 import expandVariables from './expandVariables';
 import glob from 'glob';
-import { compileScript, PROJECT_ROOT_DIRECTORY } from './utils';
-import KafkaMessageBus from '../kafka';
-import loadAWSClient from '../aws';
-import loadRedisClient from '../redis';
-import loadElasticgraphClient from '../elasticgraph';
+import { PROJECT_ROOT_DIRECTORY } from './utils';
+import KafkaMessageBus from '../extended/kafka';
+import loadAWSClient from '../extended/aws';
+import loadRedisClient from '../extended/redis';
+// import loadElasticgraphClient from '../extended/elasticgraph';
 import {
   isValidApiDatasource,
   isValidRedisDatasource,
@@ -27,7 +26,8 @@ import {
   isValidElasticgraphDatasource,
 } from './validation';
 import config from 'config';
-import salesforce from '../salesforce';
+import salesforce from '../extended/salesforce';
+import { logger } from '../logger';
 
 const axiosTime = require('axios-time');
 
@@ -82,20 +82,22 @@ export default async function loadDatasources(pathString: string) {
         process.exit(1);
       }
     } else if (datasources[ds].type === 'salesforce') {
-        loadedDatasources[ds] = await salesforce.init(datasources[ds]);
+      loadedDatasources[ds] = await salesforce.init(datasources[ds]);
     } else if (datasources[ds].type === 'redis') {
       if (isValidRedisDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
       } else {
         process.exit(1);
       }
-    } else if (datasources[ds].type === 'elasticgraph') {
-      if (isValidElasticgraphDatasource(datasources[ds])) {
-        loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
-      } else {
-        process.exit(1);
-      }
-    } else if (datasources[ds].type === 'aws') {
+    }
+    // else if (datasources[ds].type === 'elasticgraph') {
+    //   if (isValidElasticgraphDatasource(datasources[ds])) {
+    //     loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
+    //   } else {
+    //     process.exit(1);
+    //   }
+    // }
+    else if (datasources[ds].type === 'aws') {
       loadedDatasources[ds] = await loadAWSClient(datasources[ds]);
     } else if (datasources[ds].type) {
       //some other type

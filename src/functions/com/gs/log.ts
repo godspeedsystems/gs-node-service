@@ -3,8 +3,8 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import Pino from 'pino';
-import { childLogger } from '../../../app';
+import { childLogger } from '../../../logger';
 
-export default function(obj: {level: Pino.Level, data: any}) {
-    childLogger[obj.level]({"module": "com.gs.log"}, obj.data);
+export default function (obj: { level: Pino.Level, data: any }) {
+    childLogger[obj.level]({ "module": "com.gs.log" }, obj.data);
 }

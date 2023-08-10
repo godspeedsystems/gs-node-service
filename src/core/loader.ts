@@ -4,7 +4,7 @@
 */
 import iterate_yaml_directories from './configLoader';
 import { PlainObject } from './common';
-import { logger } from './logger';
+import { logger } from '../logger';
 
 let config: PlainObject = {};
 

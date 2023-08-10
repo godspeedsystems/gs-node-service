@@ -3,10 +3,9 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import config from 'config';
-
-import { logger } from './logger';
 import { PlainObject } from './common';
 import loadMappings from './mappingLoader';
+import { logger } from '../logger';
 
 const mappings = loadMappings();
 
@@ -31,21 +30,21 @@ export default function compileScript(args: any) {
   if (!args) {
     return args;
   }
-  if (typeof(args) == 'object') {
+  if (typeof (args) == 'object') {
     if (!Array.isArray(args)) {
-        let out: PlainObject = {};
-        for (let k in args) {
-          out[k] = compileScript(args[k]);
-        }
-        return out;
+      let out: PlainObject = {};
+      for (let k in args) {
+        out[k] = compileScript(args[k]);
+      }
+      return out;
     } else {
-        let out:[any] = <any>[];
-        for (let k in <[any]>args) {
-          out[k] = compileScript(args[k]);
-        }
-        return out;
+      let out: [any] = <any>[];
+      for (let k in <[any]>args) {
+        out[k] = compileScript(args[k]);
+      }
+      return out;
     }
-  } else if (typeof(args) == 'string') {
+  } else if (typeof (args) == 'string') {
     return substitute(args);
   }
 

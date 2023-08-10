@@ -1,6 +1,7 @@
 import cron from 'node-cron';
-import { logger } from '../core/logger';
-import { GSActor, GSCloudEvent } from '../core/interfaces';
+
+import { GSActor, GSCloudEvent } from '../../core/interfaces';
+import { logger } from '../../logger';
 
 export default function (
   route: string,

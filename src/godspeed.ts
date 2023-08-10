@@ -6,10 +6,11 @@ import loadMappings from './core/mappingLoader';
 import loadDatasources from './core/datasourceLoader';
 import { loadFunctions } from './core/functionLoader';
 import loadEvents from './core/eventLoader';
-import bodyParser from 'body-parser';
 import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatus } from './core/interfaces';
 import _ from 'lodash';
 import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
+import { prepareRouter } from './router/index';
+import { childLogger, initilizeChildLogger } from './logger';
 
 export interface PlainObject {
   [key: string]: any
@@ -73,27 +74,32 @@ class Godspeed {
 
   public initilize() {
     this._loadDefinitions()
-      .then(async () => {
-        await this._loadMappings();
-      })
-      .then(async () => {
-        await this._loadDatasources();
-      })
-      .then(async () => {
-        await this._loadFunctions();
-      })
-      .then(async () => {
-        await this._loadEvents();
-      })
-      .then(async () => {
-        // setting up the express server
-        const app = express();
-        app.use(bodyParser.json());
-
-        this.instance.app = app;
-
-        await this._subscribeToEvent();
-      })
+      // .then(async () => {
+      //   await this._loadMappings();
+      // })
+      // .then(async () => {
+      //   await this._loadDatasources();
+      // })
+      // .then(async () => {
+      //   await this._loadFunctions();
+      // })
+      // .then(async () => {
+      //   await this._loadEvents();
+      // })
+      // .then(async () => {
+      //   // setting up the express server
+      //   const app = express();
+      //   const preparedApp = await prepareRouter(app, this.instance.datasources, this.instance.events, this.instance.definitions);
+      //   this.instance.app = app;
+      //   const PORT = 3001;
+      //   // start ther server
+      //   this.instance.app.listen(PORT, () => {
+      //     console.log(`Your Godspeed server is running on ${PORT}`);
+      //   });
+      // })
+      // .then(async () => {
+      //   await this._subscribeToEvent();
+      // })
       .catch((error) => {
         console.log(error);
       });
@@ -154,83 +160,67 @@ class Godspeed {
     }
   }
 
-  private async _subscribeToEvent(): Promise<void> {
+  private async _subscribeToEvent(): Promise<boolean> {
     // let's iterate over all the http events
+    return new Promise((resolve, reject) => {
+      for (let route in this.instance.events) {
+        let originalRoute = route;
 
-    console.log('_subscribeToEvent');
-    for (let route in this.instance.events) {
-      let originalRoute = route;
+        if (route.includes('.http.')) {
+          let method = 'get';
 
-      if (route.includes('.http.')) {
-        let method = 'get';
+          [route, method] = route.split('.http.');
+          route = route.replace(/{(.*?)}/g, ':$1');
 
-        [route, method] = route.split('.http.');
-        route = route.replace(/{(.*?)}/g, ':$1');
+          let _this = this;
+          this.instance.app[method](
+            route,
+            async function (req: express.Request, res: express.Response) {
+              console.log(
+                'originalRoute: %s %o %o',
+                req.params,
+              );
 
-        console.log(route, method);
+              const reqProp = _.omit(req, [
+                '_readableState',
+                'socket',
+                'client',
+                '_parsedUrl',
+                'res',
+                'app'
+              ]);
+              const reqHeaders = _.pick(req, ['headers']);
+              let data = { ...reqProp, ...reqHeaders };
 
-        this.instance.app.get('/', (request: express.Request, response: express.Response) => {
-          console.log('Test route');
-          response.sendStatus(200);
-        });
+              const event = new GSCloudEvent(
+                'id',
+                originalRoute,
+                new Date(),
+                'http',
+                '1.0',
+                data,
+                'REST',
+                new GSActor('user'),
+                { http: { express: { res } } }
+              );
 
-        let _this = this;
-        this.instance.app[method](
-          route,
-          async function (req: express.Request, res: express.Response) {
-            console.log(
-              'originalRoute: %s %o %o',
-              req.params,
-            );
-
-            const reqProp = _.omit(req, [
-              '_readableState',
-              'socket',
-              'client',
-              '_parsedUrl',
-              'res',
-              'app'
-            ]);
-            const reqHeaders = _.pick(req, ['headers']);
-            let data = { ...reqProp, ...reqHeaders };
-
-            const event = new GSCloudEvent(
-              'id',
-              originalRoute,
-              new Date(),
-              'http',
-              '1.0',
-              data,
-              'REST',
-              new GSActor('user'),
-              { http: { express: { res } } }
-            );
-
-            const httpResponse = await _this.processEvent(event);
-
-            res
-              .status(httpResponse.statusCode);
-            // set headers
-            // sendData
-            // finally end or send
-          }
-        );
+              await _this.processEvent(event);
+            }
+          );
+        }
       }
-    }
-
-    const PORT = 3001;
-    // start ther server
-    this.instance.app.listen(PORT, () => {
-      console.log(`Your Godspeed server is running on ${PORT}`);
+      resolve(true);
     });
+
+
   }
 
   private async processEvent(event: GSCloudEvent): Promise<any> {
+    // initilize child logger
+    initilizeChildLogger({});
 
     // TODO: lot's of logging related steps
-
-    console.log('processing event ... %s %o', event.type);
-
+    childLogger.info('processing event ... %s %o', event.type);
     // TODO: Once the config loader is sorted, fetch the apiVersion from config
     const responseStructure: GSResponse = {
       apiVersion: '1.0'
@@ -241,7 +231,7 @@ class Godspeed {
     let eventSpec = this.instance.events[event.type];
 
     if (validateStatus.success === false) {
-      console.log('failed to validate request body.', validateStatus);
+      childLogger.error('failed to validate request body.', validateStatus);
 
       const responseData: PlainObject = {
         message: 'request validation failed.',
@@ -258,7 +248,7 @@ class Godspeed {
           ...responseData
         };
 
-        console.log(validationError);
+        childLogger.error(validationError);
 
         event.data = { event: event.data, validation_error: validationError };
 
@@ -273,7 +263,7 @@ class Godspeed {
           .send(validateStatus);
       }
     } else {
-      console.log('Request JSON Schema validated successfully %o', validateStatus);
+      childLogger.info('Request JSON Schema validated successfully %o', validateStatus);
       eventHandlerWorkflow = <GSSeriesFunction>(this.instance.functions[eventSpec.fn]);
     }
 
@@ -303,9 +293,9 @@ class Godspeed {
         // lets validate the response schema
         let validateResponseStatus = validateResponseSchema(event.type, eventHandlerStatus);
         if (validateResponseStatus.success) {
-          console.log('Response validation is successful.');
+          childLogger.info('Response validation is successful.');
         } else {
-          console.log('Response JSON schema validation failed.');
+          childLogger.error('Response JSON schema validation failed.');
           const responseData: PlainObject = {
             message: 'response validation error',
             error: validateResponseStatus.message,
@@ -329,11 +319,6 @@ class Godspeed {
     }
   };
 
-}
-
-interface HTTPServer {
-  // milldeware
-  use: Function,
 }
 
 export default Godspeed;

@@ -1,13 +1,13 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { PlainObject } from '../common';
-import { logger } from '../logger';
 import eventSchema from './event.schema.json';
 import workflowSchema from './workflow.schema.json';
 import apiDsSchema from './datasources/api.schema.json';
 import redisDsSchema from './datasources/redis.schema.json';
 import kafkaDsSchema from './datasources/kafka.schema.json';
 import elasticgraphSchema from './datasources/elasticgraph.schema.json';
+import { logger } from '../../logger';
 
 const ajvInstance = new Ajv({ allErrors: true, coerceTypes: true });
 addFormats(ajvInstance);

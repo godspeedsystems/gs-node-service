@@ -16,7 +16,7 @@ import Pino from 'pino';
 import authn from './authn';
 import app, { router } from './http_listener';
 import { PlainObject } from './core/common';
-import { logger } from './core/logger';
+import { logger, childLogger } from './logger';
 import loadModules from './core/codeLoader';
 import { loadFunctions } from './core/functionLoader';
 import { compileScript, PROJECT_ROOT_DIRECTORY } from './core/utils';
@@ -26,20 +26,16 @@ import {
 } from './core/jsonSchemaValidation';
 import loadEvents from './core/eventLoader';
 import loadDatasources from './core/datasourceLoader';
-import { kafka } from './kafka';
+import { kafka } from './extended/kafka';
 import _ from 'lodash';
 import { promClient } from './telemetry/monitoring';
-import { importAll } from './scriptRuntime';
+import { importAll } from './core/scriptRuntime';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
-import salesforce from "./salesforce";
-import cron from './cron';
+import salesforce from "./extended/salesforce";
+import cron from './extended/cron';
 import loadMappings from './core/mappingLoader';
-import jsonata from "jsonata";
 
-let childLogger: Pino.Logger;
 let mappings: PlainObject;
-export { childLogger };
-
 function subscribeToEvents(
   events: any,
   datasources: PlainObject,
@@ -251,14 +247,14 @@ async function main() {
 
   await loadAndRegisterDefinitions(PROJECT_ROOT_DIRECTORY + '/definitions');
   mappings = loadMappings();
-  
+
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
 
   // @ts-ignore
   global.datasources = _.clone(datasources);
-  
+
   const loadFnStatus = await loadFunctions(
     datasources,
     PROJECT_ROOT_DIRECTORY + '/functions'
@@ -306,24 +302,27 @@ async function main() {
     const commonLogAttributes = (config as any).log_attributes || [];
 
     for (const key in commonLogAttributes) {
-      const obj = Function('event','filter','return eval(`event.data.${filter}`)')(event,commonLogAttributes[key]);
+      // eslint-disable-next-line no-template-curly-in-string
+      const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, commonLogAttributes[key]);
       childLogAttributes[key] = obj;
     }
 
     const overrideEventLogAttributres = events[event.type].log_attributes || [];
-    
+
     // overriding common log_attributes
     for (const key in overrideEventLogAttributres) {
-      if(overrideEventLogAttributres[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.)/)){
-        const obj = Function('event','filter','return eval(`event.data.${filter}`)')(event,overrideEventLogAttributres[key]);
+      if (overrideEventLogAttributres[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.)/)) {
+
+        // eslint-disable-next-line no-template-curly-in-string
+        const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, overrideEventLogAttributres[key]);
         childLogAttributes[key] = obj;
-      }else{
-        childLogAttributes[key] = overrideEventLogAttributres[key]
+      } else {
+        childLogAttributes[key] = overrideEventLogAttributres[key];
       }
     }
 
     logger.debug('childLogAttributes: %o', childLogAttributes);
-    childLogger = logger.child(childLogAttributes);
+    // childLogger = logger.child(childLogAttributes);
 
     childLogger.info('Processing event %s', event.type);
     childLogger.info('event inputs %o', event.data);
@@ -468,7 +467,7 @@ async function main() {
     if (Number.isInteger(eventHandlerStatus?.code)) {
       code = eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500);
     } else {
-      if ( eventHandlerStatus?.success) {
+      if (eventHandlerStatus?.success) {
         code = eventHandlerStatus?.success ? 200 : 500;
       } else {
         code = 500;

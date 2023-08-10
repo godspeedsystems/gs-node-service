@@ -6,7 +6,7 @@ import config from 'config';
 const port = process.env.PORT || 3000;
 const customServerUrl = (config as any).server_url || `http://localhost:${port}`;
 
-const swaggerCommonPart={
+const swaggerCommonPart = {
     "openapi": "3.0.0",
     "info": {
         "version": "0.0.1",

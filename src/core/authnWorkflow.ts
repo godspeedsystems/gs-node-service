@@ -1,15 +1,15 @@
 import { PlainObject } from "./common";
 
 import createAuthRefreshInterceptor from 'axios-auth-refresh';
-import { childLogger } from '../app';
+import { childLogger } from '../logger';
 
-async function refreshToken(ds: PlainObject, ctx: any,  failedRequest?: any) {
+async function refreshToken(ds: PlainObject, ctx: any, failedRequest?: any) {
     const response = await ds.authn(ctx);
 
     if (response.success) {
         let result = response.data;
         childLogger.info('response from authn %o', result);
-        
+
         if (result.headers) {
             for (let header in result.headers) {
                 ds.client.defaults.headers.common[header] = result.headers[header];

@@ -4,12 +4,12 @@
  */
 
 import { PlainObject } from './common';
-import { logger } from './logger';
 import { checkFunctionExists } from './utils';
 import loadYaml from './yamlLoader';
 import { loadJsonSchemaForEvents } from './jsonSchemaValidation';
 import expandVariables from './expandVariables';
 import _ from 'lodash';
+import { logger } from '../logger';
 
 const rewiteRefsToAbsolutePath = (
   events: PlainObject
@@ -93,6 +93,6 @@ export default async function loadEvents(
     );
     process.exit(1);
   }
-  loadJsonSchemaForEvents(evalEvents);
+  await loadJsonSchemaForEvents(evalEvents);
   return evalEvents;
 }

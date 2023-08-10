@@ -2,8 +2,8 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
-import {GSStatus} from '../../../core/interfaces';
-import { childLogger } from '../../../app';
+import { GSStatus } from '../../../core/interfaces';
+import { childLogger } from '../../../logger';
 import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
 import { PlainObject } from '../../../core/common';
 
@@ -11,17 +11,17 @@ const tracer = trace.getTracer('name');
 let datastoreSpan: Span;
 
 /**
- * 
- * @param args 
- * datasource: mongo1, mongo2 
+ *
+ * @param args
+ * datasource: mongo1, mongo2
  * config.method: Prisma methods (user.create, user.findMany)
  * data: arguments specific to the prisma method being invoked
  */
-export default async function(args:{[key:string]:any;}) {
+export default async function (args: { [key: string]: any; }) {
   childLogger.debug('args %o', args.data);
-  
+
   const ds = args.datasource;
-  let prismaMethod: any; let status_message: string; 
+  let prismaMethod: any; let status_message: string;
 
   const [entityType, method] = args.config.method.split('.');
 
@@ -49,23 +49,23 @@ export default async function(args:{[key:string]:any;}) {
       if (!ds.client[entityType]) {
         attributes.status_code = 400;
         status_message = `Invalid entity type "${entityType}" in query`;
-        datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
+        datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message });
         cleanupTraces(attributes);
         return new GSStatus(false, attributes.status_code, undefined, status_message);
       }
       //If not the entity type, the method specified must be wrong.
       attributes.status_code = 500;
       status_message = `Invalid CRUD method "${entityType}" "${method}" called`;
-      datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
+      datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message });
       cleanupTraces(attributes);
       return new GSStatus(false, attributes.status_code, undefined, status_message);
-    }  
+    }
 
-  } catch (err:any) {
+  } catch (err: any) {
     childLogger.error('Caught exception %o', err.stack);
     attributes.status_code = 400;
     status_message = err.message || 'Error in getting prisma method from client!';
-    datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
+    datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message });
     cleanupTraces(attributes);
     return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
   }
@@ -79,7 +79,7 @@ export default async function(args:{[key:string]:any;}) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
     attributes.status_code = 400;
     status_message = err.message || 'Error in query!';
-    datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
+    datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message });
     cleanupTraces(attributes);
     return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
   }
@@ -91,11 +91,11 @@ function cleanupTraces(attributes: PlainObject) {
   datastoreSpan.end();
 }
 
-function responseCode (method: string): number {
+function responseCode(method: string): number {
   return response_codes[method] || 200;
 }
 
-const response_codes: {[key: string]: number} = {
+const response_codes: { [key: string]: number } = {
   find: 200,
   findFirst: 200,
   findUnique: 200,

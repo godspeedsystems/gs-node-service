@@ -6,7 +6,7 @@ import { PlainObject } from './common';
 
 import glob from 'glob';
 import path from 'path';
-import { logger } from './logger';
+import { logger } from '../logger';
 
 export default function loadModules(
   pathString: string,
@@ -17,7 +17,7 @@ export default function loadModules(
 
   return new Promise((resolve, reject) => {
     glob(
-      pathString + '/**/*.?(ts|js)',
+      pathString + '/**/*.?(js)',
       function (err: Error | null, res: string[]) {
         logger.debug('processing files: %s', res);
         if (err) {
@@ -26,20 +26,47 @@ export default function loadModules(
           Promise.all(
             res.map((file: string) => {
               return import(
-                path.relative(__dirname, file).replace(/\.(ts|js)/, '')
+                path.relative(__dirname, file).replace(/\.(js)/, '')
               ).then((module) => {
-                
+
                 if (file.match(/.*?\/plugins\//)) {
-                    const id = file
+                  const id = file
                     .replace(/.*?\/(plugins)\//, '')
                     .replace(/\//g, '_')
-                    .replace(/\.(ts|js)/i, '')
+                    .replace(/\.(js)/i, '')
                     .replace(/\_index$/, '');
 
-                    // Load plugins at global level to provide backward compatibilty
-                    api = { ...api,  ...module };
+                  // Load plugins at global level to provide backward compatibilty
+                  api = { ...api, ...module };
 
-                    // Load plugins with namespace using underscore notation
+                  // Load plugins with namespace using underscore notation
+                  if (id == 'index') {
+                    api = {
+                      ...api,
+                      ...module,
+                    };
+                  } else {
+                    for (let f in module) {
+                      if (f == 'default') {
+                        api[id] = module[f];
+                      } else {
+                        api[id + '_' + f] = module[f];
+                      }
+                    }
+                  }
+                } else {
+                  const id = file
+                    .replace(/.*?\/functions\//, '')
+                    .replace(/\//g, '.')
+                    .replace(/\.(js)/i, '')
+                    .replace(/\.index$/, '');
+
+                  if (global) {
+                    api = {
+                      ...api,
+                      ...module
+                    };
+                  } else {
                     if (id == 'index') {
                       api = {
                         ...api,
@@ -50,41 +77,14 @@ export default function loadModules(
                         if (f == 'default') {
                           api[id] = module[f];
                         } else {
-                          api[id + '_' + f] = module[f];
+                          api[id + '.' + f] = module[f];
                         }
                       }
                     }
-                } else {
-                    const id = file
-                    .replace(/.*?\/functions\//, '')
-                    .replace(/\//g, '.')
-                    .replace(/\.(ts|js)/i, '')
-                    .replace(/\.index$/, '');
-
-                    if (global) {
-                      api = {
-                        ...api,
-                        ...module
-                      };
-                    } else {
-                      if (id == 'index') {
-                        api = {
-                          ...api,
-                          ...module,
-                        };
-                      } else {
-                        for (let f in module) {
-                          if (f == 'default') {
-                            api[id] = module[f];
-                          } else {
-                            api[id + '.' + f] = module[f];
-                          }
-                        }
-                      }
-                    }
+                  }
 
                 }
-                
+
               });
             })
           ).then(() => {

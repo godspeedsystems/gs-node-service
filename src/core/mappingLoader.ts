@@ -8,11 +8,13 @@ import { PlainObject } from './common';
 import iterate_yaml_directories from './configLoader';
 import { compileScript } from './utils';
 import config from 'config';
+import { logger } from '../logger';
+
 
 let mappings: PlainObject;
 
 export default function loadMappings(mappingFolderPath?: string) {
-  console.log('Loading mappings...');
+  logger.info('Loading mappings...');
   if (typeof mappings === 'undefined' && mappingFolderPath) {
     /*
       iterate_yaml_directories return the object after recussively iterating the directory, and keeping it's content
@@ -20,10 +22,10 @@ export default function loadMappings(mappingFolderPath?: string) {
       so we are taking the key, on the base path of mappingFolderPath, that's the actual mapping object
     */
     let _mappings = iterate_yaml_directories(mappingFolderPath)[path.basename(mappingFolderPath)];
-    console.log('Unevaluated mappings: %o', _mappings);
+    logger.info('Unevaluated mappings: %o', _mappings);
     const mappingScript: Function = compileScript(_mappings);
     const evaluatedMappings = mappingScript(config, {}, {}, mappings, {});
-    console.log('Evaluated mappings: %o', evaluatedMappings);
+    logger.info('Evaluated mappings: %o', evaluatedMappings);
     mappings = evaluatedMappings;
     return mappings;
   } else {

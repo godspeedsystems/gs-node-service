@@ -20,10 +20,14 @@
             }
         },
         "params": {
+            "type": "array",
             "$ref": "#/definitions/params"
         },
         "parameters": {
-            "$ref": "#/definitions/parameters"
+            "type": "array",
+            "$ref": "#/definitions/parameters",
+            "minItems": 0,
+            "maxItems": 10
         },
         "responses": {
             "type": "object"

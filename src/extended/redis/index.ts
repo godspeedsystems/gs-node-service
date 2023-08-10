@@ -4,8 +4,8 @@
  */
 import nodeCleanup from 'node-cleanup';
 import { createClient } from 'redis';
-import { PlainObject } from '../core/common';
-import { logger } from '../core/logger';
+import { PlainObject } from '../../core/common';
+import { logger } from '../../logger';
 
 let client;
 

@@ -2,7 +2,7 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
-import { childLogger } from '../../../app';
+import { childLogger } from '../../../logger';
 
 import FormData from 'form-data'; // npm install --save form-data
 import fs from 'fs';
@@ -31,17 +31,17 @@ function getRandomInt(min: number, max: number) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max + 1 - min) + min);
-  }
+}
 
-export default async function(args:{[key:string]:any;}) {
+export default async function (args: { [key: string]: any; }) {
     try {
         childLoggerBindings = childLogger.bindings();
         const ds = args.datasource;
         let res;
         childLogger.info('calling http client with args %o', args);
         childLogger.info('http client baseURL %s', ds.client?.defaults?.baseURL);
-        childLogger.info('http client headers %o', { ...ds.client?.defaults?.headers?.common, ...args?.config?.headers});
-        childLogger.info('http client params %o', { ...ds.client?.defaults?.params, ...args?.params});
+        childLogger.info('http client headers %o', { ...ds.client?.defaults?.headers?.common, ...args?.config?.headers });
+        childLogger.info('http client params %o', { ...ds.client?.defaults?.params, ...args?.params });
 
         if (ds.schema) {
             childLogger.info('invoking with schema');
@@ -55,7 +55,7 @@ export default async function(args:{[key:string]:any;}) {
                 form = new FormData();
 
                 if (Array.isArray(args.files)) {
-                    let files:PlainObject[] = _.flatten(args.files);
+                    let files: PlainObject[] = _.flatten(args.files);
 
                     for (let file of files) {
                         form.append(args.file_key || 'files', fs.createReadStream(file.tempFilePath), {
@@ -73,7 +73,7 @@ export default async function(args:{[key:string]:any;}) {
                                     const response = await axios({
                                         ...singleFile,
                                         responseType: 'stream',
-                                      });
+                                    });
                                     form.append(key, response.data);
                                 } else {
                                     form.append(key || 'files', fs.createReadStream(singleFile.tempFilePath), {
@@ -83,19 +83,19 @@ export default async function(args:{[key:string]:any;}) {
                                     });
                                 }
                             }
-                        } else{
+                        } else {
                             if (file.url) {
                                 const response = await axios({
                                     ...file,
                                     responseType: 'stream',
-                                  });
+                                });
                                 form.append(key, response.data);
                             } else {
                                 form.append(key, fs.createReadStream(file.tempFilePath), {
                                     filename: file.name,
                                     contentType: file.mimetype,
                                     knownLength: file.size
-                                });    
+                                });
                             }
                         }
                     }
@@ -107,7 +107,7 @@ export default async function(args:{[key:string]:any;}) {
                 };
 
                 if (args.data) {
-                    for(let k in args.data) {
+                    for (let k in args.data) {
                         if (args.data[k]) {
                             form.append(k, args.data[k]);
                         }
@@ -120,7 +120,7 @@ export default async function(args:{[key:string]:any;}) {
             if (args.retry) {
                 axiosRetry(ds.client, {
                     retries: args.retry.max_attempts,
-                    retryDelay: function(retryNumber: number, error: AxiosError<any, any>) {
+                    retryDelay: function (retryNumber: number, error: AxiosError<any, any>) {
                         childLogger.debug('called retryDelay function %s', args.retry.type);
                         switch (args.retry.type) {
                             case 'constant':
@@ -132,7 +132,7 @@ export default async function(args:{[key:string]:any;}) {
                                 return getRandomInt(args.retry.min_interval, args.retry.max_interval);
 
                             case 'exponential':
-                                const delay = 2**retryNumber * args.retry.interval;
+                                const delay = 2 ** retryNumber * args.retry.interval;
                                 const randomSum = delay * 0.2 * Math.random(); // 0-20% of the delay
                                 return delay + randomSum;
                         }
@@ -151,7 +151,7 @@ export default async function(args:{[key:string]:any;}) {
             res = await ds.client({
                 ...args.config,
                 params: args.params,
-                data:  form || args.data
+                data: form || args.data
             });
         }
 
@@ -161,11 +161,11 @@ export default async function(args:{[key:string]:any;}) {
         const method = args.config?.method.toUpperCase();
         const status_code = res.status;
         childLogger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
-        southboundCount.inc({route, method, status_code});
+        southboundCount.inc({ route, method, status_code });
 
         childLogger.debug('res: %o', res);
-        return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
-    } catch(ex: any) {
+        return { success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers };
+    } catch (ex: any) {
         HttpMetricsCollector.collect(ex);
         childLogger.setBindings(childLoggerBindings);
         childLogger.error('Caught exception %o', (ex as Error).stack);
@@ -186,8 +186,8 @@ export default async function(args:{[key:string]:any;}) {
         const method = args.config?.method.toUpperCase();
         const status_code = res.status || ex.status;
         childLogger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
-        southboundCount.inc({route, method, status_code});
+        southboundCount.inc({ route, method, status_code });
 
-        return {success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers};
+        return { success: false, code: res.status, data: res.data, message: (ex as Error).message, headers: res.headers };
     }
 }

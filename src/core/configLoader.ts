@@ -5,11 +5,10 @@
 import * as fs from 'fs';
 import * as process from 'process';
 import * as yaml from 'js-yaml';
+import { logger } from '../logger';
 
-import { logger } from "./logger";
-
-function iterate_yaml_directories(current_yaml_root:any) {
-  var recursive_object_state:any = {};
+function iterate_yaml_directories(current_yaml_root: any) {
+  var recursive_object_state: any = {};
 
   // list down all directories and iterate back on child directories
   var files = fs.readdirSync(current_yaml_root);
@@ -25,7 +24,7 @@ function iterate_yaml_directories(current_yaml_root:any) {
     recursive_object_state[current_property] = {};
 
   for (const file of files) {
-    let temp_obj:any;
+    let temp_obj: any;
     if (file.endsWith('.yaml') || file.endsWith('.yml') || file.endsWith('.json')) {
       temp_obj = yaml.load(
         fs.readFileSync(current_yaml_root + '/' + file, { encoding: 'utf-8' })
@@ -39,8 +38,8 @@ function iterate_yaml_directories(current_yaml_root:any) {
           if (file == 'index.yaml' || file == 'index.yml' || file == 'index.json') {
             recursive_object_state[current_property][key] = temp_obj[key];
           } else {
-            const file_name = file.slice(0,-5);
-            if (!recursive_object_state[current_property].hasOwnProperty(file_name)){
+            const file_name = file.slice(0, -5);
+            if (!recursive_object_state[current_property].hasOwnProperty(file_name)) {
               recursive_object_state[current_property][file_name] = {};
             }
 
@@ -73,8 +72,8 @@ function iterate_yaml_directories(current_yaml_root:any) {
 export default iterate_yaml_directories;
 
 if (require.main === module) {
-    var relative_config_root = process.argv.slice(2)[0];
-    var nested_yaml_result = iterate_yaml_directories(relative_config_root);
-    logger.info('yaml object %o',nested_yaml_result); 
-    logger.info('object as string %s',JSON.stringify(nested_yaml_result, null, 2));
+  var relative_config_root = process.argv.slice(2)[0];
+  var nested_yaml_result = iterate_yaml_directories(relative_config_root);
+  logger.info('yaml object %o', nested_yaml_result);
+  logger.info('object as string %s', JSON.stringify(nested_yaml_result, null, 2));
 }

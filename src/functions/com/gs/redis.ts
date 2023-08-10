@@ -4,7 +4,7 @@
 */
 import { PlainObject } from '../../../core/common';
 import { GSStatus } from '../../../core/interfaces';
-import { childLogger } from '../../../app';
+import { childLogger } from '../../../logger';
 
 export default async function (args: PlainObject) {
   const redisClient = args?.datasource?.client;

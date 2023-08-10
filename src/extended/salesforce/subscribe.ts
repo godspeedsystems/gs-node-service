@@ -1,9 +1,8 @@
 import jsforce from 'jsforce';
 
 import config from 'config';
-
-import { logger } from '../core/logger';
-import { GSStatus } from '../core/interfaces';
+import { GSStatus } from '../../core/interfaces';
+import { logger } from '../../logger';
 
 
 async function subscribeSalesforceStream(salesforceApi: any, topicName: any, messageCallback: any): Promise<GSStatus> {

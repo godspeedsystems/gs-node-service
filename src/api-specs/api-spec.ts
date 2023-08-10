@@ -5,7 +5,7 @@
 import loadYaml from '../core/yamlLoader';
 import yaml from 'yaml';
 import { PlainObject } from '../core/common';
-import { logger } from '../core/logger';
+import { logger } from '../logger';
 import fs from 'fs-extra';
 import swaggerCommonPart from './basic-spec';
 
@@ -68,6 +68,7 @@ export default async function generateSchema(
   removeNulls(finalSpec);
   return finalSpec;
 }
+
 async function loadEventsYaml(path: string) {
   try {
     return await loadYaml(path, true);

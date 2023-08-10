@@ -2,17 +2,17 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
-import { childLogger } from '../../../app';
-import {GSStatus} from '../../../core/interfaces';
+import { childLogger } from '../../../logger';
+import { GSStatus } from '../../../core/interfaces';
 import { PlainObject } from "../../../core/common";
 import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
 
 const tracer = trace.getTracer('name');
 let datastoreSpan: Span;
 
-export default async function elasticgraph(args:{[key:string]:any;}) {
-    childLogger.debug('com.gs.elasticgraph args.data: %o',args.data);
-    
+export default async function elasticgraph(args: { [key: string]: any; }) {
+    childLogger.debug('com.gs.elasticgraph args.data: %o', args.data);
+
     const es = args.datasource.client;
     const method = args.config.method;
     const deep = args.config.deep || args.datasource.deep;
@@ -53,9 +53,9 @@ export default async function elasticgraph(args:{[key:string]:any;}) {
             status = res?.statusCode || 200;
             resData = res.body;
         }
-    } catch (err:any) {
+    } catch (err: any) {
         childLogger.error('Caught exception %o', err);
-        datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: err.message});
+        datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: err.message });
         datastoreSpan.setAttribute('status_code', 500);
         datastoreSpan.end();
         return new GSStatus(false, 500, err.message, err);

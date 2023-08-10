@@ -8,12 +8,11 @@ import parseDuration from 'parse-duration';
 import opentelemetry from "@opentelemetry/api";
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
-import { logger } from './logger';
+import { logger, childLogger } from '../logger';
 import { compileScript, isPlainObject } from './utils';  // eslint-disable-line
-import evaluateScript from '../scriptRuntime'; // eslint-disable-line
+import evaluateScript from './scriptRuntime'; // eslint-disable-line
 import { promClient } from '../telemetry/monitoring';
 import authnWorkflow from './authnWorkflow';
-import { childLogger } from '../app';
 import config from 'config';
 
 const tracer = opentelemetry.trace.getTracer(
@@ -116,7 +115,7 @@ export class GSFunction extends Function {
     this.onError = yaml.on_error;
 
     if (this.onError && this.onError.response) {
-      if ( !(this.onError.response instanceof Function) ) {
+      if (!(this.onError.response instanceof Function)) {
         this.onError!.response = compileScript(this.onError.response);
       }
     }
@@ -148,7 +147,7 @@ export class GSFunction extends Function {
       this.logs = this.yaml.logs;
 
       if (this.logs?.before) {
-        if ( !(this.logs.before.attributes instanceof Function) ) {
+        if (!(this.logs.before.attributes instanceof Function)) {
           this.logs.before.attributes.task_id = this.id;
           this.logs.before.attributes.workflow_name = this.workflow_name;
           this.logs.before.attributes = compileScript(this.logs.before.attributes);
@@ -156,11 +155,11 @@ export class GSFunction extends Function {
       }
 
       if (this.logs?.after) {
-        if ( !(this.logs.after.attributes instanceof Function) ) {
+        if (!(this.logs.after.attributes instanceof Function)) {
           this.logs.after.attributes.task_id = this.id;
           this.logs.after.attributes.workflow_name = this.workflow_name;
           this.logs.after.attributes = compileScript(this.logs.after.attributes);
-          }
+        }
       }
     }
 
@@ -170,14 +169,14 @@ export class GSFunction extends Function {
       for (let metric of this.metrics) {
         metric.labels.task_id = this.id;
         metric.labels.workflow_name = this.workflow_name;
-        switch(metric.type) {
+        switch (metric.type) {
           case 'counter':
             metric.obj = new promClient.Counter({
               name: metric.name,
               help: metric.help,
               labelNames: Object.keys(metric.labels || {})
             });
-          break;
+            break;
 
           case 'gauge':
             metric.obj = new promClient.Gauge({
@@ -185,7 +184,7 @@ export class GSFunction extends Function {
               help: metric.help,
               labelNames: Object.keys(metric.labels || {})
             });
-          break;
+            break;
 
           case 'histogram':
             metric.obj = new promClient.Histogram({
@@ -193,7 +192,7 @@ export class GSFunction extends Function {
               help: metric.help,
               labelNames: Object.keys(metric.labels || {})
             });
-          break;
+            break;
 
           case 'summary':
             metric.obj = new promClient.Summary({
@@ -201,15 +200,15 @@ export class GSFunction extends Function {
               help: metric.help,
               labelNames: Object.keys(metric.labels || {})
             });
-          break;
+            break;
 
           default:
-              logger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Invalid metric type %s, it should be one of counter,summary,histogram,gauge', metric.type);
-              process.exit(1);
+            logger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Invalid metric type %s, it should be one of counter,summary,histogram,gauge', metric.type);
+            process.exit(1);
         }
 
         for (let key of Object.keys(metric)) {
-          if (!['type', 'name', 'obj','timer', 'help'].includes(key)) {
+          if (!['type', 'name', 'obj', 'timer', 'help'].includes(key)) {
             metric[key] = compileScript(metric[key]);
           }
         }
@@ -222,11 +221,11 @@ export class GSFunction extends Function {
     }
   }
 
-  async _internalCall(ctx: GSContext, taskValue:any): Promise<GSStatus> {
+  async _internalCall(ctx: GSContext, taskValue: any): Promise<GSStatus> {
     if (this.logs?.before) {
       const log = this.logs.before;
       //@ts-ignore
-      childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue): null, `${log.message} %o`, log.params);
+      childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
     }
 
     const timers = [];
@@ -242,7 +241,7 @@ export class GSFunction extends Function {
     const status = await this._call(ctx, taskValue);
 
     if (this.metrics) {
-      for(let timer of timers) {
+      for (let timer of timers) {
         //@ts-ignore
         timer();
       }
@@ -261,7 +260,7 @@ export class GSFunction extends Function {
     if (this.logs?.after) {
       const log = this.logs.after;
       //@ts-ignore
-      childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue): null, `${log.message} %o`, log.params);
+      childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
     }
 
     return status;
@@ -299,29 +298,29 @@ export class GSFunction extends Function {
     }
   }
 
-  async _executefn(ctx: GSContext, taskValue: any):Promise<GSStatus> {
+  async _executefn(ctx: GSContext, taskValue: any): Promise<GSStatus> {
     let status: GSStatus; //Final status to return
     let args = this.args;
 
     try {
-      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
+      childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
       if (Array.isArray(this.args)) {
         args = [...this.args];
       } else if (_.isPlainObject(this.args)) {
-        args = {...this.args};
+        args = { ...this.args };
       }
 
-      childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Retry logic is %o', this.retry);
-      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
+      childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Retry logic is %o', this.retry);
+      childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (args?.datasource) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
         const datasource: any = ctx.datasources[args.datasource];
         if (datasource instanceof Function) {
           args.datasource = await evaluateScript(ctx, datasource, taskValue);
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'datasource evaluated');
+          childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'datasource evaluated');
         } else {
           args.datasource = datasource;
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'datasource %o', args.datasource);
+          childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'datasource %o', args.datasource);
         }
 
         let ds = args.datasource;
@@ -331,17 +330,17 @@ export class GSFunction extends Function {
         let headers = ds.headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
-          let tempObj: any={};
-          Object.keys({...headers,...args.config.headers}).map(key=>{
-            tempObj[key]=args.config.headers[key]||headers[key];
+          let tempObj: any = {};
+          Object.keys({ ...headers, ...args.config.headers }).map(key => {
+            tempObj[key] = args.config.headers[key] || headers[key];
           });
           Object.assign(args.config.headers, tempObj);
           Object.keys(args.config.headers).forEach(key => args.config.headers[key] === undefined && delete args.config.headers[key]);
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `settings datasource headers: %o`, args.config.headers);
+          childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `settings datasource headers: %o`, args.config.headers);
         }
 
         if (ds.authn && !datasource.authn_response) {
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Executing datasource authn workflow');
+          childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing datasource authn workflow');
           datasource.authn_response = await authnWorkflow(ds, ctx);
         }
 
@@ -360,22 +359,22 @@ export class GSFunction extends Function {
 
       let res;
 
-      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
+      childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (Array.isArray(args)) {
-        res = await this.fn!(...args.concat({childLogger, promClient, tracer}));
+        res = await this.fn!(...args.concat({ childLogger, promClient, tracer }));
       } else {
-        res = await this.fn!(args, {childLogger, promClient, tracer});
+        res = await this.fn!(args, { childLogger, promClient, tracer });
       }
 
-      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `Result of _executeFn ${this.id} %o`, res);
+      childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Result of _executeFn ${this.id} %o`, res);
 
       if (res instanceof GSStatus) {
         status = res;
       } else {
-        if (typeof(res) == 'object' && (res.success !== undefined || res.code !== undefined)) {
+        if (typeof (res) == 'object' && (res.success !== undefined || res.code !== undefined)) {
           //Some framework functions like HTTP return an object in following format. Check if that is the case.
           //All framework functions are expected to set success as boolean variable. Can not be null.
-          let {success, code, data, message, headers, exitWithStatus} = res;
+          let { success, code, data, message, headers, exitWithStatus } = res;
           status = new GSStatus(success, code, message, data, headers);
 
           //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
@@ -395,17 +394,17 @@ export class GSFunction extends Function {
         }
       }
     } catch (err: any) {
-      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error from execution in task id: %s, error: %s',this.id, err);
+      childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error from execution in task id: %s, error: %s', this.id, err);
       status = new GSStatus(
-          false,
-          500,
-          err.message,
-          `Caught error from execution in task id: ${this.id}, error: ${err}`
-        );
+        false,
+        500,
+        err.message,
+        `Caught error from execution in task id: ${this.id}, error: ${err}`
+      );
     }
 
     if (args.datasource?.after_method_hook) {
-      ctx.outputs['current_output'] = status;
+      ctx.outputs.current_output = status;
       await args.datasource.after_method_hook(ctx);
     }
     return status;
@@ -421,12 +420,12 @@ export class GSFunction extends Function {
 
       if (this.onError) {
         ctx.outputs[this.id] = status;
-        if (this.onError.response instanceof Function ) {
+        if (this.onError.response instanceof Function) {
           //The script may need the output of the task so far, for the transformation logic.
           //So set the status in outputs, against this task's id
           const res = await evaluateScript(ctx, this.onError.response, taskValue);
           if (typeof res === 'object' && !(res.success === undefined && res.code === undefined)) { //Meaning the script is returning GS Status compatible response
-            let {success, code, data, message, headers} = res;
+            let { success, code, data, message, headers } = res;
             status = new GSStatus(success, code, message, data, headers);
           } else {
             //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
@@ -444,19 +443,19 @@ export class GSFunction extends Function {
           status = await this.onError.tasks(ctx);
         }
 
-        if(this.onError.log_attributes){
+        if (this.onError.log_attributes) {
           const error: PlainObject = {};
-          const logAttributes: PlainObject = this.onError.log_attributes
-          
-          for(let key in logAttributes){
+          const logAttributes: PlainObject = this.onError.log_attributes;
+
+          for (let key in logAttributes) {
             const script = compileScript(logAttributes[key]);
-            error[key] = await evaluateScript(ctx, script, taskValue)
+            error[key] = await evaluateScript(ctx, script, taskValue);
           }
-          childLogger.setBindings({error})
+          childLogger.setBindings({ error });
         }
-        
+
         if (this.onError.continue === false) {
-          childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'exiting on error %s', this.id);
+          childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'exiting on error %s', this.id);
           ctx.exitWithStatus = status;
         }
       } else {
@@ -476,115 +475,115 @@ export class GSFunction extends Function {
    * @param instruction
    * @param ctx
    */
-   async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
+  async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
 
     let status;
     let caching: PlainObject | null = null;
     let redisClient;
     try {
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
-        let prismaArgs;
-    
-        childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
-        if (this.yaml.authz) {
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'invoking authz workflow, creating new ctx');
-          let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
-    
+      childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
+      let prismaArgs;
+
+      childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
+      if (this.yaml.authz) {
+        childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'invoking authz workflow, creating new ctx');
+        let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
+
+        const newCtx = ctx.cloneWithNewData(args);
+        let allow = await this.yaml.authz(newCtx, taskValue);
+        if (allow.success) {
+          if (allow.data === false) {
+            ctx.exitWithStatus = new GSStatus(false, 403, allow.message || 'Unauthorized');
+            return ctx.exitWithStatus;
+          } else if (isPlainObject(allow.data)) {
+            prismaArgs = allow.data;
+          }
+        }
+      }
+
+      if (this.caching) {
+        caching = await evaluateScript(ctx, this.caching, taskValue);
+
+        // @ts-ignore
+        redisClient = global.datasources[(config as any).caching].client;
+        if (caching?.invalidate) {
+          childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'invalidating cache for %s', caching?.invalidate);
+          await redisClient.del(caching.invalidate);
+        }
+
+        if (!caching?.force) {
+          // check in cache and return
+          status = await redisClient.get(caching?.key);
+          if (status) {
+            childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'reading result from cache');
+            status = JSON.parse(status);
+            ctx.outputs[this.id] = status;
+            return status;
+          }
+        }
+      }
+
+      let args = this.args;
+      if (this.args_script) {
+        args = await evaluateScript(ctx, this.args_script, taskValue);
+        if (args == 'Error in parsing script') {
+          throw ctx.exitWithStatus;
+        }
+      }
+      childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
+
+      if (prismaArgs) {
+        args.data = _.merge(args.data, prismaArgs);
+        childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'merged args with authz args.data: %o', args);
+      }
+
+      childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
+      if (this.fnScript) {
+        childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
+        let s: string = await evaluateScript(ctx, this.fnScript, taskValue);
+        childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
+        this.fn = this.nativeFunctions?.[s];
+
+        if (!this.fn) {
+          this.fn = this.workflows?.[s];
+          this.isSubWorkflow = true;
+        }
+
+        childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `invoking dynamic fn: ${s}`);
+      }
+
+      if (this.fn instanceof GSFunction) {
+        if (this.isSubWorkflow) {
+          childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'isSubWorkflow, creating new ctx');
+
+          childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
           const newCtx = ctx.cloneWithNewData(args);
-          let allow = await this.yaml.authz(newCtx, taskValue);
-          if (allow.success) {
-            if (allow.data === false) {
-              ctx.exitWithStatus = new GSStatus(false, 403,  allow.message || 'Unauthorized');
-              return ctx.exitWithStatus;
-            } else if (isPlainObject(allow.data)) {
-              prismaArgs = allow.data;
-            }
-          }
+          childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
+          status = await this.fn(newCtx, taskValue);
+        } else {
+          childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'No isSubWorkflow, continuing in the same ctx');
+          status = await this.fn(ctx, taskValue);
         }
-
-        if (this.caching) {
-          caching = await evaluateScript(ctx, this.caching, taskValue);
-    
-          // @ts-ignore
-          redisClient = global.datasources[(config as any).caching].client;
-          if (caching?.invalidate) {
-            childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'invalidating cache for %s', caching?.invalidate);
-            await redisClient.del(caching.invalidate);
-          }
-    
-          if (!caching?.force) {
-            // check in cache and return
-            status = await redisClient.get(caching?.key);
-            if (status) {
-              childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'reading result from cache');
-              status = JSON.parse(status);
-              ctx.outputs[this.id] = status;
-              return status;
-            }
-          }
-        }        
-
-        let args = this.args;
-        if (this.args_script) {
-          args = await evaluateScript(ctx, this.args_script, taskValue);
-          if (args == 'Error in parsing script') {
-            throw ctx.exitWithStatus;
-          }
-        }
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
-    
-        if (prismaArgs) {
-          args.data = _.merge(args.data, prismaArgs);
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'merged args with authz args.data: %o', args);
-        }
-    
-        childLogger.setBindings({ 'workflow_name': '','task_id': ''});
-        if (this.fnScript) {
-          childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
-          let s: string = await evaluateScript(ctx, this.fnScript, taskValue);
-          childLogger.setBindings({ 'workflow_name': '','task_id': ''});
-          this.fn = this.nativeFunctions?.[s];
-    
-          if (!this.fn) {
-            this.fn = this.workflows?.[s];
-            this.isSubWorkflow = true;
-          }
-    
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `invoking dynamic fn: ${s}`);
-        }
-    
-        if (this.fn instanceof GSFunction) {
-          if (this.isSubWorkflow) {
-            childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isSubWorkflow, creating new ctx');
-    
-            childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
-            const newCtx = ctx.cloneWithNewData(args);
-            childLogger.setBindings({ 'workflow_name': '','task_id': ''});
-            status = await this.fn(newCtx, taskValue);
-          } else {
-            childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'No isSubWorkflow, continuing in the same ctx');
-            status = await this.fn(ctx, taskValue);
-          }
-        }
-        else {
-          this.args = args;
-          status = await this._executefn(ctx, taskValue);
-        }
-    }  catch (err: any) {
-      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o',this.id, err);
+      }
+      else {
+        this.args = args;
+        status = await this._executefn(ctx, taskValue);
+      }
+    } catch (err: any) {
+      childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o', this.id, err);
       status = new GSStatus(
-          false,
-          500,
-          err.message,
-          `Caught error from execution in task id ${this.id}`
-        );
+        false,
+        500,
+        err.message,
+        `Caught error from execution in task id ${this.id}`
+      );
     }
 
     status = await this.handleError(ctx, status, taskValue);
     if (caching && caching.key) {
       if (status?.success || caching.cache_on_failure) {
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Store result in cache');
-        await redisClient.set(caching.key, JSON.stringify(status), {EX: caching.expires});
+        childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Store result in cache');
+        await redisClient.set(caching.key, JSON.stringify(status), { EX: caching.expires });
       }
     }
 
@@ -595,14 +594,14 @@ export class GSFunction extends Function {
 export class GSSeriesFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
     let ret;
 
     for (const child of this.args!) {
       ret = await child(ctx, taskValue);
       if (ctx.exitWithStatus) {
         if (child.yaml.isEachParallel) {
-          childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
+          childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
           ctx.outputs[this.id] = ret;
           return ret;
         } else {
@@ -611,8 +610,8 @@ export class GSSeriesFunction extends GSFunction {
         }
       }
     }
-    childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
+    childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
     return ret;
   }
@@ -621,7 +620,7 @@ export class GSSeriesFunction extends GSFunction {
 export class GSDynamicFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, `GSDynamicFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `GSDynamicFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
     let ret;
 
     for (const child of this.args!) {
@@ -631,9 +630,9 @@ export class GSDynamicFunction extends GSFunction {
         return ctx.exitWithStatus;
       }
     }
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'this.id: %s, output: %s', this.id, ret.data);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'this.id: %s, output: %s', this.id, ret.data);
 
-    if (ret.success && typeof(ret.data) === 'string') {
+    if (ret.success && typeof (ret.data) === 'string') {
       ctx.outputs[this.id] = await this.workflows![ret.data](ctx, taskValue);
     } else {
       return this.handleError(ctx, ret, taskValue);
@@ -645,7 +644,7 @@ export class GSDynamicFunction extends GSFunction {
 export class GSParallelFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, `GSParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `GSParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
     const promises = [];
 
@@ -655,7 +654,7 @@ export class GSParallelFunction extends GSFunction {
 
     await Promise.all(promises);
 
-    const outputs:any[] = [];
+    const outputs: any[] = [];
     const status = new GSStatus(true, 200, '', outputs);
     let output;
 
@@ -674,24 +673,24 @@ export class GSParallelFunction extends GSFunction {
 export class GSSwitchFunction extends GSFunction {
   condition_script?: Function;
 
-  constructor(yaml: PlainObject, workflows: PlainObject,  nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
     super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
     const [condition, cases] = this.args!;
-    if (typeof(condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
+    if (typeof (condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
       this.condition_script = compileScript(condition);
     }
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'GSSwitchFunction');
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'inside switch executor: %o',this.args);
+    childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'GSSwitchFunction');
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'inside switch executor: %o', this.args);
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, cases] = this.args!;
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'condition: %s' , value);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'condition: %s', value);
     if (this.condition_script) {
-      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
+      childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       value = await evaluateScript(ctx, this.condition_script, taskValue);
-      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
+      childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
     }
     if (cases[value]) {
       await cases[value](ctx, taskValue);
@@ -701,7 +700,7 @@ export class GSSwitchFunction extends GSFunction {
       if (cases.default) {
         await cases.default(ctx, taskValue);
         ctx.outputs[this.id] = ctx.outputs[cases.default.id];
-      } else{
+      } else {
         //error
         ctx.outputs[this.id] = new GSStatus(false, undefined, `case ${value} is missing and no default found in switch`);
       }
@@ -718,10 +717,10 @@ export class GSIFFunction extends GSFunction {
 
   else_fn?: GSFunction;
 
-  constructor(yaml: PlainObject, workflows: PlainObject,  nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
     super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
     const [condition, task, else_fn] = this.args!;
-    if (typeof(condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
+    if (typeof (condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
       this.condition_script = compileScript(condition);
     }
 
@@ -730,15 +729,15 @@ export class GSIFFunction extends GSFunction {
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'GSIFFunction');
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'inside GSIFFunction executor: %o',this.args);
+    childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'GSIFFunction');
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'inside GSIFFunction executor: %o', this.args);
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, task] = this.args!;
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'condition: %s' , value);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'condition: %s', value);
     if (this.condition_script) {
-      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
+      childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       value = await evaluateScript(ctx, this.condition_script, taskValue);
-      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
+      childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
     }
 
     if (value) {
@@ -759,23 +758,23 @@ export class GSIFFunction extends GSFunction {
 export class GSEachParallelFunction extends GSFunction {
   value_script?: Function;
 
-  constructor(yaml: PlainObject, workflows: PlainObject,  nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
     super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow,);
     const [value, cases] = this.args!;
-    if (typeof(value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
+    if (typeof (value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
       this.value_script = compileScript(value);
     }
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, `GSEachParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `GSEachParallelFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
     let [value, task] = this.args!;
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'value: %o' , value);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'value: %o', value);
     if (this.value_script) {
-      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
+      childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       value = await evaluateScript(ctx, this.value_script, taskValue);
-      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
+      childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
     }
 
     let i = 0;
@@ -785,7 +784,7 @@ export class GSEachParallelFunction extends GSFunction {
     }
 
     const promises = [];
-    let outputs:any[] = [];
+    let outputs: any[] = [];
     let status: GSStatus;
     let failedTasksCount = 0;
 
@@ -796,7 +795,7 @@ export class GSEachParallelFunction extends GSFunction {
     status = new GSStatus(true, 200, '', outputs);
 
     for (const output of outputs) {
-      if (! output.success) {
+      if (!output.success) {
         failedTasksCount++;
       }
     }
@@ -818,21 +817,21 @@ export class GSEachParallelFunction extends GSFunction {
 export class GSEachSeriesFunction extends GSFunction {
   value_script?: Function;
 
-  constructor(yaml: PlainObject, workflows: PlainObject,  nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
     super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
     const [value, cases] = this.args!;
-    if (typeof(value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
+    if (typeof (value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
       this.value_script = compileScript(value);
     }
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
     let [value, task] = this.args!;
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'value: %o' , value);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'value: %o', value);
     if (this.value_script) {
-      childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
+      childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       value = await evaluateScript(ctx, this.value_script, taskValue);
-      childLogger.setBindings({ 'workflow_name': '','task_id': ''});
+      childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
     }
 
     if (!Array.isArray(value)) {
@@ -840,9 +839,9 @@ export class GSEachSeriesFunction extends GSFunction {
       return ctx.outputs[this.id];
     }
 
-    childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, `GSEachSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `GSEachSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
 
-    const outputs:any[] = [];
+    const outputs: any[] = [];
     const status = new GSStatus(true, 200, '', outputs);
     let taskRes: any;
     let failedTasksCount = 0;
@@ -850,7 +849,7 @@ export class GSEachSeriesFunction extends GSFunction {
     for (const val of value) {
       taskRes = await task(ctx, val);
 
-      if(! taskRes.success) {
+      if (!taskRes.success) {
         failedTasksCount++;
       }
 
@@ -865,7 +864,7 @@ export class GSEachSeriesFunction extends GSFunction {
     delete ctx.exitWithStatus; // exitWithStatus is removed from ctx so that other tasks (outside each_sequential loop) can be continued.
     ctx.outputs[this.id] = status;
 
-     // if the all the tasks get failed then check on_error at each_sequential loop level
+    // if the all the tasks get failed then check on_error at each_sequential loop level
     if (failedTasksCount == value.length && value.length > 0) {
       status.success = false;
       status.code = 500;
@@ -888,9 +887,9 @@ export class GSStatus {
 
   data?: any;
 
-  headers?: {[key:string]: any;};
+  headers?: { [key: string]: any; };
 
-  constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: {[key:string]: any;}) {
+  constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: { [key: string]: any; }) {
     this.message = message;
     this.code = code;
     this.success = success;
@@ -942,7 +941,7 @@ export class GSCloudEvent {
     this.specversion = specversion;
   }
 
-  public cloneWithNewData(data:PlainObject): GSCloudEvent {
+  public cloneWithNewData(data: PlainObject): GSCloudEvent {
     return new GSCloudEvent(
       this.id,
       this.type,
@@ -962,7 +961,7 @@ export class GSCloudEvent {
 export class GSContext { //span executions
   inputs: GSCloudEvent; //The very original event for which this workflow context was created
 
-  outputs:{[key: string]: GSStatus; }; //DAG result. This context has a trace history and responses of all instructions in the DAG are stored in this object
+  outputs: { [key: string]: GSStatus; }; //DAG result. This context has a trace history and responses of all instructions in the DAG are stored in this object
 
   log_events: GSLogEvent[] = [];
 
@@ -989,11 +988,11 @@ export class GSContext { //span executions
 
   public cloneWithNewData(data: PlainObject): GSContext {
     return new GSContext(
-        this.config,
-        this.datasources,
-        this.inputs?.cloneWithNewData(data),
-        this.mappings,
-        this.plugins
+      this.config,
+      this.datasources,
+      this.inputs?.cloneWithNewData(data),
+      this.mappings,
+      this.plugins
     );
   }
 
@@ -1048,7 +1047,7 @@ export class GSActor {
  *
  * Final ResponseStructure
  */
- export interface GSResponse {
+export interface GSResponse {
   apiVersion?: string;
   context?: string;
   id?: string;
@@ -1088,7 +1087,7 @@ export class GSActor {
       location?: string;
       locationType?: string;
       extendedHelp?: string;
-      sendReport?:string;
+      sendReport?: string;
     }[];
   };
 }

@@ -1,9 +1,8 @@
 import jsforce from 'jsforce';
 import subscribeSalesforceStream from "./subscribe";
-
-import { logger } from '../core/logger';
-import { GSActor, GSCloudEvent } from '../core/interfaces';
+import { GSActor, GSCloudEvent } from '../../core/interfaces';
 import config from 'config';
+import { logger } from '../../logger';
 
 const salesforceCacheTTL = 86400; // 24-hours
 

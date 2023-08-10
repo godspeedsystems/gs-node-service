@@ -31,7 +31,8 @@ for (const redactAttr of configRedact) {
 const logger: Pino.Logger = Pino({
   level: (config as any).log_level || 'debug',
   transport: {
-    target: '../pino/pino-opentelemetry-transport',
+    // target: '../pino/pino-opentelemetry-transport',
+    target: "pino-pretty",
     options: {
       destination: 1,
       Resource: {
@@ -46,13 +47,13 @@ const logger: Pino.Logger = Pino({
   }
 });
 
-pinoDebug(logger,
-  {
-    auto: true, // default
-    map: {
-      'express:router': 'debug',
-      '*': 'trace' // everything else - trace
-    }
-  });
+// pinoDebug(logger,
+//   {
+//     auto: true, // default
+//     map: {
+//       'express:router': 'debug',
+//       '*': 'trace' // everything else - trace
+//     }
+//   });
 
 export { logger };

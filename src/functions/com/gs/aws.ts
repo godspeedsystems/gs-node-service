@@ -3,7 +3,7 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import { GSStatus } from '../../../core/interfaces';
-import { childLogger } from '../../../app';
+import { childLogger } from '../../../logger';
 
 export default async function (args: any) {
   const awsClient = args?.datasource?.client;

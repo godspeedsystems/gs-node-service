@@ -1,7 +1,19 @@
+import pino from 'pino';
 import { logger } from './logger';
-import { childLogger } from './childLogger';
+
+let childLogger: pino.Logger;
+
+const initilizeChildLogger = (options: pino.LoggerOptions) => {
+  if (childLogger) {
+    return childLogger;
+  }
+
+  childLogger = logger.child(options);
+  return childLogger;
+};
 
 export {
   logger,
-  childLogger
+  childLogger,
+  initilizeChildLogger
 };
