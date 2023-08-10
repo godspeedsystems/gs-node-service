@@ -186,27 +186,28 @@ function subscribeToEvents(
       cron(route, processEvent);
     } else {
       // for kafka event source like {topic}.kafka1.{groupid}
+      // for rabbitmq event source like {queue}.rabbitmq1
       // here we are assuming that various event sources for kafka are defined in the above format.
-      let [topic, kafkaDatasource, groupId] = route.split('.', 3);
+      let [topic, datasource] = route.split('.', 2);
 
-      // find the client corresponding to kafkaDatasource from the datasources
-      if (kafkaDatasource in datasources) {
+      // find the client corresponding to datasource from the datasources
+      if (datasource in datasources) {
         try {
-          const evaluatedDatasources = datasources[kafkaDatasource](
+          const evaluatedDatasources = datasources[datasource](
             config,
             {},
             {},
             mappings
           );
           logger.debug('evaluatedDatasources: %o', evaluatedDatasources);
-          const kafkaClient = evaluatedDatasources.client;
+          const client = evaluatedDatasources.client;
           logger.info(
-            'registering %s handler, topic %s, groupId %s',
+            'registering %s handler, topic %s',
             route,
             topic,
-            groupId
           );
-          kafkaClient.subscribe(topic, groupId, kafkaDatasource, processEvent);
+
+          client.subscribe(route, datasource, processEvent);
         } catch (err: any) {
           logger.error(
             'Caught error in registering handler: %s, error: %o',
@@ -218,7 +219,7 @@ function subscribeToEvents(
       } else {
         logger.error(
           'Client not found for %s in datasources. Exiting.',
-          kafkaDatasource
+          datasource
         );
         process.exit(1);
       }
@@ -251,14 +252,14 @@ async function main() {
 
   await loadAndRegisterDefinitions(PROJECT_ROOT_DIRECTORY + '/definitions');
   mappings = loadMappings();
-  
+
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
 
   // @ts-ignore
   global.datasources = _.clone(datasources);
-  
+
   const loadFnStatus = await loadFunctions(
     datasources,
     PROJECT_ROOT_DIRECTORY + '/functions'
@@ -315,7 +316,7 @@ async function main() {
     
     // overriding common log_attributes
     for (const key in overrideEventLogAttributres) {
-      if(overrideEventLogAttributres[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.)/)){
+      if(typeof overrideEventLogAttributres[key] === "string" && overrideEventLogAttributres[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.)/)){
         // eslint-disable-next-line no-template-curly-in-string
         const obj = Function('event','filter','return eval(`event.data.${filter}`)')(event,overrideEventLogAttributres[key]);
         childLogAttributes[key] = obj;

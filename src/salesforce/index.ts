@@ -58,7 +58,7 @@ async function init(datasource: any) {
         try {
             await conn.login(datasource.username, datasource.password);
         } catch (ex: any) {
-            logger.error('Unable to login to Sales Force', ex.stack);
+            logger.error('Unable to login to Sales Force %s', ex.stack);
         }
     }
 

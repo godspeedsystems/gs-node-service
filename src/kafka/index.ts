@@ -42,7 +42,7 @@ const pinoLogCreator = (logLevel: any) => ({ namespace, level, label, log }: { n
   if (pinoLevel.includes(logPinoLevel) ) {
     logger[logPinoLevel]({
       ...log
-    });          
+    });
   } else {
     logger.info({
       ...log
@@ -99,8 +99,8 @@ export default class KafkaMessageBus {
         return this.consumers[groupId];
     }
 
-    async subscribe(topic: string, groupId: string, datasourceName: string,  processEvent:(event: GSCloudEvent)=>Promise<any>) {
-
+    async subscribe(topic: string, route: string, datasourceName: string,  processEvent:(event: GSCloudEvent)=>Promise<any>) {
+        let [_, ds, groupId]= route.split("/");
         try {
           if (this.subscribers[topic]) {
             logger.info('kafka consumer already setup and running...');
@@ -118,12 +118,13 @@ export default class KafkaMessageBus {
                   const timer = kafkaDuration.startTimer(labels);
 
                   let data: PlainObject;
-                  let msgValue; let status ;
-                  try{
+                  let msgValue;
+                  let status ;
+                  try {
                     msgValue = message?.value?.toString();
-                    data =  { 
-                        "body": JSON.parse(msgValue || '') 
-                      };
+                    data =  {
+                      "body": JSON.parse(msgValue || '')
+                    };
                   } catch(ex) {
                     status = 500;
                     kafkaCount.inc({topic, partition, status});
