@@ -3,7 +3,7 @@
  * © 2022 Mindgrep Technologies Pvt Ltd
  */
 import nodeCleanup from 'node-cleanup';
-import createClient  from 'redis';
+import { createClient }  from 'redis';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 
