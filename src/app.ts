@@ -329,7 +329,7 @@ async function main() {
     childLogger = logger.child(childLogAttributes);
 
     childLogger.info('Processing event %s', event.type);
-    childLogger.info('event inputs %o', event.data);
+    childLogger.info('event inputs %o', _.cloneDeep(event.data));
     childLogger.debug('event spec: %o', events[event.type]);
     const responseStructure: GSResponse = {
       apiVersion: (config as any).api_version || '1.0',
@@ -486,9 +486,9 @@ async function main() {
     }
 
     if (code < 400) {
-      childLogger.info('return value %o %o %o', data, code, headers);
+      childLogger.info('return value %o %o %o', _.cloneDeep(data), code, headers);
     } else {
-      childLogger.error('return value %o %o %o', data, code, headers);
+      childLogger.error('return value %o %o %o', _.cloneDeep(data), code, headers);
     }
 
     (event.metadata?.http?.express.res as express.Response)
