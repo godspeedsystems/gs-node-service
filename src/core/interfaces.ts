@@ -304,7 +304,7 @@ export class GSFunction extends Function {
     let args = this.args;
 
     try {
-      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
+      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Executing handler %s %o', this.id, _.cloneDeep(this.args));
       if (Array.isArray(this.args)) {
         args = [...this.args];
       } else if (_.isPlainObject(this.args)) {
@@ -368,7 +368,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args, {childLogger, promClient, tracer});
       }
 
-      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `Result of _executeFn ${this.id} %o`, res);
+      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `Result of _executeFn ${this.id} %o`, _.cloneDeep(res));
 
       if (res instanceof GSStatus) {
         status = res;
@@ -407,7 +407,9 @@ export class GSFunction extends Function {
 
     if (args.datasource?.after_method_hook) {
       ctx.outputs['current_output'] = status;
-      ctx.config['context'] = args;
+      if(!ctx.config.context){
+        ctx.config['context'] = args;
+      }
       await args.datasource.after_method_hook(ctx);
     }
     return status;
@@ -484,7 +486,7 @@ export class GSFunction extends Function {
     let caching: PlainObject | null = null;
     let redisClient;
     try {
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
+        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, '_call invoked with task value %s %o', this.id, _.cloneDeep(taskValue));
         let prismaArgs;
     
         childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
@@ -533,11 +535,11 @@ export class GSFunction extends Function {
             throw ctx.exitWithStatus;
           }
         }
-        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
+        childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'args after evaluation: %s %o', this.id, _.cloneDeep(args));
     
         if (prismaArgs) {
           args.data = _.merge(args.data, prismaArgs);
-          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'merged args with authz args.data: %o', args);
+          childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'merged args with authz args.data: %o', _.cloneDeep(args));
         }
     
         childLogger.setBindings({ 'workflow_name': '','task_id': ''});
