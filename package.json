@@ -1,8 +1,8 @@
 {
-  "name": "godspeed",
-  "version": "1.0.15",
+  "name": "godspeed-node",
+  "version": "2.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/godspeed.js",
   "scripts": {
     "semantic-release": "semantic-release",
     "start": "cd dist && node -r ./telemetry/tracing.js app.js;",

@@ -74,32 +74,32 @@ class Godspeed {
 
   public initilize() {
     this._loadDefinitions()
-      // .then(async () => {
-      //   await this._loadMappings();
-      // })
-      // .then(async () => {
-      //   await this._loadDatasources();
-      // })
-      // .then(async () => {
-      //   await this._loadFunctions();
-      // })
-      // .then(async () => {
-      //   await this._loadEvents();
-      // })
-      // .then(async () => {
-      //   // setting up the express server
-      //   const app = express();
-      //   const preparedApp = await prepareRouter(app, this.instance.datasources, this.instance.events, this.instance.definitions);
-      //   this.instance.app = app;
-      //   const PORT = 3001;
-      //   // start ther server
-      //   this.instance.app.listen(PORT, () => {
-      //     console.log(`Your Godspeed server is running on ${PORT}`);
-      //   });
-      // })
-      // .then(async () => {
-      //   await this._subscribeToEvent();
-      // })
+      .then(async () => {
+        await this._loadMappings();
+      })
+      .then(async () => {
+        await this._loadDatasources();
+      })
+      .then(async () => {
+        await this._loadFunctions();
+      })
+      .then(async () => {
+        await this._loadEvents();
+      })
+      .then(async () => {
+        // setting up the express server
+        const app = express();
+        const preparedApp = await prepareRouter(app, this.instance.datasources, this.instance.events, this.instance.definitions);
+        this.instance.app = app;
+        const PORT = 3001;
+        // start ther server
+        this.instance.app.listen(PORT, () => {
+          console.log(`Your Godspeed server is running on ${PORT}`);
+        });
+      })
+      .then(async () => {
+        await this._subscribeToEvent();
+      })
       .catch((error) => {
         console.log(error);
       });
