@@ -346,7 +346,7 @@ export class GSFunction extends Function {
         }
 
         if (ds.before_method_hook) {
-          ctx.config['context'] = args;
+          ctx.config = { ...ctx.config, context: args};
           await ds.before_method_hook(ctx);
         }
       }
@@ -408,7 +408,7 @@ export class GSFunction extends Function {
     if (args.datasource?.after_method_hook) {
       ctx.outputs['current_output'] = status;
       if(!ctx.config.context){
-        ctx.config['context'] = args;
+        ctx.config = { ...ctx.config, context: args};
       }
       await args.datasource.after_method_hook(ctx);
     }
