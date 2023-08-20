@@ -313,6 +313,7 @@ export class GSFunction extends Function {
       childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Retry logic is %o', this.retry);
       childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (args?.datasource) {
+        logger.info('>>>>>>>>>>', taskValue);
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
         const datasource: any = ctx.datasources[args.datasource];
         if (datasource instanceof Function) {

@@ -3,14 +3,14 @@ import ajvInstance from './validation';
 import { logger } from '../logger';
 
 const loadAndRegisterDefinitions = async (pathString: string) => {
-  logger.info('Loading definitions...');
-  const definitions = await loadYaml(pathString, false);
+  const definitions = loadYaml(pathString, false);
   logger.debug('Definitions: %o', definitions);
   ajvInstance.addSchema({
     $id: 'https://godspeed.systems/definitions.json',
     definitions,
   });
-  logger.info('Definitions loaded and registered to ajvInstance');
+  logger.debug('Definitions loaded and registered to ajvInstance');
+  return definitions;
 };
 
 export { loadAndRegisterDefinitions };

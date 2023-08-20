@@ -56,7 +56,7 @@
     "express-pino-logger": "^7.0.0",
     "fast-redact": "^3.2.0",
     "form-data": "^4.0.0",
-    "glob": "^8.0.1",
+    "glob": "^8.1.0",
     "js-yaml": "^4.1.0",
     "jsforce": "^1.11.0",
     "jsonata": "^2.0.3",

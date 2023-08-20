@@ -248,7 +248,7 @@ async function loadPrismaClient(pathString: string): Promise<PlainObject> {
   );
   return {
     client: prisma,
-    //any other config params
+    // any other config params
   };
 }
 

@@ -80,11 +80,13 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
       logger.debug('checking nested tasks');
       const status: GSStatus = checkDatasource(task, datasources);
     } else {
-      if (task.args?.datasource) {
-        if (!(task.args.datasource in datasources) && !task.args.datasource.match(/<(.*?)%.+%>/)) {
+      if (task.fn.includes('datasource.')) {
+        const dsName = task.fn.split('.')[1];
+
+        if (!(dsName in datasources) && !task.args.datasource.match(/<(.*?)%.+%>/)) {
           //The datasource is neither present in listed datasources and nor is a dynamically evaluated expression, then it is an error
-          logger.error('datasource %s is not present in datasources', task.args.datasource);
-          const msg = `datasource ${task.args.datasource} is not present in datasources`;
+          logger.error('datasource %s is not present in datasources', dsName);
+          const msg = `datasource ${dsName} is not present in datasources`;
           return new GSStatus(false, 500, msg);
         }
       }
@@ -217,7 +219,7 @@ export function compileScript(args: any) {
           if (out[k] instanceof Function) {
             returnObj.push(out[k](config, inputs, outputs, mappings, task_value));
           } else {
-            returnObj.push(out[k])
+            returnObj.push(out[k]);
           }
         }
         return returnObj;

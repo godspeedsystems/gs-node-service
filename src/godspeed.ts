@@ -3,14 +3,14 @@ import { cwd } from 'process';
 import express from 'express';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import loadMappings from './core/mappingLoader';
-import loadDatasources from './core/datasourceLoader';
+import loadDatasources from './core/_datasourceLoader';
 import { loadFunctions } from './core/functionLoader';
 import loadEvents from './core/eventLoader';
 import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatus } from './core/interfaces';
 import _ from 'lodash';
 import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
 import { prepareRouter } from './router/index';
-import { childLogger, initilizeChildLogger } from './logger';
+import { childLogger, initilizeChildLogger, logger } from './logger';
 
 export interface PlainObject {
   [key: string]: any
@@ -38,7 +38,6 @@ class Godspeed {
   };
 
   constructor(params = {} as GodspeedParams) {
-
     // let's assume we a re getting the current directory, where module is imported
     const currentDir = cwd();
 
@@ -73,63 +72,92 @@ class Godspeed {
   }
 
   public initilize() {
-    this._loadDefinitions()
-      .then(async () => {
-        await this._loadMappings();
+    this._loadMappings()
+      .then((mappings) => {
+        this.instance.mappings = mappings;
       })
       .then(async () => {
-        await this._loadDatasources();
+        let definitions = await this._loadDefinitions();
+        this.instance.definitions = definitions;
       })
       .then(async () => {
-        await this._loadFunctions();
+        let datasources = await this._new_loadDatasources();
+        this.instance.datasources = datasources;
       })
       .then(async () => {
-        await this._loadEvents();
+        let functions = await this._loadFunctions();
+        this.instance.functions = functions;
+      })
+      .then(async () => {
+        let events = await this._loadEvents();
+        this.instance.events = events;
       })
       .then(async () => {
         // setting up the express server
         const app = express();
-        const preparedApp = await prepareRouter(app, this.instance.datasources, this.instance.events, this.instance.definitions);
+        await prepareRouter(app, this.instance.datasources, this.instance.events, this.instance.definitions);
         this.instance.app = app;
-        const PORT = 3001;
-        // start ther server
-        this.instance.app.listen(PORT, () => {
-          console.log(`Your Godspeed server is running on ${PORT}`);
-        });
       })
       .then(async () => {
         await this._subscribeToEvent();
+
+        // finally start ther server
+        const PORT = 3000;
+        // // start ther server
+        this.instance.app.listen(PORT, () => {
+          logger.info(`Your Godspeed server is running on ${PORT}`);
+        });
       })
       .catch((error) => {
-        console.log(error);
+        logger.error(error);
       });
   }
 
   private async _loadEvents(): Promise<void> {
+    logger.info('[START] Load Events');
+    logger.error(this.instance.functions);
     let events = await loadEvents(this.instance.functions, this.folderPaths.events);
-    this.instance.events = events;
+    logger.info('Events %o', events);
+    logger.info('[END] Load Events');
+    return events;
   };
 
-  private async _loadMappings(): Promise<void> {
-    await loadMappings(this.folderPaths.mappings);
+  private async _loadMappings(): Promise<PlainObject> {
+    logger.info('[START] Load mappings from %s', this.folderPaths.mappings);
+    const mappings = await loadMappings(this.folderPaths.mappings);
+    logger.info('Mappings %o', mappings);
+    logger.info('[END] Load mappings');
+    return mappings;
   }
 
-  private async _loadDefinitions(): Promise<void> {
-    await loadAndRegisterDefinitions(this.folderPaths.definitions);
+  private async _loadDefinitions(): Promise<PlainObject> {
+    logger.info('[START] Load definitions from %s', this.folderPaths.definitions);
+    const definitions = await loadAndRegisterDefinitions(this.folderPaths.definitions);
+    logger.info('Definitions %o', definitions);
+    logger.info('[END] Load definitions');
+    return definitions;
   }
 
   private async _loadFunctions(): Promise<void> {
-    // so the loadFunctions is divided in two parts
-    // first we will load the internal functions
-    // and then we load the user defined functions.
+    logger.info('[START] Load functions from %s', this.folderPaths.workflows);
     const loadFnStatus = await loadFunctions(this.instance.datasources, this.folderPaths.workflows);
+    logger.info('Functions %o', Object.keys(loadFnStatus.functions));
+
     if (loadFnStatus.success) {
-      this.instance.functions = loadFnStatus.functions;
-      console.log('functions %o', Object.keys(this.instance.functions));
+      logger.info('[END] Load Functions');
+      return loadFnStatus.functions;
     } else {
-      console.error('Error loading functions');
+      logger.error('[ERROR] Load Functions');
     }
   }
+
+  private async _new_loadDatasources(): Promise<PlainObject> {
+    logger.info('[START] Load Datasources from %s', this.folderPaths.datasources);
+    let datasources = await loadDatasources(this.folderPaths.datasources);
+    logger.info('Datasources %o', datasources);
+    logger.info('[END] Load Datasources');
+    return datasources;
+  };
 
   private async _loadDatasources(): Promise<void> {
     let datasources = await loadDatasources(this.folderPaths.datasources);
@@ -171,7 +199,6 @@ class Godspeed {
 
           [route, method] = route.split('.http.');
           route = route.replace(/{(.*?)}/g, ':$1');
-
           let _this = this;
           this.instance.app[method](
             route,
@@ -216,6 +243,7 @@ class Godspeed {
   }
 
   private async processEvent(event: GSCloudEvent): Promise<any> {
+    // TODO: improve child logger initilization
     // initilize child logger
     initilizeChildLogger({});
 
@@ -265,6 +293,7 @@ class Godspeed {
     } else {
       childLogger.info('Request JSON Schema validated successfully %o', validateStatus);
       eventHandlerWorkflow = <GSSeriesFunction>(this.instance.functions[eventSpec.fn]);
+      
     }
 
     const ctx = new GSContext({}, this.instance.datasources, event, this.instance.mappings, {});

@@ -29,7 +29,7 @@ for (const redactAttr of configRedact) {
 }
 
 const logger: Pino.Logger = Pino({
-  level: (config as any).log_level || 'debug',
+  level: (config as any).log_level || 'info',
   transport: {
     // target: '../pino/pino-opentelemetry-transport',
     target: "pino-pretty",

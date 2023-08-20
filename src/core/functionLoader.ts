@@ -185,7 +185,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
     if (workflowJson.fn.match(/<(.*?)%/) && workflowJson.fn.includes('%>')) {
         fnScript = compileScript(workflowJson.fn);
     } else {
-        //Load the fn for this GSFunction
+        // Load the fn for this GSFunction
         fn = nativeFunctions[workflowJson.fn]; //First check if it's a native function
         if (!fn) { //If not a native function, it should be a GSFunction/Json
             const existingWorkflowData = workflows[workflowJson.fn];
@@ -226,6 +226,19 @@ export async function loadFunctions(datasources: PlainObject, pathString: string
     let code = await loadModules(path.resolve(__dirname, '../functions'));
     let functions = await loadYaml(pathString);
     let loadFnStatus: PlainObject;
+
+    logger.info('functions %s', Object.keys(functions));
+
+    let _datasourceFunctions = Object
+        .keys(datasources)
+        .reduce((acc, dsName) => {
+            // @ts-ignore
+            // dsName, eg., httpbin, mongo, prostgres, salesforce
+            acc[`datasource.${dsName}`] = datasources[dsName].executeFn;
+            return acc;
+        }, {});
+
+    code = { ...code, ..._datasourceFunctions };
 
     logger.info('Loaded native functions: %s', Object.keys(code));
 

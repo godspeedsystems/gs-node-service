@@ -12,44 +12,27 @@ import { PlainObject } from "./common";
 import { logger } from '../logger';
 
 export default function loadYaml(pathString: string, global: boolean = false): PlainObject {
-
   let basePath = path.basename(pathString);
-
   let api: PlainObject = {};
-
-  logger.info('Loading %s from %s', basePath, pathString);
-
-  return new Promise((resolve, reject) => {
-
-    glob(pathString + '/**/*.?(yaml|yml)', function (err: Error | null, res: string[]) {
-      logger.debug('parsing files: %s', res);
-      if (err) {
-        reject(err);
+  const files = glob.sync(pathString + '/**/*.?(yaml|yml)');
+  files.map((file: string) => {
+    module = yaml.parse(readFileSync(file, { encoding: 'utf-8' }));
+    const id = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.').replace(/\.(yaml|yml)/i, '').replace(/\.index$/, '');
+    if (global) {
+      api = {
+        ...api,
+        ...module
+      };
+    } else {
+      if (id == 'index') {
+        api = module;
       } else {
-        Promise.all(
-          res.map((file: string) => {
-            module = yaml.parse(readFileSync(file, { encoding: 'utf-8' }));
-            const id = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.').replace(/\.(yaml|yml)/i, '').replace(/\.index$/, '');
-
-            if (global) {
-              api = {
-                ...api,
-                ...module
-              };
-            } else {
-              if (id == 'index') {
-                api = module;
-              } else {
-                api[id] = module;
-              }
-            }
-          })
-        ).then(() => {
-          resolve(api);
-        });
+        api[id] = module;
       }
-    });
+    }
   });
+
+  return api;
 }
 
 
