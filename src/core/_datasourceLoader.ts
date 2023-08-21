@@ -32,8 +32,8 @@ export default async function (pathString: string): Promise<PlainObject> {
       if (!module.hasOwnProperty('initFn') && typeof module.initFn !== 'function') {
         logger.error('initFn for the datasource of type %s is not specified, or it is not a function.', datasource.type);
       } else {
-        let client = await module.initFn({ ...datasource, dsName: ds }, { config, mappings, logger });
-        datasources[ds].client = client;
+        let dsWithLoadedClient = await module.initFn({ ...datasource, dsName: ds }, { config, mappings, logger });
+        datasources[ds] = dsWithLoadedClient;
       }
 
       if (!module.hasOwnProperty('executeFn') && typeof module.executeFn !== 'function') {

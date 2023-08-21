@@ -293,10 +293,10 @@ class Godspeed {
     } else {
       childLogger.info('Request JSON Schema validated successfully %o', validateStatus);
       eventHandlerWorkflow = <GSSeriesFunction>(this.instance.functions[eventSpec.fn]);
-      
+
     }
 
-    const ctx = new GSContext({}, this.instance.datasources, event, this.instance.mappings, {});
+    const ctx = new GSContext({}, this.instance.datasources, event, this.instance.mappings, {}, logger, childLogger);
 
     let eventHandlerStatus;
 
