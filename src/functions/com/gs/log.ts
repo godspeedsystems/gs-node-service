@@ -6,5 +6,6 @@ import Pino from 'pino';
 import { childLogger } from '../../../logger';
 
 export default function (obj: { level: Pino.Level, data: any }) {
+    // console.log(JSON.stringify(obj.data));
     childLogger[obj.level]({ "module": "com.gs.log" }, obj.data);
 }

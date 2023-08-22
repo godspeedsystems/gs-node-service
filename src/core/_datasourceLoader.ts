@@ -7,43 +7,42 @@ import { PlainObject } from "../types";
 import expandVariables from './expandVariables';
 import loadYaml from "./yamlLoader";
 import loadMappings from "./mappingLoader";
+import { DataSource } from "./_interfaces/sources";
 
 
 // we need to scan only the first level of datasources folder
-export default async function (pathString: string): Promise<PlainObject> {
+export default async function (pathString: string): Promise<{ [key: string]: DataSource }> {
   let yamlDatasources = await loadYaml(pathString, false);
 
   const prismaDatasources = await loadPrismaDsFileNames(pathString);
-  const datasources = { ...yamlDatasources, ...prismaDatasources };
+  const datasourcesConfigs = { ...yamlDatasources, ...prismaDatasources };
 
   const mappings = loadMappings();
+  const datasources: { [key: string]: DataSource } = {};
 
-  for (let ds in datasources) {
-    logger.debug('evaluating datasource %s', ds);
-    datasources[ds] = expandVariables(datasources[ds]);
-    logger.debug('evaluated datasource %s %o', ds, datasources[ds]);
+  for await (let dsName of Object.keys(datasourcesConfigs)) {
+    logger.debug('evaluating datasource %s', dsName);
+    datasourcesConfigs[dsName] = expandVariables(datasourcesConfigs[dsName]);
+    logger.debug('evaluated datasource %s %o', dsName, datasourcesConfigs[dsName]);
 
     // let's load the loadFn and executeFn
-    // there is an assumption that for each datasource, type file should be inside /definitions folder
-    const fileName = datasources[ds]?.type;
+    // there is an assumption that for each datasource, the type's .ts file should be inside /datasources/types folder
+    const fileName = datasourcesConfigs[dsName].type;
 
-    await import(path.join(pathString, 'definitions', `${fileName}`)).then(async (module) => {
-      const datasource = datasources[ds];
-      if (!module.hasOwnProperty('initFn') && typeof module.initFn !== 'function') {
-        logger.error('initFn for the datasource of type %s is not specified, or it is not a function.', datasource.type);
-      } else {
-        let dsWithLoadedClient = await module.initFn({ ...datasource, dsName: ds }, { config, mappings, logger });
-        datasources[ds] = dsWithLoadedClient;
-      }
 
-      if (!module.hasOwnProperty('executeFn') && typeof module.executeFn !== 'function') {
-        logger.error('executeFn for the datasource of type %s is not specified, or it is not a function.', datasource.type);
-      } else {
-        let executeFn = module.executeFn;
-        datasources[ds].executeFn = executeFn;
-      }
-    });
-  };
+    await import(path.join(pathString, 'types', `${fileName}`))
+      .then(async (Module: DataSource) => {
+        const dsYamlConfig: PlainObject = datasourcesConfigs[dsName];
+        // @ts-ignore
+        const dsInstance = new Module.default(dsYamlConfig); // eslint-disable-line
+
+        await dsInstance.init(); // This should initialize and set the client in dsInstance
+        if (!dsInstance.client) {
+          throw new Error(`Client could not be initialized in your datasource ${dsName}`);
+        }
+        datasources[dsName] = dsInstance;
+      });
+  }
 
   return datasources;
 }

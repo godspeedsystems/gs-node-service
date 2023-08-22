@@ -4,6 +4,7 @@ import express from 'express';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import loadMappings from './core/mappingLoader';
 import loadDatasources from './core/_datasourceLoader';
+import loadEventsources from './core/_eventsourceLoader';
 import { loadFunctions } from './core/functionLoader';
 import loadEvents from './core/eventLoader';
 import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatus } from './core/interfaces';
@@ -11,7 +12,7 @@ import _ from 'lodash';
 import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
 import { prepareRouter } from './router/index';
 import { childLogger, initilizeChildLogger, logger } from './logger';
-
+import { DataSource, EventSource } from './core/_interfaces/sources';
 export interface PlainObject {
   [key: string]: any
 };
@@ -23,18 +24,28 @@ export interface GodspeedParams {
   datasourcesFolderPath?: string,
   mappingsFolderPath?: string,
   configFolderPath?: string,
-  httpService: Express.Application
+  eventsourcesFolderPath?: string
 }
 
 class Godspeed {
-  public instance: PlainObject;
+  public datasources: { [key: string]: DataSource } = {};
+
+  public eventsources: { [key: string]: EventSource } = {};
+
+  public workflows: PlainObject = {};
+
+  public eventsConfig: PlainObject = {};
+
+  public definitions: PlainObject = {};
+
+  public config: PlainObject = {};
 
   public folderPaths: {
     events: string,
-    mappings: string,
     workflows: string,
     definitions: string,
-    datasources: string
+    datasources: string,
+    eventsources: string
   };
 
   constructor(params = {} as GodspeedParams) {
@@ -46,89 +57,63 @@ class Godspeed {
       eventsFolderPath,
       workflowsFolderPath,
       definitionsFolderPath,
-      mappingsFolderPath,
       configFolderPath,
-      datasourcesFolderPath
+      datasourcesFolderPath,
+      eventsourcesFolderPath
     } = params;
 
     eventsFolderPath = join(currentDir, params.eventsFolderPath || '/src/events');
     workflowsFolderPath = join(currentDir, params.workflowsFolderPath || '/src/functions');
     definitionsFolderPath = join(currentDir, params.definitionsFolderPath || '/src/definitions');
-    mappingsFolderPath = join(currentDir, params.mappingsFolderPath || '/src/mappings');
     configFolderPath = join(currentDir, params.configFolderPath || '/config');
     datasourcesFolderPath = join(currentDir, params.datasourcesFolderPath || '/src/datasources');
+    eventsourcesFolderPath = join(currentDir, params.eventsourcesFolderPath || '/src/eventsources');
 
     this.folderPaths = {
       events: eventsFolderPath,
-      mappings: mappingsFolderPath,
       workflows: workflowsFolderPath,
       definitions: definitionsFolderPath,
-      datasources: datasourcesFolderPath
+      datasources: datasourcesFolderPath,
+      eventsources: eventsourcesFolderPath
     };
 
     Object.freeze(this.folderPaths);
 
-    this.instance = {};
   }
 
   public initilize() {
-    this._loadMappings()
-      .then((mappings) => {
-        this.instance.mappings = mappings;
-      })
-      .then(async () => {
-        let definitions = await this._loadDefinitions();
-        this.instance.definitions = definitions;
-      })
-      .then(async () => {
-        let datasources = await this._new_loadDatasources();
-        this.instance.datasources = datasources;
-      })
-      .then(async () => {
-        let functions = await this._loadFunctions();
-        this.instance.functions = functions;
-      })
-      .then(async () => {
-        let events = await this._loadEvents();
-        this.instance.events = events;
-      })
-      .then(async () => {
-        // setting up the express server
-        const app = express();
-        await prepareRouter(app, this.instance.datasources, this.instance.events, this.instance.definitions);
-        this.instance.app = app;
-      })
-      .then(async () => {
-        await this._subscribeToEvent();
+    this._loadDefinitions()
+      .then(async (definitions) => {
 
-        // finally start ther server
-        const PORT = 3000;
-        // // start ther server
-        this.instance.app.listen(PORT, () => {
-          logger.info(`Your Godspeed server is running on ${PORT}`);
-        });
+        this.definitions = definitions;
+
+        let datasources = await this._loadDatasources();
+        this.datasources = datasources;
+
+        let functions = await this._loadFunctions();
+        this.workflows = functions;
+
+        let eventsources = await this._loadEventsources();
+        this.eventsources = eventsources;
+
+        let events = await this._loadEvents();
+        this.eventsConfig = events;
+
+        await this.subscribeToEvents();
+        // await this._subscribeToEvent();
       })
       .catch((error) => {
         logger.error(error);
       });
   }
 
-  private async _loadEvents(): Promise<void> {
+  private async _loadEvents(): Promise<PlainObject> {
     logger.info('[START] Load Events');
-    logger.error(this.instance.functions);
-    let events = await loadEvents(this.instance.functions, this.folderPaths.events);
+    let events = await loadEvents(this.workflows, this.folderPaths.events);
     logger.info('Events %o', events);
     logger.info('[END] Load Events');
     return events;
   };
-
-  private async _loadMappings(): Promise<PlainObject> {
-    logger.info('[START] Load mappings from %s', this.folderPaths.mappings);
-    const mappings = await loadMappings(this.folderPaths.mappings);
-    logger.info('Mappings %o', mappings);
-    logger.info('[END] Load mappings');
-    return mappings;
-  }
 
   private async _loadDefinitions(): Promise<PlainObject> {
     logger.info('[START] Load definitions from %s', this.folderPaths.definitions);
@@ -138,20 +123,20 @@ class Godspeed {
     return definitions;
   }
 
-  private async _loadFunctions(): Promise<void> {
+  private async _loadFunctions(): Promise<PlainObject> {
     logger.info('[START] Load functions from %s', this.folderPaths.workflows);
-    const loadFnStatus = await loadFunctions(this.instance.datasources, this.folderPaths.workflows);
+    const loadFnStatus = await loadFunctions(this.datasources, this.folderPaths.workflows);
     logger.info('Functions %o', Object.keys(loadFnStatus.functions));
 
     if (loadFnStatus.success) {
       logger.info('[END] Load Functions');
       return loadFnStatus.functions;
     } else {
-      logger.error('[ERROR] Load Functions');
+      throw new Error(`Failed to load functions and workflows. Erro`);
     }
   }
 
-  private async _new_loadDatasources(): Promise<PlainObject> {
+  private async _loadDatasources(): Promise<PlainObject> {
     logger.info('[START] Load Datasources from %s', this.folderPaths.datasources);
     let datasources = await loadDatasources(this.folderPaths.datasources);
     logger.info('Datasources %o', datasources);
@@ -159,195 +144,205 @@ class Godspeed {
     return datasources;
   };
 
-  private async _loadDatasources(): Promise<void> {
-    let datasources = await loadDatasources(this.folderPaths.datasources);
+  private async _loadEventsources(): Promise<PlainObject> {
+    logger.info('[START] Loading Eventsources from %s', this.folderPaths.eventsources);
 
-    this.instance.datasources = datasources;
-  }
-
-  private async _loadDatasourceFunctions(): Promise<void> {
-    for (let ds in this.instance.datasources) {
-      if (this.instance.datasources[ds].authn) {
-        this.instance.datasources[ds].authn = this.instance.functions[this.instance.datasources[ds].authn];
-      }
-
-      if (this.instance.datasources[ds].before_method_hook) {
-        this.instance.datasources[ds].before_method_hook =
-          this.instance.functions[this.instance.datasources[ds].before_method_hook];
-      }
-
-      if (this.instance.datasources[ds].after_method_hook) {
-        this.instance.datasources[ds].after_method_hook =
-          this.instance.functions[this.instance.datasources[ds].after_method_hook];
-      }
-
-      this.instance.datasources[ds].gsName = ds;
-      // let datasourceScript = compileScript(this.instance.datasources[ds]);
-
-      // this.instance.datasources[ds] = datasourceScript;
-    }
-  }
-
-  private async _subscribeToEvent(): Promise<boolean> {
-    // let's iterate over all the http events
-    return new Promise((resolve, reject) => {
-      for (let route in this.instance.events) {
-        let originalRoute = route;
-
-        if (route.includes('.http.')) {
-          let method = 'get';
-
-          [route, method] = route.split('.http.');
-          route = route.replace(/{(.*?)}/g, ':$1');
-          let _this = this;
-          this.instance.app[method](
-            route,
-            async function (req: express.Request, res: express.Response) {
-              console.log(
-                'originalRoute: %s %o %o',
-                req.params,
-              );
-
-              const reqProp = _.omit(req, [
-                '_readableState',
-                'socket',
-                'client',
-                '_parsedUrl',
-                'res',
-                'app'
-              ]);
-              const reqHeaders = _.pick(req, ['headers']);
-              let data = { ...reqProp, ...reqHeaders };
-
-              const event = new GSCloudEvent(
-                'id',
-                originalRoute,
-                new Date(),
-                'http',
-                '1.0',
-                data,
-                'REST',
-                new GSActor('user'),
-                { http: { express: { res } } }
-              );
-
-              await _this.processEvent(event);
-            }
-          );
-        }
-      }
-      resolve(true);
-    });
-
-
-  }
-
-  private async processEvent(event: GSCloudEvent): Promise<any> {
-    // TODO: improve child logger initilization
-    // initilize child logger
-    initilizeChildLogger({});
-
-    // TODO: lot's of logging related steps
-    childLogger.info('processing event ... %s %o', event.type);
-    // TODO: Once the config loader is sorted, fetch the apiVersion from config
-    const responseStructure: GSResponse = {
-      apiVersion: '1.0'
-    };
-
-    let eventHandlerWorkflow: GSSeriesFunction;
-    let validateStatus = validateRequestSchema(event.type, event, this.instance.events[event.type]);
-    let eventSpec = this.instance.events[event.type];
-
-    if (validateStatus.success === false) {
-      childLogger.error('failed to validate request body.', validateStatus);
-
-      const responseData: PlainObject = {
-        message: 'request validation failed.',
-        error: validateStatus.message,
-        data: validateStatus.data
-      };
-
-      // if `on_validation_error` is defined in the event, let's execute that
-      if (eventSpec.on_validation_error) {
-
-        const validationError = {
-          success: false,
-          code: validateStatus.code,
-          ...responseData
-        };
-
-        childLogger.error(validationError);
-
-        event.data = { event: event.data, validation_error: validationError };
-
-        // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
-        eventHandlerWorkflow = <GSSeriesFunction>(
-          this.instance.functions[eventSpec.on_validation_error]
-        );
-      } else {
-
-        return (event.metadata?.http?.express?.res as express.Response)
-          .status(validateStatus.code ?? 500)
-          .send(validateStatus);
-      }
-    } else {
-      childLogger.info('Request JSON Schema validated successfully %o', validateStatus);
-      eventHandlerWorkflow = <GSSeriesFunction>(this.instance.functions[eventSpec.fn]);
-
-    }
-
-    const ctx = new GSContext({}, this.instance.datasources, event, this.instance.mappings, {}, logger, childLogger);
-
-    let eventHandlerStatus;
-
-    try {
-      await eventHandlerWorkflow(ctx);
-    } catch (error) {
-      eventHandlerStatus = new GSStatus(
-        false,
-        500,
-        `Error in executing handler ${eventSpec.fn} for the event ${event.type
-        }`,
-        error
-      );
-    }
-
-    // this is successful execution, because, if no error happened, this will be undefined
-    if (!eventHandlerStatus) {
-      // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
-      eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id];
-
-      if (eventHandlerStatus.success) {
-        // event workflow executed successfully
-        // lets validate the response schema
-        let validateResponseStatus = validateResponseSchema(event.type, eventHandlerStatus);
-        if (validateResponseStatus.success) {
-          childLogger.info('Response validation is successful.');
-        } else {
-          childLogger.error('Response JSON schema validation failed.');
-          const responseData: PlainObject = {
-            message: 'response validation error',
-            error: validateResponseStatus.message,
-            data: validateResponseStatus.data
-          };
-
-          return (event.metadata?.http?.express.res as express.Response)
-            .status(validateResponseStatus.code ?? 500)
-            .send(validateResponseStatus.data);
-        }
-      }
-
-      let responseCode = Number(eventHandlerStatus?.code || (eventHandlerStatus?.success ? 200 : 500));
-      let responseData = eventHandlerStatus?.data;
-      let responseHeaders = eventHandlerStatus?.headers;
-
-      (event.metadata?.http?.express.res as express.Response)
-        .status(responseCode)
-        .header(responseHeaders)
-        .send(responseData);
-    }
+    let eventsources = await loadEventsources(this.folderPaths.eventsources, this.datasources);
+    logger.info('Eventsources %o', eventsources);
+    logger.info('[END] Loading Eventsources.');
+    return eventsources;
   };
 
-}
+
+  // private async _loadDatasourceFunctions(): Promise<void> {
+  //   for (let ds in this.datasources) {
+  //     if (this.datasources[ds].authn) {
+  //       this.datasources[ds].authn = this.workflows[this.datasources[ds].authn];
+  //     }
+
+  //     if (this.datasources[ds].before_method_hook) {
+  //       this.datasources[ds].before_method_hook =
+  //         this.workflows[this.datasources[ds].before_method_hook];
+  //     }
+
+  //     if (this.datasources[ds].after_method_hook) {
+  //       this.datasources[ds].after_method_hook =
+  //         this.workflows[this.datasources[ds].after_method_hook];
+  //     }
+
+  //     this.datasources[ds].gsName = ds;
+  //     // let datasourceScript = compileScript(this.datasources[ds]);
+
+  //     // this.datasources[ds] = datasourceScript;
+  //   }
+  // }
+
+  private async subscribeToEvents(): Promise<void> {
+    // events
+    for await (let route of Object.keys(this.eventsConfig)) {
+      let eventKey = route;
+      let eventSourceName = route.split('.')[0];
+
+      const eventSource = this.eventsources[eventSourceName];
+
+      const processEventHandler = await this.processEvent(this);
+
+      console.log('eventsConfig', this.eventsConfig, eventKey);
+
+      await eventSource.subscribeToEvent(route, this.eventsConfig[eventKey], processEventHandler);
+    }
+  }
+
+  // private async _subscribeToEvent(): Promise<boolean> {
+  //   // let's iterate over all the http events
+  //   return new Promise((resolve, reject) => {
+  //     for (let route in this.eventsConfig) {
+  //       let originalRoute = route;
+
+  //       if (route.includes('.http.')) {
+  //         let method = 'get';
+
+  //         [route, method] = route.split('.http.');
+  //         route = route.replace(/{(.*?)}/g, ':$1');
+  //         let _this = this;
+  //         this.app[method](
+  //           route,
+  //           async function (req: express.Request, res: express.Response) {
+  //             console.log(
+  //               'originalRoute: %s %o %o',
+  //               req.params,
+  //             );
+
+  //             const reqProp = _.omit(req, [
+  //               '_readableState',
+  //               'socket',
+  //               'client',
+  //               '_parsedUrl',
+  //               'res',
+  //               'app'
+  //             ]);
+  //             const reqHeaders = _.pick(req, ['headers']);
+  //             let data = { ...reqProp, ...reqHeaders };
+
+  //             const event = new GSCloudEvent(
+  //               'id',
+  //               originalRoute,
+  //               new Date(),
+  //               'http',
+  //               '1.0',
+  //               data,
+  //               'REST',
+  //               new GSActor('user'),
+  //               { http: { express: { res } } }
+  //             );
+
+  //             await _this.processEvent(event);
+  //           }
+  //         );
+  //       }
+  //     }
+  //     resolve(true);
+  //   });
+
+
+  // }
+
+  private async processEvent(local: Godspeed): Promise<(event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>> {
+    const { workflows, datasources } = local;
+
+    return async (event: GSCloudEvent, eventConfig: PlainObject): Promise<GSStatus> => {
+      logger.info('event %o', event);
+      logger.info('event %o', eventConfig);
+
+      // TODO: improve child logger initilization
+      // initilize child logger
+      initilizeChildLogger({});
+
+      // TODO: lot's of logging related steps
+      childLogger.info('processing event ... %s %o', event.type);
+      // TODO: Once the config loader is sorted, fetch the apiVersion from config
+      const responseStructure: GSResponse = {
+        apiVersion: '1.0'
+      };
+
+      let eventHandlerWorkflow: GSSeriesFunction;
+      let validateStatus = validateRequestSchema(event.type, event, eventConfig);
+      let eventSpec = eventConfig;
+
+      if (validateStatus.success === false) {
+        childLogger.error('failed to validate request body.', validateStatus);
+
+        const responseData: PlainObject = {
+          message: 'request validation failed.',
+          error: validateStatus.message,
+          data: validateStatus.data
+        };
+
+        // if `on_validation_error` is defined in the event, let's execute that
+        if (eventSpec.on_validation_error) {
+
+          const validationError = {
+            success: false,
+            code: validateStatus.code,
+            ...responseData
+          };
+
+          childLogger.error(validationError);
+
+          event.data = { event: event.data, validation_error: validationError };
+
+          // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
+          eventHandlerWorkflow = <GSSeriesFunction>(
+            workflows[eventSpec.on_validation_error]
+          );
+        } else {
+
+          return validateStatus;
+        }
+      } else {
+        childLogger.info('Request JSON Schema validated successfully %o', validateStatus);
+        eventHandlerWorkflow = <GSSeriesFunction>(workflows[eventSpec.fn]);
+      }
+
+      const ctx = new GSContext({}, datasources, event, {}, {}, logger, childLogger);
+
+      let eventHandlerStatus;
+
+      try {
+        await eventHandlerWorkflow(ctx);
+        // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
+        eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id];
+
+        if (eventHandlerStatus.success) {
+          // event workflow executed successfully
+          // lets validate the response schema
+          let validateResponseStatus = validateResponseSchema(event.type, eventHandlerStatus);
+          if (!validateResponseStatus.success) {
+            childLogger.error('Response JSON schema validation failed.');
+            return new GSStatus(
+              false, 500, 'response validation error', {
+              error: {
+                message: validateResponseStatus.message,
+                info: validateResponseStatus.data
+              }
+            }
+            );
+          }
+        }
+
+        return eventHandlerStatus;
+
+      } catch (error) {
+        return new GSStatus(
+          false,
+          500,
+          `Error in executing handler ${eventSpec.fn} for the event ${event.type
+          }`,
+          error
+        );
+      }
+    };
+  };
+};
 
 export default Godspeed;

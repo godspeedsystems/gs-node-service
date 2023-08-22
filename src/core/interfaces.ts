@@ -314,7 +314,6 @@ export class GSFunction extends Function {
       ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Retry logic is %o', this.retry);
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (args?.datasource) {
-        logger.info('>>>>>>>>>>', taskValue);
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
         const datasource: any = ctx.datasources[args.datasource];
         if (datasource instanceof Function) {
@@ -351,9 +350,9 @@ export class GSFunction extends Function {
         }
       }
 
-      if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
-        args.kafka = ctx.inputs.metadata?.messagebus.kafka;
-      }
+      // if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
+      //   args.kafka = ctx.inputs.metadata?.messagebus.kafka;
+      // }
 
       if (args && this.retry) { //Generally all methods with retry will have some args
         args.retry = this.retry;
@@ -919,14 +918,6 @@ export class GSCloudEvent {
   data: PlainObject; //{body, params, query, headers}, flattened and merged into a single object
 
   metadata?: {
-    http?: {
-      express: {
-        res: object //Express response object
-      }
-    },
-    messagebus: {
-      kafka: object
-    },
     telemetry?: object //all the otel info captured in the incoming event headers/metadata
   };
 

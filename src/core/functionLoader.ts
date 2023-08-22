@@ -107,7 +107,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
             if (!lastIfFn) {
                 logger.error(`If is missing before elsif ${workflowJson.id}.`);
-                process.exit(1);
+                throw new Error(`If is missing before elsif ${workflowJson.id}.`);
             } else {
                 lastIfFn.else_fn = fn;
             }
@@ -126,7 +126,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
             if (!lastIfFn) {
                 logger.error(`If is missing before else ${workflowJson.id}.`);
-                process.exit(1);
+                throw new Error(`If is missing before else ${workflowJson.id}.`);
             } else {
                 lastIfFn.else_fn = task;
             }
@@ -190,8 +190,7 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
         if (!fn) { //If not a native function, it should be a GSFunction/Json
             const existingWorkflowData = workflows[workflowJson.fn];
             if (!existingWorkflowData) {
-                logger.error(`Function specified by name ${workflowJson.fn} not found in src/functions. Please ensure a function by this path exists.`);
-                process.exit(1);
+                throw new Error(`Function specified by name ${workflowJson.fn} not found in src/functions. Please ensure a function by this path exists.`);
             }
 
             subwf = true;
@@ -245,18 +244,16 @@ export async function loadFunctions(datasources: PlainObject, pathString: string
     for (let f in functions) {
         try {
             if (!functions[f].tasks) {
-                logger.error('Error in loading tasks of function %s, exiting.', f);
-                process.exit(1);
+                throw new Error(`Error in loading tasks of function ${f}.`);
             }
-        } catch (ex) {
-            logger.error('Error in loading tasks of function %s, exiting.', f);
-            process.exit(1);
+        } catch (ex: unknown) {
+            (ex as Error).message = `Error in loading tasks of function ${f}.` + (ex as Error).message;
+            throw ex;
         }
 
         const checkDS = checkDatasource(functions[f], datasources);
         if (!checkDS.success) {
-            logger.error('Error in loading datasource for function %s . Error message: %s . Exiting.', f, checkDS.message);
-            process.exit(1);
+            throw new Error(`Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
         }
     }
 
