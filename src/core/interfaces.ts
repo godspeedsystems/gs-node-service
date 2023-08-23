@@ -359,12 +359,14 @@ export class GSFunction extends Function {
       }
 
       let res;
+      debugger; // eslint-disable-line
+
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (Array.isArray(args)) {
-        args.unshift(ctx);
-        res = await this.fn!(...args);
+
+        res = await this.fn!(...[ctx, ...args]);
       } else {
-        res = await this.fn!(ctx, args);
+        res = await this.fn!(...[ctx, ...Object.values(args)]);
       }
 
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Result of _executeFn ${this.id} %o`, res);

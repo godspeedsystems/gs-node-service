@@ -203,11 +203,11 @@ export default class KafkaMessageBus {
 
 export let kafka: KafkaMessageBus;
 
-//@ts-ignore
+// @ts-ignore
 if (config?.kafka) {
-  //@ts-ignore
+  // @ts-ignore
   logger.info('kafka config %o', config?.kafka);
 
-  //@ts-ignore
+  // @ts-ignore
   kafka = new KafkaMessageBus(config?.kafka);
 }

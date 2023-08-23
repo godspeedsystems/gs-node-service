@@ -100,7 +100,6 @@ class Godspeed {
         this.eventsConfig = events;
 
         await this.subscribeToEvents();
-        // await this._subscribeToEvent();
       })
       .catch((error) => {
         logger.error(error);
@@ -153,7 +152,6 @@ class Godspeed {
     return eventsources;
   };
 
-
   // private async _loadDatasourceFunctions(): Promise<void> {
   //   for (let ds in this.datasources) {
   //     if (this.datasources[ds].authn) {
@@ -186,78 +184,18 @@ class Godspeed {
       const eventSource = this.eventsources[eventSourceName];
 
       const processEventHandler = await this.processEvent(this);
-
-      console.log('eventsConfig', this.eventsConfig, eventKey);
-
       await eventSource.subscribeToEvent(route, this.eventsConfig[eventKey], processEventHandler);
     }
   }
-
-  // private async _subscribeToEvent(): Promise<boolean> {
-  //   // let's iterate over all the http events
-  //   return new Promise((resolve, reject) => {
-  //     for (let route in this.eventsConfig) {
-  //       let originalRoute = route;
-
-  //       if (route.includes('.http.')) {
-  //         let method = 'get';
-
-  //         [route, method] = route.split('.http.');
-  //         route = route.replace(/{(.*?)}/g, ':$1');
-  //         let _this = this;
-  //         this.app[method](
-  //           route,
-  //           async function (req: express.Request, res: express.Response) {
-  //             console.log(
-  //               'originalRoute: %s %o %o',
-  //               req.params,
-  //             );
-
-  //             const reqProp = _.omit(req, [
-  //               '_readableState',
-  //               'socket',
-  //               'client',
-  //               '_parsedUrl',
-  //               'res',
-  //               'app'
-  //             ]);
-  //             const reqHeaders = _.pick(req, ['headers']);
-  //             let data = { ...reqProp, ...reqHeaders };
-
-  //             const event = new GSCloudEvent(
-  //               'id',
-  //               originalRoute,
-  //               new Date(),
-  //               'http',
-  //               '1.0',
-  //               data,
-  //               'REST',
-  //               new GSActor('user'),
-  //               { http: { express: { res } } }
-  //             );
-
-  //             await _this.processEvent(event);
-  //           }
-  //         );
-  //       }
-  //     }
-  //     resolve(true);
-  //   });
-
-
-  // }
 
   private async processEvent(local: Godspeed): Promise<(event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>> {
     const { workflows, datasources } = local;
 
     return async (event: GSCloudEvent, eventConfig: PlainObject): Promise<GSStatus> => {
-      logger.info('event %o', event);
-      logger.info('event %o', eventConfig);
-
       // TODO: improve child logger initilization
       // initilize child logger
       initilizeChildLogger({});
-
+      debugger; // eslint-disable-line
       // TODO: lot's of logging related steps
       childLogger.info('processing event ... %s %o', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config
@@ -280,7 +218,6 @@ class Godspeed {
 
         // if `on_validation_error` is defined in the event, let's execute that
         if (eventSpec.on_validation_error) {
-
           const validationError = {
             success: false,
             code: validateStatus.code,
@@ -296,7 +233,6 @@ class Godspeed {
             workflows[eventSpec.on_validation_error]
           );
         } else {
-
           return validateStatus;
         }
       } else {
@@ -312,6 +248,7 @@ class Godspeed {
         await eventHandlerWorkflow(ctx);
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
         eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id];
+        logger.info('eventHandlerStatus', eventHandlerStatus);
 
         if (eventHandlerStatus.success) {
           // event workflow executed successfully

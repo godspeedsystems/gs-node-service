@@ -11,7 +11,7 @@
     "allowJs": true,
     "outDir": "./dist",
     "declaration": true,
-    "inlineSourceMap": true,
+    "sourceMap": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
