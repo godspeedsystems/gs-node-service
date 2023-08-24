@@ -16,7 +16,7 @@ const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-expre
 const { NodeTracerProvider } = require('@opentelemetry/sdk-trace-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-otlp-grpc');
 const { ConsoleSpanExporter } = require('@opentelemetry/sdk-trace-base');
-const { ElasticsearchInstrumentation } = require('@heliosphere/opentelemetry-instrumentation-elasticsearch');
+
 
 let traceExporter;
 
@@ -85,10 +85,6 @@ const sdk = new opentelemetry.NodeSDK({
     }
   }),
   new PinoInstrumentation({}),
-  new ElasticsearchInstrumentation({
-    suppressInternalInstrumentation: false,
-    moduleVersionAttributeName: 'elasticsearchClient.version'
-  })
   ],
   ignoreLayers: true
 });

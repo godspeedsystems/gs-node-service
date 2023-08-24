@@ -1,0 +1,15 @@
+src/
+.travis.yml
+Dockerfile
+tsconfig.json
+.vscode/
+.husky/
+.github/
+.dockerignore
+.jscsrc
+.eslintignore
+.eslintrc.json
+.nycrc
+.prettierignore
+.releaserc
+.swcrc

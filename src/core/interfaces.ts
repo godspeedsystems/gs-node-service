@@ -9,10 +9,9 @@ import opentelemetry from "@opentelemetry/api";
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from '../logger';
-import { compileScript, isPlainObject } from './utils';  // eslint-disable-line
-import evaluateScript from './scriptRuntime'; // eslint-disable-line
+import { compileScript, isPlainObject } from './utils';
+import evaluateScript from './scriptRuntime';
 import { promClient } from '../telemetry/monitoring';
-import authnWorkflow from './authnWorkflow';
 import config from 'config';
 import pino from 'pino';
 
@@ -340,10 +339,11 @@ export class GSFunction extends Function {
           ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `settings datasource headers: %o`, args.config.headers);
         }
 
-        if (ds.authn && !datasource.authn_response) {
-          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing datasource authn workflow');
-          datasource.authn_response = await authnWorkflow(ds, ctx);
-        }
+        // TODO: this will be moved to datasource plugin
+        // if (ds.authn && !datasource.authn_response) {
+        //   ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing datasource authn workflow');
+        //   datasource.authn_response = await authnWorkflow(ds, ctx);
+        // }
 
         if (ds.before_method_hook) {
           await ds.before_method_hook(ctx);

@@ -1,8 +1,6 @@
 import { join } from 'path';
 import { cwd } from 'process';
-import express from 'express';
 import { loadAndRegisterDefinitions } from './core/definitionsLoader';
-import loadMappings from './core/mappingLoader';
 import loadDatasources from './core/_datasourceLoader';
 import loadEventsources from './core/_eventsourceLoader';
 import { loadFunctions } from './core/functionLoader';
@@ -10,12 +8,10 @@ import loadEvents from './core/eventLoader';
 import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatus } from './core/interfaces';
 import _ from 'lodash';
 import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
-import { prepareRouter } from './router/index';
 import { childLogger, initilizeChildLogger, logger } from './logger';
 import { DataSource, EventSource } from './core/_interfaces/sources';
-export interface PlainObject {
-  [key: string]: any
-};
+import { PlainObject } from './types';
+
 
 export interface GodspeedParams {
   eventsFolderPath?: string,
@@ -265,5 +261,8 @@ class Godspeed {
     };
   };
 };
+
+// export classes for plugins
+export { EventSource, DataSource, GSActor, GSCloudEvent, GSStatus, PlainObject };
 
 export default Godspeed;
