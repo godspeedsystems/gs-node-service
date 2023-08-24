@@ -44,6 +44,7 @@ class Godspeed {
     events: string,
     workflows: string,
     definitions: string,
+    config: string,
     datasources: string,
     eventsources: string
   };
@@ -72,13 +73,13 @@ class Godspeed {
     this.folderPaths = {
       events: eventsFolderPath,
       workflows: workflowsFolderPath,
+      config: configFolderPath,
       definitions: definitionsFolderPath,
       datasources: datasourcesFolderPath,
       eventsources: eventsourcesFolderPath
     };
 
     Object.freeze(this.folderPaths);
-
   }
 
   public initilize() {
@@ -107,7 +108,7 @@ class Godspeed {
   }
 
   private async _loadEvents(): Promise<PlainObject> {
-    logger.info('[START] Load Events');
+    logger.info('[START] Load Events from %s', this.folderPaths.events);
     let events = await loadEvents(this.workflows, this.folderPaths.events);
     logger.info('Events %o', events);
     logger.info('[END] Load Events');
@@ -131,7 +132,7 @@ class Godspeed {
       logger.info('[END] Load Functions');
       return loadFnStatus.functions;
     } else {
-      throw new Error(`Failed to load functions and workflows. Erro`);
+      throw new Error(`Failed to load functions and workflows.`);
     }
   }
 
@@ -144,36 +145,13 @@ class Godspeed {
   };
 
   private async _loadEventsources(): Promise<PlainObject> {
-    logger.info('[START] Loading Eventsources from %s', this.folderPaths.eventsources);
+    logger.info('[START] Load Eventsources from %s', this.folderPaths.eventsources);
 
     let eventsources = await loadEventsources(this.folderPaths.eventsources, this.datasources);
     logger.info('Eventsources %o', eventsources);
-    logger.info('[END] Loading Eventsources.');
+    logger.info('[END] Load Eventsources.');
     return eventsources;
   };
-
-  // private async _loadDatasourceFunctions(): Promise<void> {
-  //   for (let ds in this.datasources) {
-  //     if (this.datasources[ds].authn) {
-  //       this.datasources[ds].authn = this.workflows[this.datasources[ds].authn];
-  //     }
-
-  //     if (this.datasources[ds].before_method_hook) {
-  //       this.datasources[ds].before_method_hook =
-  //         this.workflows[this.datasources[ds].before_method_hook];
-  //     }
-
-  //     if (this.datasources[ds].after_method_hook) {
-  //       this.datasources[ds].after_method_hook =
-  //         this.workflows[this.datasources[ds].after_method_hook];
-  //     }
-
-  //     this.datasources[ds].gsName = ds;
-  //     // let datasourceScript = compileScript(this.datasources[ds]);
-
-  //     // this.datasources[ds] = datasourceScript;
-  //   }
-  // }
 
   private async subscribeToEvents(): Promise<void> {
     // events
@@ -184,18 +162,24 @@ class Godspeed {
       const eventSource = this.eventsources[eventSourceName];
 
       const processEventHandler = await this.processEvent(this);
-      await eventSource.subscribeToEvent(route, this.eventsConfig[eventKey], processEventHandler);
+
+      await eventSource.subscribeToEvent(
+        route,
+        this.eventsConfig[eventKey],
+        processEventHandler,
+      );
     }
   }
 
-  private async processEvent(local: Godspeed): Promise<(event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>> {
+  private async processEvent(
+    local: Godspeed
+  ): Promise<(event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>> {
     const { workflows, datasources } = local;
 
     return async (event: GSCloudEvent, eventConfig: PlainObject): Promise<GSStatus> => {
       // TODO: improve child logger initilization
       // initilize child logger
       initilizeChildLogger({});
-      debugger; // eslint-disable-line
       // TODO: lot's of logging related steps
       childLogger.info('processing event ... %s %o', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config

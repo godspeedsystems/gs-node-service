@@ -359,7 +359,6 @@ export class GSFunction extends Function {
       }
 
       let res;
-      debugger; // eslint-disable-line
 
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (Array.isArray(args)) {
