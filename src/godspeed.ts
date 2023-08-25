@@ -9,7 +9,7 @@ import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatu
 import _ from 'lodash';
 import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
 import { childLogger, initilizeChildLogger, logger } from './logger';
-import { DataSource, EventSource } from './core/_interfaces/sources';
+import { GSDataSource, GSEventSource } from './core/_interfaces/sources';
 import { PlainObject } from './types';
 
 
@@ -24,9 +24,9 @@ export interface GodspeedParams {
 }
 
 class Godspeed {
-  public datasources: { [key: string]: DataSource } = {};
+  public datasources: { [key: string]: GSDataSource } = {};
 
-  public eventsources: { [key: string]: EventSource } = {};
+  public eventsources: { [key: string]: GSEventSource } = {};
 
   public workflows: PlainObject = {};
 
@@ -150,11 +150,9 @@ class Godspeed {
   };
 
   private async subscribeToEvents(): Promise<void> {
-    // events
     for await (let route of Object.keys(this.eventsConfig)) {
       let eventKey = route;
       let eventSourceName = route.split('.')[0];
-
       const eventSource = this.eventsources[eventSourceName];
 
       const processEventHandler = await this.processEvent(this);
@@ -262,7 +260,14 @@ class Godspeed {
   };
 };
 
-// export classes for plugins
-export { EventSource, DataSource, GSActor, GSCloudEvent, GSStatus, PlainObject };
+export {
+  GSEventSource,
+  GSDataSource,
+  GSActor,
+  GSCloudEvent,
+  GSStatus,
+  PlainObject,
+  GSContext
+};
 
 export default Godspeed;

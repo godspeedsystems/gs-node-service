@@ -1,42 +1,16 @@
-/**
- * > things for displosal, config, mappings, datasources
- * > eventsource loader
- *    assumptions:
- *      1. eveny eventsource is a datasource first,
- *
- * /project
- *  /datasources
- *   /types
- *     kafka.ts = initFn, executeFn
- *   kakfa1.yaml
- *  /evntsources
- *    /types
- *      kafka.ts = subscribeFn
- *    kafka1.yaml
- *
- *
- * steps:
- *  1. scan /eventsources for eventsource yaml and based on type, find the `subscribeFn`
- *  2. if types/[type of eventsource] of datasources/[type.ts]
- *    NO
- *      - Notify the user, break the initilization flow
- *    YES
- *      - using the datasource client, execute `subscribeFn` for these kind of events
- *      - execute all the subecribeFn for corresponding events
- */
-
 import path from "path";
 import { logger } from "../logger";
 import { PlainObject } from "../types";
 import loadYaml from "./yamlLoader";
 import config from "config";
+import { GSEventSource } from "./_interfaces/sources";
 
-export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: EventSource }> {
+export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource }> {
   logger.info('eventsourcesFolderPath %s', eventsourcesFolderPath);
   logger.info('datasources %o', datasources);
 
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
-  const eventSources: { [key: string]: EventSource } = {};
+  const eventSources: { [key: string]: GSEventSource } = {};
 
   for await (let esName of Object.keys(eventsourcesConfigs)) {
     let correspondingDatasource = datasources[esName]; //By design, datasource and event source need to share the same name.
@@ -53,11 +27,7 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
         })
         .then(async (Module) => {
           //@ts-ignore
-
-          const eventSourceInstance: EventSource = new Module.default(config, correspondingDatasource); // eslint-disable-line
-
-          logger.debug('module info %o', Object.keys(Module));
-
+          const eventSourceInstance: GSEventSource = new Module.default(config, correspondingDatasource); // eslint-disable-line
           eventSources[esName] = eventSourceInstance;
         });
     }

@@ -1,7 +1,7 @@
 import { PlainObject } from "../../types";
 import { GSCloudEvent, GSContext, GSStatus } from "../interfaces";
 
-export abstract class DataSource {
+export abstract class GSDataSource {
 
   config: PlainObject;
 
@@ -27,14 +27,14 @@ export abstract class DataSource {
   ): Promise<any>
 }
 
-export abstract class EventSource {
+export abstract class GSEventSource {
   config: PlainObject;
 
-  datasource: DataSource;
+  datasource: GSDataSource;
 
   constructor(
     config: PlainObject,
-    datasource: DataSource,
+    datasource: GSDataSource,
   ) {
     this.config = config;
     this.datasource = datasource;
