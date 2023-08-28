@@ -67,7 +67,7 @@ export default async function(args:{[key:string]:any;}) {
     status_message = err.message || 'Error in getting prisma method from client!';
     datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
     cleanupTraces(attributes);
-    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
+    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.message));
   }
 
   try {
@@ -79,9 +79,10 @@ export default async function(args:{[key:string]:any;}) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
     attributes.status_code = 400;
     status_message = err.message || 'Error in query!';
+    childLogger.error(`${status_message} %o`, err.stack);
     datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
     cleanupTraces(attributes);
-    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
+    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.message));
   }
 
 }
