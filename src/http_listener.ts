@@ -35,6 +35,15 @@ const file_size_limit = config.file_size_limit || 50 * 1024 * 1024;
 
 app.use(bodyParser.urlencoded({ extended: true, limit: request_body_limit }));
 app.use(bodyParser.json({ limit: request_body_limit }));
+app.use((req,res,next) => {
+  bodyParser.json({ limit: request_body_limit })(req,res,err =>{
+    if (err) {
+      logger.error('Bad request: %o', err.stack);
+      return res.status(400).send(err.message); // Bad request
+    } 
+    next();
+  });
+});
 app.use(loggerExpress);
 
 try {
