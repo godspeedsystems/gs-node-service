@@ -6,8 +6,8 @@ import config from "config";
 import { GSEventSource } from "./_interfaces/sources";
 
 export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource }> {
-  logger.info('eventsourcesFolderPath %s', eventsourcesFolderPath);
-  logger.info('datasources %o', datasources);
+  logger.debug('eventsourcesFolderPath %s', eventsourcesFolderPath);
+  logger.debug('Datasources %o', Object.keys(datasources));
 
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
   const eventSources: { [key: string]: GSEventSource } = {};

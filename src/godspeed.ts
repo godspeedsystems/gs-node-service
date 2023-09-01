@@ -97,6 +97,8 @@ class Godspeed {
         this.eventsConfig = events;
 
         await this.subscribeToEvents();
+
+        logger.info('Your godspeed server is up and running.');
       })
       .catch((error) => {
         logger.error(error);
@@ -106,7 +108,7 @@ class Godspeed {
   private async _loadEvents(): Promise<PlainObject> {
     logger.info('[START] Load Events from %s', this.folderPaths.events);
     let events = await loadEvents(this.workflows, this.folderPaths.events);
-    logger.info('Events %o', events);
+    logger.debug('Events %o', events);
     logger.info('[END] Load Events');
     return events;
   };
@@ -114,7 +116,7 @@ class Godspeed {
   private async _loadDefinitions(): Promise<PlainObject> {
     logger.info('[START] Load definitions from %s', this.folderPaths.definitions);
     const definitions = await loadAndRegisterDefinitions(this.folderPaths.definitions);
-    logger.info('Definitions %o', definitions);
+    logger.debug('Definitions %o', definitions);
     logger.info('[END] Load definitions');
     return definitions;
   }
@@ -122,7 +124,7 @@ class Godspeed {
   private async _loadFunctions(): Promise<PlainObject> {
     logger.info('[START] Load functions from %s', this.folderPaths.workflows);
     const loadFnStatus = await loadFunctions(this.datasources, this.folderPaths.workflows);
-    logger.info('Functions %o', Object.keys(loadFnStatus.functions));
+    logger.debug('Functions %o', Object.keys(loadFnStatus.functions));
 
     if (loadFnStatus.success) {
       logger.info('[END] Load Functions');
@@ -135,7 +137,7 @@ class Godspeed {
   private async _loadDatasources(): Promise<PlainObject> {
     logger.info('[START] Load Datasources from %s', this.folderPaths.datasources);
     let datasources = await loadDatasources(this.folderPaths.datasources);
-    logger.info('Datasources %o', datasources);
+    logger.debug('Datasources %o', datasources);
     logger.info('[END] Load Datasources');
     return datasources;
   };
@@ -144,7 +146,7 @@ class Godspeed {
     logger.info('[START] Load Eventsources from %s', this.folderPaths.eventsources);
 
     let eventsources = await loadEventsources(this.folderPaths.eventsources, this.datasources);
-    logger.info('Eventsources %o', eventsources);
+    logger.debug('Eventsources %o', eventsources);
     logger.info('[END] Load Eventsources.');
     return eventsources;
   };

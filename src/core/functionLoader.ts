@@ -12,7 +12,12 @@ import path from 'path';
 
 let lastIfFn: GSIFFunction | null;
 
-export function createGSFunction(workflowJson: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, onError: PlainObject | null): GSFunction | null {
+export function createGSFunction(
+    workflowJson: PlainObject,
+    workflows: PlainObject,
+    nativeFunctions: PlainObject,
+    onError: PlainObject | null
+): GSFunction | null {
 
     logger.debug('Creating GSFunction %s workflow_name %s', workflowJson.id, workflowJson.workflow_name);
 
@@ -29,28 +34,41 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
     switch (workflowJson.fn) {
         case 'com.gs.sequential':
-            tasks = workflowJson.tasks.map((taskJson: PlainObject) => {
-                taskJson.workflow_name = workflowJson.workflow_name;
-                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
-            });
+            tasks =
+                workflowJson
+                    .tasks
+                    .map((taskJson: PlainObject) => {
+                        taskJson.workflow_name = workflowJson.workflow_name;
+                        return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+                    });
 
             tasks = tasks.filter(Boolean);
+
             return new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.dynamic_fn':
-            tasks = workflowJson.tasks.map((taskJson: PlainObject) => {
-                taskJson.workflow_name = workflowJson.workflow_name;
-                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
-            });
+            tasks =
+                workflowJson
+                    .tasks
+                    .map((taskJson: PlainObject) => {
+                        taskJson.workflow_name = workflowJson.workflow_name;
+                        return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+                    });
             tasks = tasks.filter(Boolean);
+
             return new GSDynamicFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.parallel':
-            tasks = workflowJson.tasks.map((taskJson: PlainObject) => {
-                taskJson.workflow_name = workflowJson.workflow_name;
-                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
-            });
+            tasks =
+                workflowJson
+                    .tasks
+                    .map((taskJson: PlainObject) => {
+                        taskJson.workflow_name = workflowJson.workflow_name;
+                        return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+                    });
+
             tasks = tasks.filter(Boolean);
+
             return new GSParallelFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.switch': {
@@ -77,11 +95,15 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
         case 'com.gs.if': {
             let args = [workflowJson.condition];
 
-            tasks = workflowJson.tasks.map((taskJson: PlainObject) => {
-                taskJson.workflow_name = workflowJson.workflow_name;
-                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
-            });
+            tasks = workflowJson
+                .tasks
+                .map((taskJson: PlainObject) => {
+                    taskJson.workflow_name = workflowJson.workflow_name;
+                    return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+                });
+
             tasks = tasks.filter(Boolean);
+
             let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
             args.push(task);
@@ -94,10 +116,13 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
         case 'com.gs.elif': {
             let args = [workflowJson.condition];
 
-            tasks = workflowJson.tasks.map((taskJson: PlainObject) => {
-                taskJson.workflow_name = workflowJson.workflow_name;
-                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
-            });
+            tasks = workflowJson
+                .tasks
+                .map((taskJson: PlainObject) => {
+                    taskJson.workflow_name = workflowJson.workflow_name;
+                    return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+                });
+
             tasks = tasks.filter(Boolean);
             let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
@@ -117,10 +142,13 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
         }
 
         case 'com.gs.else': {
-            tasks = workflowJson.tasks.map((taskJson: PlainObject) => {
-                taskJson.workflow_name = workflowJson.workflow_name;
-                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
-            });
+            tasks = workflowJson
+                .tasks
+                .map((taskJson: PlainObject) => {
+                    taskJson.workflow_name = workflowJson.workflow_name;
+                    return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+                });
+
             tasks = tasks.filter(Boolean);
             let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
@@ -137,11 +165,15 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
         case 'com.gs.each_parallel': {
             let args = [workflowJson.value];
-            let tasks = workflowJson.tasks.map((taskJson: PlainObject) => {
-                taskJson.workflow_name = workflowJson.workflow_name;
-                taskJson.isEachParallel = true;
-                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
-            });
+            let tasks =
+                workflowJson
+                    .tasks
+                    .map((taskJson: PlainObject) => {
+                        taskJson.workflow_name = workflowJson.workflow_name;
+                        taskJson.isEachParallel = true;
+                        return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+                    });
+
             tasks = tasks.filter(Boolean);
             let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
@@ -159,10 +191,15 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 
         case 'com.gs.each_sequential': {
             let args = [workflowJson.value];
-            let tasks = workflowJson.tasks.map((taskJson: PlainObject) => {
-                taskJson.workflow_name = workflowJson.workflow_name;
-                return createGSFunction(taskJson, workflows, nativeFunctions, onError);
-            });
+
+            let tasks =
+                workflowJson
+                    .tasks
+                    .map((taskJson: PlainObject) => {
+                        taskJson.workflow_name = workflowJson.workflow_name;
+                        return createGSFunction(taskJson, workflows, nativeFunctions, onError);
+                    });
+
             tasks = tasks.filter(Boolean);
             let task = new GSSeriesFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
             args.push(task);
@@ -185,18 +222,32 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
     if (workflowJson.fn.match(/<(.*?)%/) && workflowJson.fn.includes('%>')) {
         fnScript = compileScript(workflowJson.fn);
     } else {
+        logger.error('Object.keys(nativeFunctions) %o', nativeFunctions);
         // Load the fn for this GSFunction
-        fn = nativeFunctions[workflowJson.fn]; //First check if it's a native function
-        if (!fn) { //If not a native function, it should be a GSFunction/Json
-            const existingWorkflowData = workflows[workflowJson.fn];
+        logger.info('workflowJson.fn %s', workflowJson.fn);
+
+        // first check if it's a native function
+        // but, special handling for datasource function, because
+        // while using datasource fn: in workflows, it is in this format, `datasource.{datasourceName}.{entityName}.{method}`
+        // where as, datasource function are registered as `datasource.{datasourceName}`
+        let fnName = String(workflowJson.fn).startsWith('datasource.')
+            ?
+            String(workflowJson.fn).split('.').splice(0, 2).join('.')
+            :
+            workflowJson.fn;
+
+        fn = nativeFunctions[fnName];
+
+        if (!fn) { // If not a native function, it should be a GSFunction/Json
+            const existingWorkflowData = workflows[fnName];
             if (!existingWorkflowData) {
-                throw new Error(`Function specified by name ${workflowJson.fn} not found in src/functions. Please ensure a function by this path exists.`);
+                throw new Error(`Function specified by name ${fnName} not found in src/functions. Please ensure a function by this path exists.`);
             }
 
             subwf = true;
             if (!(existingWorkflowData instanceof GSFunction)) { //Is still a Json data, not converted to GSFunction
-                existingWorkflowData.workflow_name = workflowJson.fn;
-                fn = workflows[workflowJson.fn] = createGSFunction(existingWorkflowData, workflows, nativeFunctions, onError);
+                existingWorkflowData.workflow_name = fnName;
+                fn = workflows[fnName] = createGSFunction(existingWorkflowData, workflows, nativeFunctions, onError);
             } else { //Is a GSFunction already
                 fn = existingWorkflowData;
             }
@@ -226,20 +277,21 @@ export async function loadFunctions(datasources: PlainObject, pathString: string
     let functions = await loadYaml(pathString);
     let loadFnStatus: PlainObject;
 
-    logger.info('functions %s', Object.keys(functions));
+    logger.debug('functions %s', Object.keys(functions));
+    logger.debug('_datasourceFunctions %o', Object.keys(datasources));
 
     let _datasourceFunctions = Object
         .keys(datasources)
         .reduce((acc, dsName) => {
             // @ts-ignore
             // dsName, eg., httpbin, mongo, prostgres, salesforce
-            acc[`datasource.${dsName}`] = datasources[dsName].executeFn;
+            acc[`datasource.${dsName}`] = async (ctx, args) => {
+                return datasources[dsName].execute(ctx, args);
+            };
             return acc;
         }, {});
 
     code = { ...code, ..._datasourceFunctions };
-
-    logger.info('Loaded native functions: %s', Object.keys(code));
 
     for (let f in functions) {
         try {

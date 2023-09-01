@@ -5,17 +5,17 @@ import { logger } from "../logger";
 import { PlainObject } from "../types";
 import expandVariables from './expandVariables';
 import loadYaml from "./yamlLoader";
-import { DataSource } from "./_interfaces/sources";
+import { GSDataSource } from "./_interfaces/sources";
 
 
 // we need to scan only the first level of datasources folder
-export default async function (pathString: string): Promise<{ [key: string]: DataSource }> {
+export default async function (pathString: string): Promise<{ [key: string]: GSDataSource }> {
   let yamlDatasources = await loadYaml(pathString, false);
 
   const prismaDatasources = await loadPrismaDsFileNames(pathString);
   const datasourcesConfigs = { ...yamlDatasources, ...prismaDatasources };
 
-  const datasources: { [key: string]: DataSource } = {};
+  const datasources: { [key: string]: GSDataSource } = {};
 
   for await (let dsName of Object.keys(datasourcesConfigs)) {
     logger.debug('evaluating datasource %s', dsName);
@@ -28,7 +28,7 @@ export default async function (pathString: string): Promise<{ [key: string]: Dat
 
 
     await import(path.join(pathString, 'types', `${fileName}`))
-      .then(async (Module: DataSource) => {
+      .then(async (Module: GSDataSource) => {
         const dsYamlConfig: PlainObject = datasourcesConfigs[dsName];
         // @ts-ignore
         const dsInstance = new Module.default(dsYamlConfig); // eslint-disable-line
@@ -63,7 +63,7 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
       ...prismaSchemas,
       ...{
         [id]: {
-          type: 'datastore',
+          type: 'prisma',
         },
       },
     };

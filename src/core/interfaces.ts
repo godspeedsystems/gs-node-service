@@ -299,35 +299,51 @@ export class GSFunction extends Function {
   }
 
   async _executefn(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    let status: GSStatus; //Final status to return
+    // final status to return
+    let status: GSStatus;
     let args = this.args;
 
     try {
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
+      debugger; // eslint-disable-line
       if (Array.isArray(this.args)) {
         args = [...this.args];
       } else if (_.isPlainObject(this.args)) {
         args = { ...this.args };
+      } else {
+        args = {};
       }
 
       ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Retry logic is %o', this.retry);
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
-      if (args?.datasource) {
+      if (String(this.yaml.fn).startsWith('datasource.')) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
-        const datasource: any = ctx.datasources[args.datasource];
-        if (datasource instanceof Function) {
-          args.datasource = await evaluateScript(ctx, datasource, taskValue);
-          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'datasource evaluated');
-        } else {
-          args.datasource = datasource;
-          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'datasource %o', args.datasource);
-        }
+        debugger; // eslint-disable-line
+        const [, datasourceName, entityType, method] = this.yaml.fn.split('.');
+        const datasource: any = ctx.datasources[datasourceName];
 
-        let ds = args.datasource;
+        // so that prisma plugin get the entityName and method in plugin to execute respective method.
+        args.meta = {
+          fnNameInWorkflow: this.yaml.fn,
+          entityType,
+          method,
+        };
+
+        // REMOVE: this is not required, because now all the datasources are functions
+
+        // if (datasource instanceof Function) {
+        //   args.datasource = await evaluateScript(ctx, datasource, taskValue);
+        //   ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'datasource evaluated');
+        // } else {
+        //   args.datasource = datasource;
+        //   ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'datasource %o', args.datasource);
+        // }
+
+
 
         // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
         // so that datasource headers are passed to all the workflows using this datasource]
-        let headers = ds.headers;
+        let headers = datasource.config.headers;
         if (headers) {
           args.config.headers = args.config.headers || {};
           let tempObj: any = {};
@@ -345,16 +361,19 @@ export class GSFunction extends Function {
         //   datasource.authn_response = await authnWorkflow(ds, ctx);
         // }
 
-        if (ds.before_method_hook) {
-          await ds.before_method_hook(ctx);
-        }
+        // TODO: this will be moved to datasource plugin
+        // if (ds.before_method_hook) {
+        //   await ds.before_method_hook(ctx);
+        // }
       }
 
+      // TODO: look back
       // if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
       //   args.kafka = ctx.inputs.metadata?.messagebus.kafka;
       // }
 
-      if (args && this.retry) { //Generally all methods with retry will have some args
+      // Generally all methods with retry will have some args
+      if (args && this.retry) {
         args.retry = this.retry;
       }
 
@@ -362,10 +381,9 @@ export class GSFunction extends Function {
 
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (Array.isArray(args)) {
-
-        res = await this.fn!(...[ctx, ...args]);
+        res = await this.fn!(...[ctx, args]);
       } else {
-        res = await this.fn!(...[ctx, ...Object.values(args)]);
+        res = await this.fn!(ctx, args);
       }
 
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Result of _executeFn ${this.id} %o`, res);
@@ -405,10 +423,11 @@ export class GSFunction extends Function {
       );
     }
 
-    if (args.datasource?.after_method_hook) {
-      ctx.outputs.current_output = status;
-      await args.datasource.after_method_hook(ctx);
-    }
+    // TODO: move it to datasource
+    // if (args.datasource?.after_method_hook) {
+    //   ctx.outputs.current_output = status;
+    //   await args.datasource.after_method_hook(ctx);
+    // }
     return status;
   }
 
