@@ -71,9 +71,20 @@ export default async function(args:{[key:string]:any;}) {
   }
 
   try {
-    const res = await prismaMethod.bind(ds.client)(args.data);
+    let res = await prismaMethod.bind(ds.client)(args.data);
     attributes.status_code = responseCode(method);
     cleanupTraces(attributes);
+    if(Object.keys(res).length > 0 && typeof res === 'object' && !Array.isArray(res)){
+      let finalResult = {};
+      for (const [key, value] of Object.entries(res)) {
+        if(typeof value === 'bigint'){
+          finalResult[key] = Number(value);
+        }else{
+          finalResult[key] = value;
+        }
+        res = {...finalResult};
+      }
+    }
     return new GSStatus(true, attributes.status_code, undefined, res);
   } catch (err: any) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
