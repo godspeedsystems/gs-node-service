@@ -222,7 +222,6 @@ export function createGSFunction(
     if (workflowJson.fn.match(/<(.*?)%/) && workflowJson.fn.includes('%>')) {
         fnScript = compileScript(workflowJson.fn);
     } else {
-        logger.error('Object.keys(nativeFunctions) %o', nativeFunctions);
         // Load the fn for this GSFunction
         logger.info('workflowJson.fn %s', workflowJson.fn);
 
