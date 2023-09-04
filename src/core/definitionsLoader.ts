@@ -13,4 +13,4 @@ const loadAndRegisterDefinitions = async (pathString: string) => {
   return definitions;
 };
 
-export { loadAndRegisterDefinitions };
+export default loadAndRegisterDefinitions;

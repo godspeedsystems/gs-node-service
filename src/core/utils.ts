@@ -31,10 +31,8 @@ import * as tls from 'tls';
 import * as url from 'url';
 import * as util from 'util';
 import * as zlib from 'zlib';
-import { logger } from "../logger";
 
-//@ts-ignore
-export const PROJECT_ROOT_DIRECTORY = dirname(require.main.filename);
+import { logger } from "../logger";
 
 export const isPlainObject = (value: any) => value?.constructor === Object;
 
@@ -69,25 +67,32 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
   obj[lastKey] = value;
 }
 
-
-
 export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
-  logger.debug('checkDatasource');
-  logger.debug('workflowJson: %o', workflowJson);
-
   for (let task of workflowJson.tasks) {
     if (task.tasks) {
-      logger.debug('checking nested tasks');
       const status: GSStatus = checkDatasource(task, datasources);
     } else {
       if (task.fn.includes('datasource.')) {
+        /*
+          for eg., in workflow tasks,
+          any task can point to datasource as below
+          ...
+            fn: datasource.mongo.Post.findMany
+            or
+            fn: datasource.redis.get
+          ...
+
+          So, the `mongo`or `redis` in the previous example, is the name actual datasource, whereas `datasource`is just the namespace
+          to differentiate from com.gs functions.
+          While loading the workflows, we only check for the available datasource name, in loaded datasource
+          and rest is handled by the actual datasource implementation.
+        */
         const dsName = task.fn.split('.')[1];
 
-        if (!(dsName in datasources) && !task.args.datasource.match(/<(.*?)%.+%>/)) {
-          //The datasource is neither present in listed datasources and nor is a dynamically evaluated expression, then it is an error
+        if (!(dsName in datasources)) {
           logger.error('datasource %s is not present in datasources', dsName);
-          const msg = `datasource ${dsName} is not present in datasources`;
-          return new GSStatus(false, 500, msg);
+          const message = `datasource ${dsName} is not present in datasources`;
+          return new GSStatus(false, 500, message);
         }
       }
     }

@@ -1,17 +1,22 @@
 import { join } from 'path';
 import { cwd } from 'process';
-import { loadAndRegisterDefinitions } from './core/definitionsLoader';
-import loadDatasources from './core/_datasourceLoader';
-import loadEventsources from './core/_eventsourceLoader';
-import { loadFunctions } from './core/functionLoader';
-import loadEvents from './core/eventLoader';
-import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatus } from './core/interfaces';
 import _ from 'lodash';
-import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
-import { childLogger, initilizeChildLogger, logger } from './logger';
+
+// loaders
+import loadAndRegisterDefinitions from './core/definitionsLoader';
+import loadDatasources from './core/datasourceLoader';
+import loadEventsources from './core/eventsourceLoader';
+import loadFunctions from './core/functionLoader';
+import loadEvents from './core/eventLoader';
+
+// interfaces
+import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatus } from './core/interfaces';
 import { GSDataSource, GSEventSource } from './core/_interfaces/sources';
 import { PlainObject } from './types';
 
+// validators
+import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
+import { childLogger, initilizeChildLogger, logger } from './logger';
 
 export interface GodspeedParams {
   eventsFolderPath?: string,

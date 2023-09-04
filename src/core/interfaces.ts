@@ -9,7 +9,7 @@ import opentelemetry from "@opentelemetry/api";
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from '../logger';
-import { compileScript, isPlainObject } from './utils';
+import { compileScript } from './utils';
 import evaluateScript from './scriptRuntime';
 import { promClient } from '../telemetry/monitoring';
 import config from 'config';
@@ -516,7 +516,7 @@ export class GSFunction extends Function {
           if (allow.data === false) {
             ctx.exitWithStatus = new GSStatus(false, 403, allow.message || 'Unauthorized');
             return ctx.exitWithStatus;
-          } else if (isPlainObject(allow.data)) {
+          } else if (_.isPlainObject(allow.data)) {
             prismaArgs = allow.data;
           }
         }

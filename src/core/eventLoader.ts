@@ -19,12 +19,12 @@ const rewiteRefsToAbsolutePath = (
     return;
   }
   // deep copy
-  logger.info('Replacing $refs in events with definitions.');
+  logger.debug('Replacing $refs in events with definitions.');
   const deepCopyOfEvents = JSON.parse(JSON.stringify(events));
   return Object.keys(deepCopyOfEvents).reduce(
     (accumulator: PlainObject, eventKey: string) => {
       let eventObject = deepCopyOfEvents[eventKey];
-      logger.info('eventObject %o', eventObject);
+      logger.debug('eventObject %o', eventObject);
 
       const bodyContent =
         eventObject?.body?.content || eventObject?.data?.body?.content;
@@ -45,11 +45,11 @@ const rewiteRefsToAbsolutePath = (
 
       const responses =
         eventObject?.responses || eventObject?.data?.schema?.responses;
-      logger.info('responses %o', responses);
+      logger.debug('responses %o', responses);
       if (responses) {
         Object.keys(responses).forEach((responseCode) => {
           let responseContent = responses[responseCode].content;
-          logger.info('responseContent %o', responseContent);
+          logger.debug('responseContent %o', responseContent);
           if (responseContent) {
             Object.keys(responseContent).forEach((responseContentType) => {
               let responseContentTypeSchema =
@@ -79,7 +79,6 @@ export default async function loadEvents(
   functions: PlainObject,
   pathString: string
 ) {
-  logger.info('Loading events');
   const events = await loadYaml(pathString, true);
   logger.debug('events %o', events);
 

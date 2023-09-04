@@ -9,7 +9,7 @@ import { logger, childLogger } from '../logger';
 import ajvInstance, { isValidEvent } from './validation';
 
 export function loadJsonSchemaForEvents(eventObj: PlainObject) {
-  logger.info('Loading JSON Schema for events %s', Object.keys(eventObj));
+  logger.debug('Loading JSON Schema for events %s', Object.keys(eventObj));
   logger.debug('eventObj: %o', eventObj);
 
   return new Promise((resolve, reject) => {
@@ -28,7 +28,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
           Object.keys(body_content).forEach(function (k) {
             const content_schema = body_content[k].schema;
             if (content_schema) {
-              logger.info('adding body schema for %s', topic);
+              logger.debug('adding body schema for %s', topic);
               logger.debug('content_schema %o', content_schema);
               if (!ajvInstance.getSchema(topic)) {
                 ajvInstance.addSchema(content_schema, topic);

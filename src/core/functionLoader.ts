@@ -223,7 +223,7 @@ export function createGSFunction(
         fnScript = compileScript(workflowJson.fn);
     } else {
         // Load the fn for this GSFunction
-        logger.info('workflowJson.fn %s', workflowJson.fn);
+        logger.debug('workflowJson.fn %s', workflowJson.fn);
 
         // first check if it's a native function
         // but, special handling for datasource function, because
@@ -271,7 +271,7 @@ export function createGSFunction(
     return new GSFunction(workflowJson, workflows, nativeFunctions, fn, workflowJson.args, subwf, fnScript);
 }
 
-export async function loadFunctions(datasources: PlainObject, pathString: string): Promise<PlainObject> {
+export default async function loadFunctions(datasources: PlainObject, pathString: string): Promise<PlainObject> {
     let code = await loadModules(path.resolve(__dirname, '../functions'));
     let functions = await loadYaml(pathString);
     let loadFnStatus: PlainObject;
@@ -308,7 +308,7 @@ export async function loadFunctions(datasources: PlainObject, pathString: string
         }
     }
 
-    logger.info('Creating workflows: %s', Object.keys(functions));
+    logger.debug('Creating workflows: %s', Object.keys(functions));
 
     for (let f in functions) {
         if (!(functions[f] instanceof GSFunction)) {
