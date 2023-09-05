@@ -32,8 +32,7 @@ export default async function (pathString: string): Promise<{ [key: string]: GSD
         const dsYamlConfig: PlainObject = datasourcesConfigs[dsName];
         // @ts-ignore
         const Constructor = Module.default;
-        const dsInstance = new Constructor(dsYamlConfig);
-
+        const dsInstance = new Constructor({ ...dsYamlConfig, name: dsName });
         await dsInstance.init(); // This should initialize and set the client in dsInstance
         if (!dsInstance.client) {
           throw new Error(`Client could not be initialized in your datasource ${dsName}`);
@@ -51,9 +50,6 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
   const files = glob.sync(pathString + '/**/*.?(prisma)');
 
   files.forEach((file: string) => {
-    if (file.includes('generated-client')) {
-      return;
-    }
     const id = file
       .replace(new RegExp(`.*?\/${basePath}\/`), '')
       .replace(/\//g, '.')
@@ -64,6 +60,7 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
       ...{
         [id]: {
           type: 'prisma',
+          name: id
         },
       },
     };

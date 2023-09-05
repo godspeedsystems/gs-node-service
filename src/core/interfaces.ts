@@ -305,7 +305,6 @@ export class GSFunction extends Function {
 
     try {
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
-      debugger; // eslint-disable-line
       if (Array.isArray(this.args)) {
         args = [...this.args];
       } else if (_.isPlainObject(this.args)) {
@@ -318,7 +317,6 @@ export class GSFunction extends Function {
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (String(this.yaml.fn).startsWith('datasource.')) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
-        debugger; // eslint-disable-line
         const [, datasourceName, entityType, method] = this.yaml.fn.split('.');
         const datasource: any = ctx.datasources[datasourceName];
 

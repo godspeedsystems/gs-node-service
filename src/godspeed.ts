@@ -103,7 +103,12 @@ class Godspeed {
 
         await this.subscribeToEvents();
 
-        logger.info('Your godspeed server is up and running.');
+        let status = Object.keys(eventsources).map((esName: string) => {
+          let es: { client: PlainObject, config: PlainObject } = eventsources[esName];
+          return `${es.config.type}: ${es.config.port}`;
+        }).join(' ');
+
+        logger.info(`Your godspeed server is up and running on ${status}.`);
       })
       .catch((error) => {
         logger.error(error);
@@ -259,7 +264,7 @@ class Godspeed {
           false,
           500,
           `Error in executing handler ${eventSpec.fn} for the event ${event.type
-          }`,
+          } `,
           error
         );
       }

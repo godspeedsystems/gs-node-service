@@ -4,11 +4,10 @@ import { GSCloudEvent, GSContext, GSStatus } from "../interfaces";
 export abstract class GSDataSource {
   config: PlainObject;
 
-  client: false | PlainObject;
+  client?: PlainObject;
 
   constructor(config: PlainObject) {
     this.config = config;
-    this.client = false;
   };
 
   async init() {
