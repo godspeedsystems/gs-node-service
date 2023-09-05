@@ -31,7 +31,8 @@ export default async function (pathString: string): Promise<{ [key: string]: GSD
       .then(async (Module: GSDataSource) => {
         const dsYamlConfig: PlainObject = datasourcesConfigs[dsName];
         // @ts-ignore
-        const dsInstance = new Module.default(dsYamlConfig); // eslint-disable-line
+        const Constructor = Module.default;
+        const dsInstance = new Constructor(dsYamlConfig);
 
         await dsInstance.init(); // This should initialize and set the client in dsInstance
         if (!dsInstance.client) {
@@ -40,7 +41,6 @@ export default async function (pathString: string): Promise<{ [key: string]: GSD
         datasources[dsName] = dsInstance;
       });
   }
-
   return datasources;
 }
 
