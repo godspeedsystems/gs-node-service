@@ -3,8 +3,6 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import Pino from 'pino';
-//@ts-ignore
-import pinoDebug from 'pino-debug';
 import config from 'config';
 
 const configRedact = (config as any).redact || [];
@@ -31,7 +29,6 @@ for (const redactAttr of configRedact) {
 const logger: Pino.Logger = Pino({
   level: (config as any).log_level || 'info',
   transport: {
-    // target: '../pino/pino-opentelemetry-transport',
     target: "pino-pretty",
     options: {
       destination: 1,
@@ -46,14 +43,5 @@ const logger: Pino.Logger = Pino({
     censor: '*****'
   }
 });
-
-// pinoDebug(logger,
-//   {
-//     auto: true, // default
-//     map: {
-//       'express:router': 'debug',
-//       '*': 'trace' // everything else - trace
-//     }
-//   });
 
 export { logger };
