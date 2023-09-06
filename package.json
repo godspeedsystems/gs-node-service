@@ -1,8 +1,11 @@
 {
-  "name": "godspeed-node",
-  "version": "2.0.0-beta.1",
-  "description": "",
+  "name": "@godspeedsystems/core",
+  "version": "2.0.0-beta.2",
+  "description": "> 4th Generation Declarative Microservice Framework",
   "main": "dist/godspeed.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "cd dist && node -r ./telemetry/tracing.js app.js;",
     "clean": "rm -rf dist",
@@ -78,5 +81,15 @@
     "pino-pretty": "^7.6.1",
     "prettier": "2.6.2",
     "typescript": "^4.7.0"
-  }
+  },
+  "types": "./dist/godspeed.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com-godspeed:godspeedsystems/gs-node-service.git"
+  },
+  "keywords": [
+    "express",
+    "node",
+    "schema-driven"
+  ]
 }
