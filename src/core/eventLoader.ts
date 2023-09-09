@@ -92,6 +92,8 @@ export default async function loadEvents(
     );
     process.exit(1);
   }
-  await loadJsonSchemaForEvents(evalEvents);
+  if (evalEvents) {
+    await loadJsonSchemaForEvents(evalEvents);
+  }
   return evalEvents;
 }

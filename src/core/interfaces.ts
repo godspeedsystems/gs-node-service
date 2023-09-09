@@ -103,14 +103,14 @@ export class GSFunction extends Function {
     this.nativeFunctions = nativeFunctions;
     this.fnScript = fnScript;
 
-    if (args) {
-      this.args = args;
-      const str = JSON.stringify(args);
 
-      if ((str.match(/<(.*?)%/) && str.includes('%>')) || str.match(/(^|\/):([^/]+)/)) {
-        this.args_script = compileScript(args);
-      }
+    this.args = args || {};
+    const str = JSON.stringify(this.args);
+
+    if ((str.match(/<(.*?)%/) && str.includes('%>')) || str.match(/(^|\/):([^/]+)/)) {
+      this.args_script = compileScript(this.args);
     }
+
 
     this.onError = yaml.on_error;
 
@@ -124,18 +124,15 @@ export class GSFunction extends Function {
       this.yaml.authz.args = compileScript(this.yaml.authz?.args);
     }
 
+    // retry
     this.retry = yaml.retry;
-
     if (this.retry) {
-
       if (this.retry.interval) {
         this.retry.interval = parseDuration(this.retry.interval.replace(/^PT/i, ''));
       }
-
       if (this.retry.min_interval) {
         this.retry.min_interval = parseDuration(this.retry.min_interval.replace(/^PT/i, ''));
       }
-
       if (this.retry.max_interval) {
         this.retry.max_interval = parseDuration(this.retry.max_interval.replace(/^PT/i, ''));
       }
@@ -145,7 +142,6 @@ export class GSFunction extends Function {
 
     if (this.yaml.logs) {
       this.logs = this.yaml.logs;
-
       if (this.logs?.before) {
         if (!(this.logs.before.attributes instanceof Function)) {
           this.logs.before.attributes.task_id = this.id;
@@ -153,7 +149,6 @@ export class GSFunction extends Function {
           this.logs.before.attributes = compileScript(this.logs.before.attributes);
         }
       }
-
       if (this.logs?.after) {
         if (!(this.logs.after.attributes instanceof Function)) {
           this.logs.after.attributes.task_id = this.id;
@@ -163,6 +158,7 @@ export class GSFunction extends Function {
       }
     }
 
+    // metrics
     if (this.yaml.metrics) {
       this.metrics = this.yaml.metrics;
       // @ts-ignore
@@ -302,15 +298,12 @@ export class GSFunction extends Function {
     // final status to return
     let status: GSStatus;
     let args = this.args;
-
     try {
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
       if (Array.isArray(this.args)) {
         args = [...this.args];
       } else if (_.isPlainObject(this.args)) {
         args = { ...this.args };
-      } else {
-        args = {};
       }
 
       ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Retry logic is %o', this.retry);
@@ -379,7 +372,7 @@ export class GSFunction extends Function {
 
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (Array.isArray(args)) {
-        res = await this.fn!(...[ctx, args]);
+        res = await this.fn!(ctx, args);
       } else {
         res = await this.fn!(ctx, args);
       }
@@ -1109,48 +1102,3 @@ export interface GSResponse {
     }[];
   };
 }
-
-if (require.main === module) {
-  // const createSpan = async (ctx: GSContext): Promise<GSContext> => {
-  //   console.log('creating span')
-  //   return ctx;
-  // }
-  // const closeSpan = async (ctx: GSContext): Promise<GSContext> => {
-  //   //Close the telemetry object span
-  //   //Send trace to the tracing backend
-  //   console.log('closing span')
-
-  //   return ctx;
-  // }
-  // const sendLogs = async (ctx: GSContext): Promise<GSContext> => {
-  //   console.log('sending events', ctx.events)
-
-  //   return ctx;
-  // }
-
-  // //Set pre auths
-  // i.preAuthHooks.push(createSpan);
-  // i.finally = [closeSpan, sendLogs];
-
-  //i.execute(new GSContext({})).then((ctx) => console.log(JSON.stringify(ctx.outputs))).catch(console.log)
-  //sync request : grpc and http
-  //async request - response
-
-}
-
-/**
- * Thoughts on telemetry as middleware
- * Baed on telemetry requirements execute (GSFunction, ctx) call must create a span for itself in the ctx object
- * In the finally clause, the microservice or servler should add a hook on all Instruction it wants to trace.
- * Whether to create span for this instruction or not, will be included in the instruction export configuration.
- * Refer: https://docs.mindgrep.com/docs/scaffolding/intro#common-middleware-in-case-of-microservice
- */
-
-/**
- *We have only events. Every http request is also an event.
-* Event processor will process the workflow for the event.
-* Every event can have multiple workflows attached to them.
-* The workflow will execute and create the response.
-* Then the adapter will send the response to one or more events on the channels
-* specified in the API shema, with the response data & metadata.
- */

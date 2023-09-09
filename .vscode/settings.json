@@ -1,6 +1,17 @@
 {
-    "yaml.schemas": {
-        "https://raw.githubusercontent.com/ashu17706/godspeed-vscode-extension-pack/main/schemas/events.json": "src/events/**/*.yaml",
-        "https://raw.githubusercontent.com/ashu17706/godspeed-vscode-extension-pack/main/schemas/workflow.json": "src/functions/**/*.yaml"
-    }
+"search.exclude": {
+  "**/node_modules": true,
+  "**/bower_components": true,
+  "**/*.code-search": true,
+  "**/dist": true
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/dist": true
+  }
 }
