@@ -36,6 +36,8 @@ export default function loadYaml(pathString: string, global: boolean = false): P
 }
 
 
+
+
 if (require.main === module) {
   (async () => {
     try {

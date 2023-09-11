@@ -23,7 +23,6 @@ export interface GodspeedParams {
   workflowsFolderPath?: string,
   definitionsFolderPath?: string,
   datasourcesFolderPath?: string,
-  mappingsFolderPath?: string,
   configFolderPath?: string,
   eventsourcesFolderPath?: string
 }
@@ -35,7 +34,7 @@ class Godspeed {
 
   public workflows: PlainObject = {};
 
-  public eventsConfig: PlainObject = {};
+  public events: PlainObject = {};
 
   public definitions: PlainObject = {};
 
@@ -99,7 +98,7 @@ class Godspeed {
         this.eventsources = eventsources;
 
         let events = await this._loadEvents();
-        this.eventsConfig = events;
+        this.events = events;
 
         await this.subscribeToEvents();
 
@@ -111,7 +110,7 @@ class Godspeed {
         logger.info(`Your godspeed server is up and running on ${status}.`);
       })
       .catch((error) => {
-        logger.error(error);
+        logger.error(error.message);
       });
   }
 
@@ -162,7 +161,7 @@ class Godspeed {
   };
 
   private async subscribeToEvents(): Promise<void> {
-    for await (let route of Object.keys(this.eventsConfig)) {
+    for await (let route of Object.keys(this.events)) {
       let eventKey = route;
       let eventSourceName = route.split('.')[0];
       const eventSource = this.eventsources[eventSourceName];
@@ -171,7 +170,7 @@ class Godspeed {
 
       await eventSource.subscribeToEvent(
         route,
-        this.eventsConfig[eventKey],
+        this.events[eventKey],
         processEventHandler,
       );
     }

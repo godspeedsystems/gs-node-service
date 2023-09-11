@@ -80,20 +80,19 @@ export default async function loadEvents(
   pathString: string
 ) {
   const events = await loadYaml(pathString, true);
+  if (events && !Object.keys(events).length) {
+    throw new Error(`There are no events defined in events dir: ${pathString}`);
+  }
+
   logger.debug('events %o', events);
-
   const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events));
-
   const checkFn = checkFunctionExists(events, functions);
+
   if (!checkFn.success) {
-    logger.error(
-      'Error in loading functions for events. Error message: %s. Exiting.',
-      checkFn.message
-    );
-    process.exit(1);
+    throw new Error(`Error in loading functions for events. Error message: %s. Exiting. ${checkFn.message}`);
   }
   if (evalEvents) {
     await loadJsonSchemaForEvents(evalEvents);
   }
   return evalEvents;
-}
+};

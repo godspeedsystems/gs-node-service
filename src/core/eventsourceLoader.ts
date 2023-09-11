@@ -6,6 +6,10 @@ import { GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources"
 
 export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource | GSDataSourceAsEventSource }> {
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
+  if (eventsourcesConfigs && !Object.keys(eventsourcesConfigs).length) {
+    throw new Error(`There are no eventsources defined in eventsource dir: ${eventsourcesFolderPath}`);
+  }
+
   const eventSources: { [key: string]: GSEventSource | GSDataSourceAsEventSource } = {};
 
   for await (let esName of Object.keys(eventsourcesConfigs)) {

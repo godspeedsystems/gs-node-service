@@ -249,7 +249,6 @@ export function compileScript(args: any) {
 }
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {
-  logger.info('Functions %o', Object.keys(functions));
   for (let event in events) {
     if (!(events[event].fn in functions)) {
       logger.error('function %s of event %s is not present in functions', events[event].fn, event);

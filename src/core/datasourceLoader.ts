@@ -15,6 +15,9 @@ export default async function (pathString: string): Promise<{ [key: string]: GSD
   const prismaDatasources = await loadPrismaDsFileNames(pathString);
   const datasourcesConfigs = { ...yamlDatasources, ...prismaDatasources };
 
+  if (datasourcesConfigs && !Object.keys(datasourcesConfigs).length) {
+    throw new Error(`There are no datasources defined in datasource dir: ${pathString}`);
+  }
   const datasources: { [key: string]: GSDataSource } = {};
 
   for await (let dsName of Object.keys(datasourcesConfigs)) {
