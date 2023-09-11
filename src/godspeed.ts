@@ -279,7 +279,8 @@ export {
   GSCloudEvent,
   GSStatus,
   PlainObject,
-  GSContext
+  GSContext,
+  GSResponse
 };
 
 export default Godspeed;
