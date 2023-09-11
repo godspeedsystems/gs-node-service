@@ -268,35 +268,45 @@ export class GSFunction extends Function {
   }
 
   async _observability(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-
-    if (this.yaml.trace) {
-      let trace = this.yaml.trace;
-
-      return tracer.startActiveSpan(trace.name, async span => {
-        if (trace.attributes) {
-          trace.attributes.task_id = this.id;
-          trace.attributes.workflow_name = this.workflow_name;
-          for (let attr in trace.attributes) {
-            span.setAttribute(attr, trace.attributes[attr]);
+    try{
+      if (this.yaml.trace) {
+        let trace = this.yaml.trace;
+  
+        return tracer.startActiveSpan(trace.name, async span => {
+          if (trace.attributes) {
+            trace.attributes.task_id = this.id;
+            trace.attributes.workflow_name = this.workflow_name;
+            for (let attr in trace.attributes) {
+              span.setAttribute(attr, trace.attributes[attr]);
+            }
           }
-        }
-        const status = await this._internalCall(ctx, taskValue);
-
-        if (!status.success) {
-          span.setStatus({
-            //@ts-ignore
-            code: opentelemetry.SpanStatusCode.ERROR,
-            message: 'Error'
-          });
-        }
-        span.end();
-
-        return status;
-      });
-
-    } else {
-      return this._internalCall(ctx, taskValue);
+          const status = await this._internalCall(ctx, taskValue);
+  
+          if (!status.success) {
+            span.setStatus({
+              //@ts-ignore
+              code: opentelemetry.SpanStatusCode.ERROR,
+              message: 'Error'
+            });
+          }
+          span.end();
+  
+          return status;
+        });
+  
+      } else {
+        return this._internalCall(ctx, taskValue);
+      }
+    }catch(err){
+      childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error from execution in task id: %s, error: %s',this.id, err);
+      return new GSStatus(
+        false,
+        500,
+        err.message,
+        `Caught error from execution in task id: ${this.id}, error: ${err}`
+      );
     }
+   
   }
 
   async _executefn(ctx: GSContext, taskValue: any):Promise<GSStatus> {
