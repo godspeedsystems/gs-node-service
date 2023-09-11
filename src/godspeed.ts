@@ -1,3 +1,7 @@
+/* eslint-disable import/first */
+require('dotenv').config();
+var config = require('config');
+
 import { join } from 'path';
 import { cwd } from 'process';
 import _ from 'lodash';
@@ -50,6 +54,8 @@ class Godspeed {
   };
 
   constructor(params = {} as GodspeedParams) {
+    // config
+    this.config = config;
     // let's assume we a re getting the current directory, where module is imported
     const currentDir = cwd();
 

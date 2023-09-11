@@ -33,6 +33,7 @@
     "body-parser": "^1.20.0",
     "coffeescript": "^2.7.0",
     "config": "^3.3.7",
+    "dotenv": "^16.3.1",
     "glob": "^8.1.0",
     "js-yaml": "^4.1.0",
     "kafkajs": "^2.2.3",
