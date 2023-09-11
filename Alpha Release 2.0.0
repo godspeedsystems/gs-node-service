@@ -1,0 +1,19 @@
+Alpha Release 2.0.0
+
+Things to do
+1. Plugins
+  Kafka
+  Redis
+  Prisma
+  API
+  Express
+
+2. Figure out logger.
+3. Make previous observability work
+4. Release Notes
+5. CLI changes to accomodate create, update new project
+6. Codesandbox and Github Co-Pilot
+7. Documentation
+8. Plugin contribution guide
+
+
