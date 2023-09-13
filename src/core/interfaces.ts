@@ -63,6 +63,113 @@ const tracer = opentelemetry.trace.getTracer(
  *
  */
 
+
+
+export async function executefn(ctx: GSContext, taskValue: any,fn: Function, args: any):Promise<GSStatus> {
+  let status: GSStatus; //Final status to return
+
+  try {
+    if (Array.isArray(args)) {
+      args = [...args];
+    } else if (_.isPlainObject(args)) {
+      args = {...args};
+    }
+
+   
+    if (args?.datasource) {
+      // If datasource is a script then evaluate it else load ctx.datasources as it is.
+      const datasource: any = ctx.datasources[args.datasource];
+      if (datasource instanceof Function) {
+        args.datasource = await evaluateScript(ctx, datasource, taskValue);
+      } else {
+        args.datasource = datasource;
+      }
+
+      let ds = args.datasource;
+
+      // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
+      // so that datasource headers are passed to all the workflows using this datasource]
+      let headers = ds.headers;
+      if (headers) {
+        args.config.headers = args.config.headers || {};
+        let tempObj: any={};
+        Object.keys({...headers,...args.config.headers}).map(key=>{
+          tempObj[key]=args.config.headers[key]||headers[key];
+        });
+        Object.assign(args.config.headers, tempObj);
+        Object.keys(args.config.headers).forEach(key => args.config.headers[key] === undefined && delete args.config.headers[key]);
+      }
+
+      if (ds.authn && !datasource.authn_response) {
+        datasource.authn_response = await authnWorkflow(ds, ctx);
+      }
+
+      if (ds.before_method_hook) {
+        ctx.config = { ...ctx.config, context: args};
+        await ds.before_method_hook(ctx);
+      }
+    }
+
+    if (args && ctx.inputs.metadata?.messagebus?.kafka) {  //com.gs.kafka will always have args
+      args.kafka = ctx.inputs.metadata?.messagebus.kafka;
+    }
+
+    // if (args && this.retry) { //Generally all methods with retry will have some args
+    //   args.retry = this.retry;
+    // }
+
+    let res;
+
+    if (Array.isArray(args)) {
+      res = await fn(...args.concat({childLogger, promClient, tracer}));
+    } else {
+      res = await fn(args, {childLogger, promClient, tracer});
+    }
+
+    if (res instanceof GSStatus) {
+      status = res;
+    } else {
+      if (typeof(res) == 'object' && (res.success !== undefined || res.code !== undefined)) {
+        //Some framework functions like HTTP return an object in following format. Check if that is the case.
+        //All framework functions are expected to set success as boolean variable. Can not be null.
+        let {success, code, data, message, headers, exitWithStatus} = res;
+        status = new GSStatus(success, code, message, data, headers);
+
+        //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
+        if (exitWithStatus) {
+          ctx.exitWithStatus = status;
+        }
+      } else {
+        //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
+        status = new GSStatus(
+          true,
+          200, //Default code be 200 for now
+          undefined,
+          res
+          //message: skip
+          //code: skip
+        );
+      }
+    }
+  } catch (err: any) {
+    status = new GSStatus(
+        false,
+        500,
+        err.message,
+        `Caught error from execution in task error: ${err}`
+      );
+  }
+
+  if (args.datasource?.after_method_hook) {
+    ctx.outputs['current_output'] = status;
+    if(!ctx.config.context){
+      ctx.config = { ...ctx.config, context: args};
+    }
+    await args.datasource.after_method_hook(ctx);
+  }
+  return status;
+}
+
 export class GSFunction extends Function {
   yaml: PlainObject;
 
@@ -297,7 +404,7 @@ export class GSFunction extends Function {
       } else {
         return this._internalCall(ctx, taskValue);
       }
-    }catch(err){
+    }catch(err: any){
       childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error from execution in task id: %s, error: %s',this.id, err);
       return new GSStatus(
         false,
