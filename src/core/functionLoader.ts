@@ -264,9 +264,9 @@ export async function loadFunctions(datasources: PlainObject,pathString: string)
     } else {
         // @ts-ignore
         global.functions = nativeFunctions
-        yamlFunctions = nativeFunctions;
+        yamlFunctions = {};
     }
-    loadFnStatus = { success: true, functions: yamlFunctions};
+    loadFnStatus = { success: true, functions: Object.assign(nativeFunctions, yamlFunctions)};
     logger.info('Loaded workflows: %s', Object.keys(yamlFunctions));
     return loadFnStatus;
 }
