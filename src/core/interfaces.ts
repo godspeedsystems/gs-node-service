@@ -94,6 +94,11 @@ export class GSFunction extends Function {
 
   caching?: Function;
 
+  return?: Function;
+
+  return_if?: Function;
+
+
   constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
@@ -219,6 +224,16 @@ export class GSFunction extends Function {
     //caching
     if (this.yaml.caching) {
       this.caching = compileScript(this.yaml.caching);
+    }
+
+    //return
+    if (this.yaml.return) {
+      this.return = compileScript(this.yaml.return);
+    }
+
+    //return_if
+    if (this.yaml.return_if) {
+      this.return_if = compileScript(this.yaml.return_if);
     }
   }
 
@@ -383,27 +398,7 @@ export class GSFunction extends Function {
       if (res instanceof GSStatus) {
         status = res;
       } else {
-        if (typeof(res) == 'object' && (res.success !== undefined || res.code !== undefined)) {
-          //Some framework functions like HTTP return an object in following format. Check if that is the case.
-          //All framework functions are expected to set success as boolean variable. Can not be null.
-          let {success, code, data, message, headers, exitWithStatus} = res;
-          status = new GSStatus(success, code, message, data, headers);
-
-          //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
-          if (exitWithStatus) {
-            ctx.exitWithStatus = status;
-          }
-        } else {
-          //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
-          status = new GSStatus(
-            true,
-            200, //Default code be 200 for now
-            undefined,
-            res
-            //message: skip
-            //code: skip
-          );
-        }
+        status = new GSStatus(res)
       }
     } catch (err: any) {
       childLogger.error({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Caught error from execution in task id: %s, error: %s',this.id, err);
@@ -451,7 +446,6 @@ export class GSFunction extends Function {
               res
             );
           }
-
         } else if (this.onError.response) {
           status.data = this.onError.response;
         } else if (this.onError.tasks) {
@@ -599,6 +593,23 @@ export class GSFunction extends Function {
       if (status?.success || caching.cache_on_failure) {
         childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'Store result in cache');
         await redisClient.set(caching.key, JSON.stringify(status), {EX: caching.expires});
+      }
+    }
+
+    if (this.return) {
+      ctx.outputs[this.id] = status
+      const res = await evaluateScript(ctx, this.return, taskValue)
+      status = ctx.exitWithStatus = new GSStatus(res)
+      ctx.outputs[this.id] = status
+    }
+
+    if (this.return_if) {
+      ctx.outputs[this.id] = status
+      const return_if = await evaluateScript(ctx, this.return_if, taskValue)
+
+      if (return_if.condition) {
+        status = ctx.exitWithStatus = new GSStatus(return_if.response)
+        ctx.outputs[this.id] = status
       }
     }
 
@@ -904,7 +915,18 @@ export class GSStatus {
 
   headers?: {[key:string]: any;};
 
-  constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: {[key:string]: any;}) {
+  constructor(success: any = true, code?: number, message?: string, data?: any, headers?: {[key:string]: any;}) {
+    if (typeof success === 'object' && !(success.success === undefined && success.code === undefined)) { //Meaning the script is returning GS Status compatible response
+      ({success, code, data, message, headers} = success);
+    } else {
+      //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
+      [success, code, message, data] = [
+        true,
+        200, //Default code be 200 for now
+        undefined,
+        success
+      ];
+    }
     this.message = message;
     this.code = code;
     this.success = success;
