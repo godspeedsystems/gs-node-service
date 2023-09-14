@@ -600,7 +600,6 @@ export class GSFunction extends Function {
       ctx.outputs[this.id] = status
       const res = await evaluateScript(ctx, this.return, taskValue)
       status = ctx.exitWithStatus = new GSStatus(res)
-      ctx.outputs[this.id] = status
     }
 
     if (this.return_if) {
@@ -609,7 +608,6 @@ export class GSFunction extends Function {
 
       if (return_if.condition) {
         status = ctx.exitWithStatus = new GSStatus(return_if.response)
-        ctx.outputs[this.id] = status
       }
     }
 
