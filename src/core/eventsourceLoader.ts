@@ -7,7 +7,7 @@ import { GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources"
 export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource | GSDataSourceAsEventSource }> {
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
   if (eventsourcesConfigs && !Object.keys(eventsourcesConfigs).length) {
-    throw new Error(`There are no eventsources defined in eventsource dir: ${eventsourcesFolderPath}`);
+    throw new Error(`There are no event sources defined in eventsource dir: ${eventsourcesFolderPath}`);
   }
 
   const eventSources: { [key: string]: GSEventSource | GSDataSourceAsEventSource } = {};
@@ -30,7 +30,7 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
       } else {
         let correspondingDatasource = datasources[esName]; // By design, datasource and event source need to share the same name.
         if (!correspondingDatasource) {
-          throw new Error(`Corresponding datasource for eventsource ${esName} is not defined. Please ensure a datasource type exists with the same file name in /datasources directory`);
+          throw new Error(`Corresponding data source for event source ${esName} is not defined. Please ensure a data source type exists with the same file name in /datasources directory`);
         } else {
           eventSourceInatance = new Constructor(eventsourcesConfigs[esName], correspondingDatasource.client) as GSDataSourceAsEventSource;
         }
