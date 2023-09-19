@@ -15,7 +15,7 @@ import loadEvents from './core/eventLoader';
 
 // interfaces
 import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatus } from './core/interfaces';
-import { GSDataSource, GSEventSource } from './core/_interfaces/sources';
+import { GSDataSource, GSEventSource, GSDataSourceAsEventSource } from './core/_interfaces/sources';
 import { PlainObject } from './types';
 
 // validators
@@ -285,7 +285,8 @@ export {
   GSStatus,
   PlainObject,
   GSContext,
-  GSResponse
+  GSResponse,
+  GSDataSourceAsEventSource
 };
 
 export default Godspeed;

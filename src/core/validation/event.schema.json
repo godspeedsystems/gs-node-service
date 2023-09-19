@@ -25,9 +25,7 @@
         },
         "parameters": {
             "type": "array",
-            "$ref": "#/definitions/parameters",
-            "minItems": 0,
-            "maxItems": 10
+            "$ref": "#/definitions/params"
         },
         "responses": {
             "type": "object"
@@ -77,45 +75,8 @@
                     ]
                 }
             ],
-            "minItems": 0
-        },
-        "parameters": {
-            "type": "array",
-            "items": [
-                {
-                    "type": "object",
-                    "properties": {
-                        "in": {
-                            "enum": [
-                                "cookie",
-                                "path",
-                                "query",
-                                "header"
-                            ]
-                        },
-                        "name": {
-                            "type": "string"
-                        },
-                        "required": {
-                            "type": "boolean"
-                        },
-                        "schema": {
-                            "type": "object"
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "allow_empty_value": {
-                            "type": "boolean"
-                        }
-                    },
-                    "required": [
-                        "in",
-                        "schema"
-                    ]
-                }
-            ],
-            "minItems": 0
+            "minItems": 1,
+            "maxItems": 10
         }
     },
     "errorMessage": "It's not a valid event definition. Refer above error for more detail."

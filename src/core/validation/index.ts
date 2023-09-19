@@ -5,7 +5,7 @@ import eventSchema from './event.schema.json';
 import workflowSchema from './workflow.schema.json';
 import { logger } from '../../logger';
 
-const ajvInstance = new Ajv({ allErrors: true, coerceTypes: true });
+const ajvInstance = new Ajv({ allErrors: true, coerceTypes: true, strictTuples: false, strictTypes: false });
 addFormats(ajvInstance);
 require('ajv-errors')(ajvInstance);
 
