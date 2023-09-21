@@ -272,12 +272,22 @@ export function createGSFunction(
 }
 
 export default async function loadFunctions(datasources: PlainObject, pathString: string): Promise<PlainObject> {
+
+    // framework defined js/ts functions
     let code = await loadModules(path.resolve(__dirname, '../functions'));
+
+    // project defined yaml worlflows
     let functions = await loadYaml(pathString);
+
+    // project defined js/ts functions
+    let jsCode = await loadModules(pathString);
+
     let loadFnStatus: PlainObject;
 
-    logger.debug('functions %s', Object.keys(functions));
-    logger.debug('_datasourceFunctions %o', Object.keys(datasources));
+    logger.debug('JS functions %s', Object.keys(jsCode));
+    logger.debug('Yaml Workflows %s', Object.keys(functions));
+    logger.debug('Framework defined  functions %s', Object.keys(functions));
+    logger.debug('Datasource Functions %o', Object.keys(datasources));
 
     let _datasourceFunctions = Object
         .keys(datasources)
@@ -290,7 +300,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             return acc;
         }, {});
 
-    code = { ...code, ..._datasourceFunctions };
+    code = { ...code, ..._datasourceFunctions, ...jsCode };
 
     for (let f in functions) {
         try {
