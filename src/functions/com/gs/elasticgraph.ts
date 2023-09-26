@@ -8,9 +8,10 @@ import { PlainObject } from "../../../core/common";
 import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
 
 const tracer = trace.getTracer('name');
-let datastoreSpan: Span;
+
 
 export default async function elasticgraph(args:{[key:string]:any;}) {
+    let datastoreSpan: Span;
     childLogger.debug('com.gs.elasticgraph args.data: %o',args.data);
     
     const es = args.datasource.client;
