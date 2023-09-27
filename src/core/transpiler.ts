@@ -374,11 +374,12 @@ function transpileFile(filePath: string) {
   const loaded = yaml.load(data, { listener: map.listen() });
 
   // const basePath = path.resolve(__dirname, '../functions');
-  const basePath = filePath.split('/').pop();
+  // /Users/zero8/code/twilio/src/functions/byebyeworld.yaml
+  const basePath = filePath.split(path.sep).slice(0, -1).join(path.sep);
 
   if (basePath && basePath.length) {
     const workflowName = filePath.replace(/.*?\/functions\//, '').replace(/\//g, '.').replace(/\.(yaml|yml)/i, '').replace(/\.index$/, '');
-    console.log(basePath, workflowName);
+    console.log({ basePath, workflowName });
 
     const namewithout = path.resolve(basePath, path.parse(filePath).name);
     const jsfile = namewithout + '.js';
