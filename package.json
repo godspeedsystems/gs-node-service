@@ -25,6 +25,7 @@
     "dotenv": "^16.3.1",
     "glob": "^8.1.0",
     "js-yaml": "^4.1.0",
+    "js-yaml-source-map": "^0.2.2",
     "kafkajs": "^2.2.3",
     "lodash": "^4.17.21",
     "opentelemetry-instrumentation-kafkajs": "^0.27.1",
@@ -36,6 +37,7 @@
     "prom-client": "^12.0.0",
     "socket.io": "^4.7.2",
     "sonic-boom": "^3.2.0",
+    "source-map": "^0.7.4",
     "swagger-ui-express": "^4.4.0",
     "yaml": "^2.0.0"
   },

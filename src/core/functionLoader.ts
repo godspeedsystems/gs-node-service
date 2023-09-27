@@ -274,19 +274,18 @@ export function createGSFunction(
 export default async function loadFunctions(datasources: PlainObject, pathString: string): Promise<PlainObject> {
 
     // framework defined js/ts functions
-    let code = await loadModules(path.resolve(__dirname, '../functions'));
+    let nativeFunctions = await loadModules(path.resolve(__dirname, '../functions'));
 
     // project defined yaml worlflows
-    let functions = await loadYaml(pathString);
+    let yamlFunctions;
 
     // project defined js/ts functions
-    let jsCode = await loadModules(pathString);
+    let developerDefinedJsFunctions = await loadModules(pathString);
 
     let loadFnStatus: PlainObject;
 
-    logger.debug('JS functions %s', Object.keys(jsCode));
-    logger.debug('Yaml Workflows %s', Object.keys(functions));
-    logger.debug('Framework defined  functions %s', Object.keys(functions));
+    logger.debug('Framework defined native functions %s', Object.keys(nativeFunctions));
+    logger.debug('Project js functions %s', Object.keys(developerDefinedJsFunctions));
     logger.debug('Datasource Functions %o', Object.keys(datasources));
 
     let _datasourceFunctions = Object
@@ -300,37 +299,48 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             return acc;
         }, {});
 
-    code = { ...code, ..._datasourceFunctions, ...jsCode };
+    nativeFunctions = { ...nativeFunctions, ..._datasourceFunctions, ...developerDefinedJsFunctions };
 
-    for (let f in functions) {
-        try {
-            if (!functions[f].tasks) {
-                throw new Error(`Error in loading tasks of function ${f}.`);
+    if (!process.env.GS_DEBUG) {
+        // if in debug mode
+        yamlFunctions = await loadYaml(pathString);
+        logger.debug('YAML Workflows %o', Object.keys(yamlFunctions));
+        for (let f in yamlFunctions) {
+            try {
+                if (!yamlFunctions[f].tasks) {
+                    throw new Error(`Error in loading tasks of function ${f}.`);
+                }
+            } catch (ex: unknown) {
+                (ex as Error).message = `Error in loading tasks of function ${f}.` + (ex as Error).message;
+                throw ex;
             }
-        } catch (ex: unknown) {
-            (ex as Error).message = `Error in loading tasks of function ${f}.` + (ex as Error).message;
-            throw ex;
+
+            const checkDS = checkDatasource(yamlFunctions[f], datasources);
+            if (!checkDS.success) {
+                throw new Error(`Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
+            }
         }
 
-        const checkDS = checkDatasource(functions[f], datasources);
-        if (!checkDS.success) {
-            throw new Error(`Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
+        logger.debug('Creating workflows: %s', Object.keys(yamlFunctions));
+
+        for (let f in yamlFunctions) {
+            if (!(yamlFunctions[f] instanceof GSFunction)) {
+                yamlFunctions[f].workflow_name = f;
+                if (yamlFunctions[f].on_error?.tasks) {
+                    yamlFunctions[f].on_error.tasks.workflow_name = f;
+                    yamlFunctions[f].on_error.tasks = createGSFunction(yamlFunctions[f].on_error.tasks, yamlFunctions, nativeFunctions, null);
+                }
+                yamlFunctions[f] = createGSFunction(yamlFunctions[f], yamlFunctions, nativeFunctions, yamlFunctions[f].on_error);
+            }
         }
+    } else {
+        // @ts-ignore
+        global.functions = nativeFunctions;
+        yamlFunctions = {};
     }
 
-    logger.debug('Creating workflows: %s', Object.keys(functions));
 
-    for (let f in functions) {
-        if (!(functions[f] instanceof GSFunction)) {
-            functions[f].workflow_name = f;
-            if (functions[f].on_error?.tasks) {
-                functions[f].on_error.tasks.workflow_name = f;
-                functions[f].on_error.tasks = createGSFunction(functions[f].on_error.tasks, functions, code, null);
-            }
-            functions[f] = createGSFunction(functions[f], functions, code, functions[f].on_error);
-        }
-    }
-    loadFnStatus = { success: true, functions: functions };
-    logger.info('Loaded workflows: %s', Object.keys(functions));
+    loadFnStatus = { success: true, functions: yamlFunctions };
+    logger.info('Loaded workflows: %s', Object.keys(yamlFunctions));
     return loadFnStatus;
 }

@@ -1,11 +1,16 @@
 {
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*"
+  ],
   "compilerOptions": {
     "target": "es6",
     "module": "commonjs",
     "typeRoots": [
       "./typings",
       "./node_modules/@types/"
+    ],
+    "lib": [
+      "ES2021.String"
     ],
     "resolveJsonModule": true,
     "allowJs": true,
