@@ -28,7 +28,7 @@ function transpileTask(task: any, map: any, prefix: string, mapping: any, genera
     if (str.match(/<(.*?)%/) && str.match(/%>/)) {
         code = transpile(task.args, mapping, generator, task.fn, fn)
     } else {
-        mapping.generated_line++
+        //mapping.generated_line++
         console.log(mapping)
         code = emitfn(task)
         generator.addMapping({
@@ -39,7 +39,7 @@ function transpileTask(task: any, map: any, prefix: string, mapping: any, genera
         generator.addMapping({
             source: mapping.filename,
             original: {line: fn.line, column: 0},
-            generated: { line: mapping.generated_line, column: 0 },
+            generated: { line: mapping.generated_line++, column: 0 },
         })
     }
 
@@ -55,7 +55,7 @@ function gsSeriesFunction(yaml: any, map: any, prefix: string, mapping: any, gen
 
     if (inside) {
         fun = randomNameGenerator(10)
-        code = 'async function ' + fun + '(ctx) {\n'
+        code = 'async function ' + fun + '() {\n'
         mapping.generated_line++
     }
 
@@ -76,7 +76,7 @@ function gsSeriesFunction(yaml: any, map: any, prefix: string, mapping: any, gen
         }
     }
 
-    code += `outputs['${yaml.id}'] = outputs['${yaml.tasks[yaml.tasks.length - 1].id}']\n`
+    code += `return outputs['${yaml.id}'] = outputs['${yaml.tasks[yaml.tasks.length - 1].id}']\n`
     mapping.generated_line++
 
     if (inside) {
@@ -114,7 +114,7 @@ function emitIf(yaml: any, map: any, mapping: any, generator: any, level: number
                 mapping.generated_line++
             }
 
-            code += `await ${fn}()\n}`
+            code += `return ${fn}()\n}`
             const location = map.lookup(`${prefix}.tasks`)
             location.line--
             generator.addMapping({
@@ -135,7 +135,7 @@ function emitIf(yaml: any, map: any, mapping: any, generator: any, level: number
 function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, generator: any, level: number, workflowName: string) {
     yaml.fun = randomNameGenerator(10)
 
-    console.log('prefix', prefix)
+    //console.log('prefix', prefix)
 
     if (!yaml.fn) {
         yaml.fn = 'com.gs.sequential'
@@ -155,6 +155,7 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
             code += '() {\n'
         }
         mapping.generated_line++
+        console.log('generating function for', yaml.fn, mapping)
     }
 
     if (yaml.fn.includes('com.gs.')) {
@@ -186,10 +187,10 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
 
             case 'com.gs.switch': {
                 const obj: any = {}
-                mapping.generated_line++
+                //mapping.generated_line++
                 mapping.source_line =  map.lookup(`${prefix}.value`).line
                 code += prepareScript(yaml.value, mapping, generator, obj) + '\n'
-                //mapping.generated_line++
+                mapping.generated_line++
 
                 for (let c in yaml.cases) {
                     const location =  `${prefix}.cases.${c}`
@@ -203,12 +204,11 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
 
                 code += `switch(${obj.fun}()) {\n`
                 let line = map.lookup(`${prefix}.fn`)
-                mapping.generated_line++
                 console.log('generating mapping for swicth', line, mapping)
                 generator.addMapping({
                     source: mapping.filename,
                     original: line,
-                    generated: { line: mapping.generated_line, column: 0 },
+                    generated: { line: mapping.generated_line++, column: 0 },
                 })
 
                 //console.log('cases', prefix)
@@ -216,7 +216,6 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
                 for (let c in yaml.cases) {
                     code += `case ${c}:\n`
                     //console.log('code', code)
-                    mapping.generated_line++
                     const line = map.lookup(`${prefix}.cases.${c}`)
                     line.line--
                     generator.addMapping({
@@ -224,14 +223,13 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
                         original: line,
                         generated: { line: mapping.generated_line++, column: 0 },
                     })
-                    code += `return await ${yaml.cases[c].fun}()\nbreak;\n`
+                    code += `return ${yaml.cases[c].fun}()\n`
                     line.line++
                     generator.addMapping({
                         source: mapping.filename,
                         original: line,
-                        generated: { line: mapping.generated_line, column: 0 },
+                        generated: { line: mapping.generated_line++, column: 0 },
                     })
-                    mapping.generated_line += 2
                 }
 
                 if (yaml.defaults) {
@@ -244,7 +242,7 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
                         original: line,
                         generated: { line: mapping.generated_line++, column: 0 },
                     })
-                    code += `return await ${yaml.defaults.fun}()\n`
+                    code += `return ${yaml.defaults.fun}()\n`
                 }
 
                 code += `}\n`
@@ -255,7 +253,6 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
             case 'com.gs.if': {
                 const obj: any = {}
                 mapping.source_line = map.lookup(`${prefix}.condition`).line
-                console.log(mapping)
                 code += prepareScript(yaml.condition, mapping, generator, obj) + '\n'
                 mapping.generated_line++
                 let ret = gsSeriesFunction(yaml, map, `${prefix}.tasks`, mapping, generator, level + 1, workflowName, true)
@@ -269,8 +266,9 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
             case 'com.gs.elif': {
                 const obj: any = {}
                 mapping.source_line = map.lookup(`${prefix}.condition`).line
+                //console.log(mapping)
                 code += prepareScript(yaml.condition, mapping, generator, obj) + '\n'
-                code += 'async function ' + yaml.fun + '(ctx) {\n'
+                code += 'async function ' + yaml.fun + '() {\n'
                 mapping.generated_line += 2
                 let ret = gsSeriesFunction(yaml, map, `${prefix}.tasks`, mapping, generator, level + 1, workflowName, false)
                 code += ret.code
@@ -332,7 +330,6 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
                 code += transpileTask(yaml, map, prefix, mapping, generator)
         }
 
-        console.log("generating new line for function", yaml.fun, level)
     } else {
         console.log('calling single task fn', prefix)
         code += transpileTask(yaml, map, prefix, mapping, generator)
@@ -342,6 +339,7 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
 
     if (yaml.fn != 'com.gs.if') {
         code += '}\n'
+        mapping.generated_line++
 
         if (level == 0) {
             code += `module.exports = async function(ctx) {
@@ -353,7 +351,7 @@ module.exports.id='${yaml.id}'\n
             generator.addMapping({
                 source: mapping.filename,
                 original: yaml.location,
-                generated: { line: mapping.generated_line + 2, column: 0 },
+                generated: { line: mapping.generated_line + 1, column: 0 },
             })
         }
     }
@@ -361,7 +359,6 @@ module.exports.id='${yaml.id}'\n
     if (yaml.fn != 'com.gs.elif' && ifFunctions[level]) {
         code += emitIf(yaml, map, mapping, generator, level)
     }
-    mapping.generated_line++
 
     return code
 }
@@ -407,8 +404,8 @@ console.log('project directory',  process.env.PROJECT_ROOT_DIRECTORY)
 glob(process.env.PROJECT_ROOT_DIRECTORY + '/src/functions' + '/**/*.?(yaml|yml)', function (err:Error|null, res: string[]) {
     console.log('transpiling files: %s',res)
     if (!err) {
-      res.forEach(file => {
-        transpileFile(file)
-      })
+        res.forEach(file => {
+            transpileFile(file)
+        })
     }
-  })
+})
