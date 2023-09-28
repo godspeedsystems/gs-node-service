@@ -397,7 +397,7 @@ function transpileFile(filePath: string) {
     try {
       let code = transpileTasks(loaded, map, "tasks", mapping, generator, 0, workflowName);
       console.log("writing file", jsfile, mapfile);
-      fs.writeFileSync(jsfile, imports + code + eof(mapfile));
+      fs.writeFileSync(jsfile, code + eof(mapfile));
       fs.writeFileSync(mapfile, generator.toString());
     } catch (ex) {
       console.log(ex);

@@ -272,7 +272,7 @@ export function createGSFunction(
 }
 
 export default async function loadFunctions(datasources: PlainObject, pathString: string): Promise<PlainObject> {
-
+    debugger; // eslint-disable-line
     // framework defined js/ts functions
     let nativeFunctions = await loadModules(path.resolve(__dirname, '../functions'));
 
@@ -300,6 +300,8 @@ export default async function loadFunctions(datasources: PlainObject, pathString
         }, {});
 
     nativeFunctions = { ...nativeFunctions, ..._datasourceFunctions, ...developerDefinedJsFunctions };
+
+    logger.debug('GS_DEBUG %s', !process.env.GS_DEBUG);
 
     if (!process.env.GS_DEBUG) {
         // if in debug mode
@@ -340,7 +342,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
     }
 
 
-    loadFnStatus = { success: true, functions: yamlFunctions };
-    logger.info('Loaded workflows: %s', Object.keys(yamlFunctions));
+    loadFnStatus = { success: true, functions: { ...yamlFunctions, ...developerDefinedJsFunctions } };
+    logger.info('Loaded workflows: %s', Object.keys({ ...yamlFunctions, ...developerDefinedJsFunctions }));
     return loadFnStatus;
 }
