@@ -235,7 +235,7 @@ class Godspeed {
         eventHandlerWorkflow = <GSSeriesFunction>(workflows[eventSpec.fn]);
       }
 
-      const ctx = new GSContext({}, datasources, event, {}, {}, logger, childLogger);
+      const ctx = new GSContext(config, datasources, event, {}, {}, logger, childLogger);
 
       let eventHandlerStatus;
 
@@ -278,15 +278,15 @@ class Godspeed {
 };
 
 export {
-  GSEventSource,
-  GSDataSource,
   GSActor,
   GSCloudEvent,
   GSStatus,
   PlainObject,
   GSContext,
   GSResponse,
-  GSDataSourceAsEventSource
+  GSDataSourceAsEventSource, // kafk, it share the client with datasource
+  GSEventSource, // express. it has own mechanisim for initClient
+  GSDataSource
 };
 
 export default Godspeed;
