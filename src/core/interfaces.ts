@@ -336,14 +336,14 @@ export class GSFunction extends Function {
         // so that datasource headers are passed to all the workflows using this datasource]
         let headers = datasource.config.headers;
         if (headers) {
-          args.config.headers = args.config.headers || {};
+          args.headers = args.headers || {};
           let tempObj: any = {};
-          Object.keys({ ...headers, ...args.config.headers }).map(key => {
-            tempObj[key] = args.config.headers[key] || headers[key];
+          Object.keys({ ...headers, ...args.headers }).map(key => {
+            tempObj[key] = args.headers[key] || headers[key];
           });
-          Object.assign(args.config.headers, tempObj);
-          Object.keys(args.config.headers).forEach(key => args.config.headers[key] === undefined && delete args.config.headers[key]);
-          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `settings datasource headers: %o`, args.config.headers);
+          Object.assign(args.headers, tempObj);
+          Object.keys(args.headers).forEach(key => args.headers[key] === undefined && delete args.headers[key]);
+          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `settings datasource headers: %o`, args.headers);
         }
 
         // TODO: this will be moved to datasource plugin
