@@ -3,6 +3,8 @@ import { logger } from "../logger";
 import { PlainObject } from "../types";
 import loadYaml from "./yamlLoader";
 import { GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources";
+import { GSCloudEvent, GSContext } from "./interfaces";
+import config from 'config';
 
 export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource | GSDataSourceAsEventSource }> {
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
@@ -17,15 +19,16 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
     const eventSourceConfig = eventsourcesConfigs[esName];
     try {
       const Module = await import(path.join(eventsourcesFolderPath, 'types', eventSourceConfig.type));
-      const isPureEventSource = !!Object.hasOwnProperty.call(Module.default.prototype, 'initClient');
+      // const isPureEventSource = !!Object.hasOwnProperty.call(Module.default.prototype, 'initClient');
+      const isPureEventSource = 'initClient' in Module.default.prototype;
       let eventSourceInatance: GSEventSource | GSDataSourceAsEventSource;
-
       let Constructor = Module.default;
 
       if (isPureEventSource) {
         eventSourceInatance = new Constructor(eventsourcesConfigs[esName]) as GSEventSource;
         if ('init' in eventSourceInatance) {
-          await eventSourceInatance.init();
+
+          await eventSourceInatance.init({ datasources });
         }
       } else {
         let correspondingDatasource = datasources[esName]; // By design, datasource and event source need to share the same name.

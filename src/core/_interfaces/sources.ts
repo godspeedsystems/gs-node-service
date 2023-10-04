@@ -51,11 +51,11 @@ export abstract class GSEventSource {
     this.client = false;
   };
 
-  public async init() {
-    this.client = await this.initClient();
+  public async init(ctx: PlainObject) {
+    this.client = await this.initClient(ctx);
   }
 
-  protected abstract initClient(): Promise<PlainObject>;
+  protected abstract initClient(ctx: PlainObject): Promise<PlainObject>;
 
   abstract subscribeToEvent(
     eventKey: string,
