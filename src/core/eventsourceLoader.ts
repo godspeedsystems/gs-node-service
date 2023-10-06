@@ -17,7 +17,8 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
     const eventSourceConfig = eventsourcesConfigs[esName];
     try {
       const Module = await import(path.join(eventsourcesFolderPath, 'types', eventSourceConfig.type));
-      const isPureEventSource = !!Object.hasOwnProperty.call(Module.default.prototype, 'initClient');
+      const isPureEventSource = 'initClient' in Module.default.prototype;
+      // const isPureEventSource = !!Object.hasOwnProperty.call(Module.default.prototype, 'initClient');
       let eventSourceInatance: GSEventSource | GSDataSourceAsEventSource;
 
       let Constructor = Module.default;
