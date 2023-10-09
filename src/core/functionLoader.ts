@@ -311,7 +311,6 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             (ex as Error).message = `Error in loading tasks of function ${f}.` + (ex as Error).message;
             throw ex;
         }
-
         const checkDS = checkDatasource(functions[f], datasources);
         if (!checkDS.success) {
             throw new Error(`Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
@@ -330,7 +329,9 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             functions[f] = createGSFunction(functions[f], functions, code, functions[f].on_error);
         }
     }
-    loadFnStatus = { success: true, functions: functions };
-    logger.info('Loaded workflows: %s', Object.keys(functions));
+
+    loadFnStatus = { success: true, functions: { ...functions, ...jsCode } };
+    logger.info('Loaded YAML workflows: %o', Object.keys(functions));
+    logger.info('Loaded JS workflows %o', Object.keys(jsCode));
     return loadFnStatus;
 }

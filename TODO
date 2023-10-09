@@ -1,0 +1,8 @@
+1. Response headers documentation in GSStatus
+2. Calling a JS function from event
+3. Calling YAML/JS from js workflow(Make functions available in ctx)
+4. Calling datasources from js workflows
+5. return data or GSStatus from js workflow
+6. flatten the args, RN it is args = { x, y, z }, make it x, y, z [LOW PRIORITY]
+7. documentation
+8. ID of the js/yaml workflow should be FQN, and allow override in both js/yaml
