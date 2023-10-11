@@ -50,6 +50,9 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 return createGSFunction(taskJson, workflows, nativeFunctions, onError);
             });
             tasks = tasks.filter(Boolean);
+
+            workflowJson.isParallel = true;
+            logger.debug('setting the parallel flag %o', workflowJson);
             return new GSParallelFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.switch': {
