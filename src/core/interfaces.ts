@@ -787,6 +787,7 @@ export class GSParallelFunction extends GSFunction {
     }
 
     ctx.outputs[this.id] = status;
+    console.log(status,outputs,'parallel outpts')
     return status;
   }
 }

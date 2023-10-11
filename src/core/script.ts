@@ -139,7 +139,7 @@ function compileScript(args: any, mapping: Mapping, generator: SourceMapGenerato
         if (typeof(s) == 'string' && s.startsWith("function ")) {
             str += `${newkey} = (${s.replaceAll('\\', '')})()\n`
         } else {
-            str += `${newkey} = ${s}\n`
+            str += `${newkey} = ${typeof(s) == 'string' ? `"${s}"`:s}\n`
         }
         mapping.source_line++
     }

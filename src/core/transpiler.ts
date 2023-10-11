@@ -20,22 +20,28 @@ function transpileTask(task: any, map: any, prefix: string, mapping: any, genera
     task.location = map.lookup(prefix)
     const fn: any = map.lookup(`${prefix}.fn`)
     const args: any = map.lookup(`${prefix}.args`)
-    mapping.source_line = args.line
 
-    const str = JSON.stringify(task.args)
+    if(args?.line || fn?.line){
+        mapping.source_line = args?.line ?? fn.line
+    }
+    
+    const str = JSON.stringify(task?.args)
 
     let code
-    if (str.match(/<(.*?)%/) && str.match(/%>/)) {
+    if (str && str.match(/<(.*?)%/) && str.match(/%>/)) {
         code = transpile(task.args, mapping, generator, task.fn, fn)
     } else {
         //mapping.generated_line++
         console.log(mapping)
         code = emitfn(task)
-        generator.addMapping({
-            source: mapping.filename,
-            original: {line: args.line, column: 0},
-            generated: { line: mapping.generated_line++, column: 0 },
-        })
+        if(args?.line){
+            generator.addMapping({
+                source: mapping.filename,
+                original: {line: args.line, column: 0},
+                generated: { line: mapping.generated_line++, column: 0 },
+            })
+        }
+        
         generator.addMapping({
             source: mapping.filename,
             original: {line: fn.line, column: 0},
@@ -133,10 +139,16 @@ function emitIf(yaml: any, map: any, mapping: any, generator: any, level: number
 }
 
 function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, generator: any, level: number, workflowName: string) {
-    yaml.fun = randomNameGenerator(10)
+    
 
     //console.log('prefix', prefix)
+    if(Array.isArray(yaml)){
+        // for case tasks handling of switch statement
+        yaml = {tasks:yaml}
+    }
 
+    yaml.fun = randomNameGenerator(10)
+    
     if (!yaml.fn) {
         yaml.fn = 'com.gs.sequential'
     }
@@ -177,7 +189,7 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
 
             case 'com.gs.parallel':
                 for (let i = 0; i <  yaml.tasks.length; ++i) {
-                    const location =  `${prefix}.${i}`
+                    const location = `${prefix}.tasks.${i}`;
                     code += transpileTasks(yaml.tasks[i], map, location, mapping, generator, level + 1, workflowName)
                 }
                 code += 'await Promise.all([' + yaml.tasks.map((t: any) => `${t.fun}()`).join(',') + '])\n'
@@ -214,7 +226,7 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
                 //console.log('cases', prefix)
 
                 for (let c in yaml.cases) {
-                    code += `case ${c}:\n`
+                    code += c === 'default'?`${c}:\n`: `case ${c}:\n`
                     //console.log('code', code)
                     const line = map.lookup(`${prefix}.cases.${c}`)
                     line.line--
@@ -373,10 +385,15 @@ function transpileFile(filename: string) {
     const basePath = path.resolve(__dirname, '../functions')
     const workflowName = filename.replace(new RegExp(`.*?\/functions\/`), '').replace(/\//g, '.').replace(/\.(yaml|yml)/i, '').replace(/\.index$/, '')
 
-    console.log(basePath, workflowName)
-
-    const namewithout = path.resolve(basePath, path.parse(filename).name)
-
+    const delimiter = "/functions/";
+    const edges = path.parse(filename).dir.split(delimiter);
+    let namewithout;
+    
+    if(edges.length > 0){
+        namewithout =  path.resolve(basePath + `/${edges[1]}`, path.parse(filename).name);
+    }else{
+        namewithout =  path.resolve(basePath, path.parse(filename).name);
+    }
     const jsfile = namewithout + '.js'
     const mapfile = namewithout + '.js.map'
 
