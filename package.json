@@ -85,7 +85,6 @@
     "redis": "^4.1.0",
     "sonic-boom": "^3.2.0",
     "swagger-ui-express": "^4.4.0",
-    "testproject": "file:dist",
     "yaml": "^2.0.0",
     "yarn": "^1.22.18"
   },
