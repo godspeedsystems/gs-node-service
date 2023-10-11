@@ -613,18 +613,28 @@ export class GSSeriesFunction extends GSFunction {
     let ret;
 
     for (const child of this.args!) {
+      logger.debug('checking the parallel variable in interface %o', child.yaml);
       ret = await child(ctx, taskValue);
+
       if (ctx.exitWithStatus) {
         if (child.yaml.isEachParallel) {
           childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
           ctx.outputs[this.id] = ret;
           return ret;
-        } else {
-          ctx.outputs[this.id] = ctx.exitWithStatus;
-          return ctx.exitWithStatus;
         }
-      }
-    }
+        if (child.yaml.isParallel) {
+          childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isParallel: %s, ret: %o', child.yaml.isParallel, ret);
+          ctx.outputs[this.id] = ret;
+          console.log("this is from the parallel condition")
+        }
+        else {
+          ctx.outputs[this.id] = ret;
+          return ret;
+        }
+        
+       }
+      
+  }
     childLogger.setBindings({ 'workflow_name': this.workflow_name,'task_id': this.id});
     childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
