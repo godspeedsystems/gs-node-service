@@ -1,7 +1,7 @@
 /*
-* You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
-* © 2022 Mindgrep Technologies Pvt Ltd
-*/
+ * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
+ * © 2022 Mindgrep Technologies Pvt Ltd
+ */
 import { PlainObject } from './common';
 
 import glob from 'glob';
@@ -17,7 +17,7 @@ export default function loadModules(
 
   return new Promise((resolve, reject) => {
     glob(
-      pathString + '/**/*.?(js)',
+      path.join(pathString, '**', '*.?(js)').replace(/\\/g, '/'),
       function (err: Error | null, res: string[]) {
         logger.debug('processing files: %s', res);
         if (err) {
@@ -28,7 +28,6 @@ export default function loadModules(
               return import(
                 path.relative(__dirname, file).replace(/\.(js)/, '')
               ).then((module) => {
-
                 if (file.match(/.*?\/plugins\//)) {
                   const id = file
                     .replace(/.*?\/(plugins)\//, '')
@@ -64,7 +63,7 @@ export default function loadModules(
                   if (global) {
                     api = {
                       ...api,
-                      ...module
+                      ...module,
                     };
                   } else {
                     if (id == 'index') {
@@ -82,9 +81,7 @@ export default function loadModules(
                       }
                     }
                   }
-
                 }
-
               });
             })
           ).then(() => {
