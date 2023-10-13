@@ -71,20 +71,21 @@ function gsSeriesFunction(yaml: any, map: any, prefix: string, mapping: any, gen
     }
 
     //console.log(yaml)
+    if (Array.isArray(yaml.tasks)) {
     for (let task of yaml.tasks) {
         if (!['com.gs.elif', 'com.gs.else'].includes(task.fn)) {
-            code += `outputs['${task.id}'] = await ${task.fun}()\n`
+            code += `outputs['${task.id}'] = await ${task.fun}()\n`;
             generator.addMapping({
                 source: mapping.filename,
                 original: task.location,
                 generated: { line: mapping.generated_line++, column: 0 },
-            })
+            });
         }
     }
 
-    code += `return outputs['${yaml.id}'] = outputs['${yaml.tasks[yaml.tasks.length - 1].id}']\n`
-    mapping.generated_line++
-
+    code += `return outputs['${yaml.id}'] = outputs['${yaml.tasks[yaml.tasks.length - 1].id}']\n`;
+    mapping.generated_line++;
+    }  
     if (inside) {
         code += '}\n'
         mapping.generated_line++
@@ -204,9 +205,14 @@ function transpileTasks(yaml: any, map: any, prefix: string, mapping: any, gener
                 code += prepareScript(yaml.value, mapping, generator, obj) + '\n'
                 mapping.generated_line++
 
-                for (let c in yaml.cases) {
-                    const location =  `${prefix}.cases.${c}`
-                    code += transpileTasks(yaml.cases[c], map, location, mapping, generator, level + 1, workflowName)
+               for (let c in yaml.cases) {
+                    let location;
+                    if (yaml.cases[c].tasks) {
+                    location = `${prefix}.cases.${c}.tasks`;
+                    } else {
+                    location = `${prefix}.cases.${c}`;
+                    }
+                    code += transpileTasks(yaml.cases[c], map, location, mapping, generator, level + 1, workflowName);
                 }
 
                 if (yaml.defaults) {
