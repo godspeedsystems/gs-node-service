@@ -395,7 +395,7 @@ function transpileFile(filename: string) {
     const edges = path.parse(filename).dir.split(delimiter);
     let namewithout;
     
-    if(edges.length > 0){
+    if(edges.length > 1){
         namewithout =  path.resolve(basePath + `/${edges[1]}`, path.parse(filename).name);
     }else{
         namewithout =  path.resolve(basePath, path.parse(filename).name);
