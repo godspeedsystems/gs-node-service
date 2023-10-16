@@ -1,0 +1,39 @@
+name: Run Tests
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Install Git
+        run: |
+          apt-get update
+          apt-get install -y git
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Clone Repository
+        run: |
+          git clone https://avtar-mindgrep:${{ secrets.GIT_TOKEN }}@github.com/godspeedsystems/gs-test-project.git
+        env:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+      - name: Set up Node.js (or your programming environment)
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18
+      - name: Install project dependencies
+        run: |
+          cd gs-test-project  
+          npm install
+      - name: Run Tests
+        run: |
+          cd gs-test-project  
+          npm run dev-test
