@@ -10,7 +10,7 @@
     "start": "cd dist && node -r ./telemetry/tracing.js app.js;",
     "clean": "rm -rf dist",
     "dev": "tsc --watch",
-    "build": "tsc",
+    "build": "tsc -w",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "author": "Godspeed Systems Pte",
