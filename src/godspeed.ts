@@ -6,6 +6,7 @@ var config = require('config');
 import { join } from 'path';
 import { cwd } from 'process';
 import _ from 'lodash';
+import swaggerUI from 'swagger-ui-express';
 
 // loaders
 import loadAndRegisterDefinitions from './core/definitionsLoader';
@@ -22,6 +23,7 @@ import { PlainObject } from './types';
 // validators
 import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
 import { childLogger, initializeChildLogger, logger } from './logger';
+import { generateSwaggerJSON } from './router/swagger';
 
 export interface GodspeedParams {
   eventsFolderPath?: string,
@@ -172,10 +174,17 @@ class Godspeed {
   };
 
   private async subscribeToEvents(): Promise<void> {
+    const httpEvents: { [key: string]: any } = {};
+
     for await (let route of Object.keys(this.events)) {
       let eventKey = route;
       let eventSourceName = route.split('.')[0];
       const eventSource = this.eventsources[eventSourceName];
+
+      // for swagger UI
+      if (eventSourceName === 'http') {
+        httpEvents[eventKey] = { ...this.events[eventKey] };
+      }
 
       const processEventHandler = await this.processEvent(this);
 
@@ -184,6 +193,14 @@ class Godspeed {
         this.events[eventKey],
         processEventHandler,
       );
+    }
+
+    const httpEventSource = this.eventsources['http']; // eslint-disable-line
+    if (httpEventSource?.config?.docs) {
+      const _httpEvents = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
+      logger.info('HTTP event source: %o', _httpEvents);
+      // @ts-ignore
+      httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
     }
   }
 
