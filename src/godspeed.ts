@@ -1,4 +1,5 @@
 /* eslint-disable import/first */
+require('./telemetry/tracing').initialize();
 require('dotenv').config();
 var config = require('config');
 
@@ -20,7 +21,7 @@ import { PlainObject } from './types';
 
 // validators
 import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
-import { childLogger, initilizeChildLogger, logger } from './logger';
+import { childLogger, initializeChildLogger, logger } from './logger';
 
 export interface GodspeedParams {
   eventsFolderPath?: string,
@@ -120,6 +121,10 @@ class Godspeed {
       });
   }
 
+  public initialize() {
+    this.initilize();
+  };
+
   private async _loadEvents(): Promise<PlainObject> {
     logger.info('[START] Load events from %s', this.folderPaths.events);
     let events = await loadEvents(this.workflows, this.folderPaths.events);
@@ -190,7 +195,7 @@ class Godspeed {
     return async (event: GSCloudEvent, eventConfig: PlainObject): Promise<GSStatus> => {
       // TODO: improve child logger initilization
       // initilize child logger
-      initilizeChildLogger({});
+      initializeChildLogger({});
       // TODO: lot's of logging related steps
       childLogger.info('processing event ... %s %o', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config

@@ -3,7 +3,7 @@ import { logger } from './logger';
 
 let childLogger: pino.Logger;
 
-const initilizeChildLogger = (options: pino.LoggerOptions) => {
+const initializeChildLogger = (options: pino.LoggerOptions) => {
   if (childLogger) {
     return childLogger;
   }
@@ -15,5 +15,5 @@ const initilizeChildLogger = (options: pino.LoggerOptions) => {
 export {
   logger,
   childLogger,
-  initilizeChildLogger
+  initializeChildLogger
 };
