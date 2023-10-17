@@ -18,19 +18,19 @@ jobs:
         run: |
           apt-get update
           apt-get install -y git
-      - name: Checkout code
-        uses: actions/checkout@v2
 
       - name: Checkout test project
         uses: actions/checkout@v4
         with:
           repository: godspeedsystems/gs-test-project
           token: ${{ secrets.GIT_TOKEN }}  
+          path: gs-test-project
               
       - name: Set up Node.js (or your programming environment)
         uses: actions/setup-node@v2
         with:
           node-version: 18
+
       - name: Install project dependencies
         run: |
           cd gs-test-project  
