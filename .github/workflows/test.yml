@@ -20,11 +20,13 @@ jobs:
           apt-get install -y git
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Clone Repository
-        run: |
-          git clone https://avtar-mindgrep:${{ secrets.GIT_TOKEN }}@github.com/godspeedsystems/gs-test-project.git
-        env:
-          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+
+      - name: Checkout test project
+        uses: actions/checkout@v4
+        with:
+          repository: godspeedsystems/gs-test-project
+          token: ${{ secrets.GIT_TOKEN }}  
+              
       - name: Set up Node.js (or your programming environment)
         uses: actions/setup-node@v2
         with:
