@@ -8,7 +8,7 @@ import { trace, Span, SpanStatusCode, SpanContext } from "@opentelemetry/api";
 import { PlainObject } from '../../../core/common';
 
 const tracer = trace.getTracer('name');
-let datastoreSpan: Span;
+
 
 /**
  * 
@@ -18,6 +18,8 @@ let datastoreSpan: Span;
  * data: arguments specific to the prisma method being invoked
  */
 export default async function(args:{[key:string]:any;}) {
+  let datastoreSpan: Span;
+
   childLogger.debug('args %o', args.data);
   
   const ds = args.datasource;
@@ -57,7 +59,7 @@ export default async function(args:{[key:string]:any;}) {
       attributes.status_code = 500;
       status_message = `Invalid CRUD method "${entityType}" "${method}" called`;
       datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
-      cleanupTraces(attributes);
+      cleanupTraces(datastoreSpan,attributes);
       return new GSStatus(false, attributes.status_code, undefined, status_message);
     }  
 
@@ -66,27 +68,28 @@ export default async function(args:{[key:string]:any;}) {
     attributes.status_code = 400;
     status_message = err.message || 'Error in getting prisma method from client!';
     datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
-    cleanupTraces(attributes);
-    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
+    cleanupTraces(datastoreSpan,attributes);
+    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.message));
   }
 
   try {
     const res = await prismaMethod.bind(ds.client)(args.data);
     attributes.status_code = responseCode(method);
-    cleanupTraces(attributes);
+    cleanupTraces(datastoreSpan,attributes);
     return new GSStatus(true, attributes.status_code, undefined, res);
   } catch (err: any) {
     //TODO: better check for error codes. Return 500 for server side error. 40X for client errors.
     attributes.status_code = 400;
     status_message = err.message || 'Error in query!';
+    childLogger.error(`${status_message} %o`, err.stack);
     datastoreSpan.setStatus({ code: SpanStatusCode.ERROR, message: status_message});
-    cleanupTraces(attributes);
-    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.stack));
+    cleanupTraces(datastoreSpan,attributes);
+    return new GSStatus(false, attributes.status_code, status_message, JSON.stringify(err.message));
   }
 
 }
 
-function cleanupTraces(attributes: PlainObject) {
+function cleanupTraces(datastoreSpan: Span,attributes: PlainObject) {
   datastoreSpan.setAttribute('status_code', attributes.status_code);
   datastoreSpan.end();
 }

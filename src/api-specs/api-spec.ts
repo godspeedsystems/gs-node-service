@@ -40,7 +40,7 @@ export default async function generateSchema(
   const eventsSchema: PlainObject = await loadEventsYaml(eventsFolderPath);
   const definitions: PlainObject = await loadYaml(definitionsFolderPath, false);
 
-  let finalSpec;
+  let finalSpec: PlainObject = {};
   let swaggerSpecBase = JSON.parse(JSON.stringify(swaggerCommonPart));
 
   try {

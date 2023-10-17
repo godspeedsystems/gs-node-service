@@ -3,7 +3,7 @@
  * © 2022 Mindgrep Technologies Pvt Ltd
  */
 import nodeCleanup from 'node-cleanup';
-import { createClient }  from 'redis';
+import { createClient, createCluster }  from 'redis';
 import { PlainObject } from '../core/common';
 import { logger } from '../core/logger';
 
@@ -15,11 +15,20 @@ export default async function (datasource: PlainObject): Promise<{[key: string]:
     return null;
   }
 
-  const { type, ...connectionProps } = datasource;
+  const { type, cluster: clusterConfig, ...connectionProps } = datasource;
 
-  client = await createClient({
-    ...connectionProps,
-  });
+  // cluster mode
+  // in yaml, we define all the createCluster props in `cluster` key
+  // for more info, https://github.com/redis/node-redis/blob/master/docs/clustering.md
+  if(cluster) {
+    client = await createCluster({
+      ...clusterConfig,
+    });
+  } else {
+    client = await createClient({
+      ...connectionProps,
+    });
+  }
 
   client?.on('error', (err: Error) => logger.error('Redis Client Error %o', err));
   client?.on('connect', () => logger.info('Redis Client connection started.'));

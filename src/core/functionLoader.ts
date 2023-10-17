@@ -50,6 +50,9 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
                 return createGSFunction(taskJson, workflows, nativeFunctions, onError);
             });
             tasks = tasks.filter(Boolean);
+
+            workflowJson.isParallel = true;
+            logger.debug('setting the parallel flag %o', workflowJson);
             return new GSParallelFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.switch': {
@@ -222,43 +225,51 @@ export function createGSFunction(workflowJson: PlainObject, workflows: PlainObje
 }
 
 export async function loadFunctions(datasources: PlainObject,pathString: string): Promise<PlainObject> {
-    let code = await loadModules(pathString);
-    let functions = await loadYaml(pathString);
+    let nativeFunctions = await loadModules(pathString);
+    let yamlFunctions;
     let loadFnStatus:PlainObject;
 
-    logger.info('Loaded native functions: %s', Object.keys(code));
+    if (!process.env.GS_DEBUG) {
+        yamlFunctions = await loadYaml(pathString);
 
-    for (let f in functions) {
-        try {
-            if (! functions[f].tasks) {
+        logger.info('Loaded native functions: %s', Object.keys(nativeFunctions));
+
+        for (let f in yamlFunctions) {
+            try {
+                if (! yamlFunctions[f].tasks) {
+                    logger.error('Error in loading tasks of function %s, exiting.', f);
+                    process.exit(1);
+                }
+            } catch (ex) {
                 logger.error('Error in loading tasks of function %s, exiting.', f);
                 process.exit(1);
             }
-        } catch (ex) {
-            logger.error('Error in loading tasks of function %s, exiting.', f);
-            process.exit(1);
-        }
 
-        const checkDS = checkDatasource(functions[f], datasources);
-        if (!checkDS.success) {
-          logger.error('Error in loading datasource for function %s . Error message: %s . Exiting.', f, checkDS.message);
-          process.exit(1);
-        }
-    }
-
-    logger.info('Creating workflows: %s', Object.keys(functions));
-
-    for (let f in functions) {
-        if (!(functions[f] instanceof GSFunction)) {
-            functions[f].workflow_name = f;
-            if (functions[f].on_error?.tasks) {
-                functions[f].on_error.tasks.workflow_name = f;
-                functions[f].on_error.tasks = createGSFunction(functions[f].on_error.tasks, functions, code, null);
+            const checkDS = checkDatasource(yamlFunctions[f], datasources);
+            if (!checkDS.success) {
+                logger.error('Error in loading datasource for function %s . Error message: %s . Exiting.', f, checkDS.message);
+                process.exit(1);
             }
-            functions[f] = createGSFunction(functions[f], functions, code, functions[f].on_error);
         }
+
+        logger.info('Creating workflows: %s', Object.keys(yamlFunctions));
+
+        for (let f in yamlFunctions) {
+            if (!(yamlFunctions[f] instanceof GSFunction)) {
+                yamlFunctions[f].workflow_name = f;
+                if (yamlFunctions[f].on_error?.tasks) {
+                    yamlFunctions[f].on_error.tasks.workflow_name = f;
+                    yamlFunctions[f].on_error.tasks = createGSFunction(yamlFunctions[f].on_error.tasks, yamlFunctions, nativeFunctions, null);
+                }
+                yamlFunctions[f] = createGSFunction(yamlFunctions[f], yamlFunctions, nativeFunctions, yamlFunctions[f].on_error);
+            }
+        }
+    } else {
+        // @ts-ignore
+        global.functions = nativeFunctions
+        yamlFunctions = {};
     }
-    loadFnStatus = { success: true, functions: functions};
-    logger.info('Loaded workflows: %s', Object.keys(functions));
+    loadFnStatus = { success: true, functions: Object.assign(nativeFunctions, yamlFunctions)};
+    logger.info('Loaded workflows: %s', Object.keys(yamlFunctions));
     return loadFnStatus;
 }
