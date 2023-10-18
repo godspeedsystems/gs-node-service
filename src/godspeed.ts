@@ -1,5 +1,14 @@
 /* eslint-disable import/first */
-require('./telemetry/tracing').initialize();
+try {
+  if (process.env.OTEL_ENABLED) {
+      require('@godspeedsystems/tracing').initialize();
+  }    
+} catch(error) {
+  console.error("OTEL_ENABLED is set, unable to initialize opentelemetry tracing.");
+  console.error(error);
+  process.exit(1);
+}
+
 require('dotenv').config();
 var config = require('config');
 
