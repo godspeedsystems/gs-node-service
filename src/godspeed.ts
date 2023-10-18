@@ -15,21 +15,38 @@ import loadFunctions from './core/functionLoader';
 import loadEvents from './core/eventLoader';
 
 // interfaces
-import { GSActor, GSCloudEvent, GSContext, GSResponse, GSSeriesFunction, GSStatus } from './core/interfaces';
-import { GSDataSource, GSEventSource, GSDataSourceAsEventSource } from './core/_interfaces/sources';
-import { PlainObject } from './types';
+import {
+  GSActor,
+  GSCloudEvent,
+  GSContext,
+  GSSeriesFunction,
+  GSStatus,
+} from './core/interfaces';
+import * as interfaces from './core/interfaces';
 
+import {
+  GSDataSource,
+  GSEventSource,
+  GSDataSourceAsEventSource,
+} from './core/_interfaces/sources';
+import * as types from './types';
+
+const { PlainObject } = types;
+const { GSResponse } = interfaces;
 // validators
-import { validateRequestSchema, validateResponseSchema } from './core/jsonSchemaValidation';
+import {
+  validateRequestSchema,
+  validateResponseSchema,
+} from './core/jsonSchemaValidation';
 import { childLogger, initializeChildLogger, logger } from './logger';
 
 export interface GodspeedParams {
-  eventsFolderPath?: string,
-  workflowsFolderPath?: string,
-  definitionsFolderPath?: string,
-  datasourcesFolderPath?: string,
-  configFolderPath?: string,
-  eventsourcesFolderPath?: string
+  eventsFolderPath?: string;
+  workflowsFolderPath?: string;
+  definitionsFolderPath?: string;
+  datasourcesFolderPath?: string;
+  configFolderPath?: string;
+  eventsourcesFolderPath?: string;
 }
 
 class Godspeed {
@@ -46,12 +63,12 @@ class Godspeed {
   public config: PlainObject = {};
 
   public folderPaths: {
-    events: string,
-    workflows: string,
-    definitions: string,
-    config: string,
-    datasources: string,
-    eventsources: string
+    events: string;
+    workflows: string;
+    definitions: string;
+    config: string;
+    datasources: string;
+    eventsources: string;
   };
 
   constructor(params = {} as GodspeedParams) {
@@ -60,6 +77,8 @@ class Godspeed {
     // let's assume we a re getting the current directory, where module is imported
     const currentDir = cwd();
 
+    const isProd = process.env.NODE_ENV === 'production';
+
     // destruct GodspeedParams, if not supplied, assign the default value
     let {
       eventsFolderPath,
@@ -67,15 +86,45 @@ class Godspeed {
       definitionsFolderPath,
       configFolderPath,
       datasourcesFolderPath,
-      eventsourcesFolderPath
+      eventsourcesFolderPath,
     } = params;
 
-    eventsFolderPath = join(currentDir, params.eventsFolderPath || '/src/events');
-    workflowsFolderPath = join(currentDir, params.workflowsFolderPath || '/src/functions');
-    definitionsFolderPath = join(currentDir, params.definitionsFolderPath || '/src/definitions');
-    configFolderPath = join(currentDir, params.configFolderPath || '/config');
-    datasourcesFolderPath = join(currentDir, params.datasourcesFolderPath || '/src/datasources');
-    eventsourcesFolderPath = join(currentDir, params.eventsourcesFolderPath || '/src/eventsources');
+    eventsFolderPath = join(
+      currentDir,
+      isProd
+        ? params.eventsFolderPath || '/dist/events'
+        : params.eventsFolderPath || '/src/events'
+    );
+    workflowsFolderPath = join(
+      currentDir,
+      isProd
+        ? params.workflowsFolderPath || '/dist/functions'
+        : params.workflowsFolderPath || '/src/functions'
+    );
+    definitionsFolderPath = join(
+      currentDir,
+      isProd
+        ? params.definitionsFolderPath || '/dist/definitions'
+        : params.definitionsFolderPath || '/src/definitions'
+    );
+    configFolderPath = join(
+      currentDir,
+      isProd
+        ? params.configFolderPath || '/config'
+        : params.configFolderPath || '/config'
+    );
+    datasourcesFolderPath = join(
+      currentDir,
+      isProd
+        ? params.datasourcesFolderPath || '/dist/datasources'
+        : params.datasourcesFolderPath || '/src/datasources'
+    );
+    eventsourcesFolderPath = join(
+      currentDir,
+      isProd
+        ? params.eventsourcesFolderPath || '/dist/eventsources'
+        : params.eventsourcesFolderPath || '/src/eventsources'
+    );
 
     this.folderPaths = {
       events: eventsFolderPath,
@@ -83,7 +132,7 @@ class Godspeed {
       config: configFolderPath,
       definitions: definitionsFolderPath,
       datasources: datasourcesFolderPath,
-      eventsources: eventsourcesFolderPath
+      eventsources: eventsourcesFolderPath,
     };
 
     Object.freeze(this.folderPaths);
@@ -92,7 +141,6 @@ class Godspeed {
   public initilize() {
     this._loadDefinitions()
       .then(async (definitions) => {
-
         this.definitions = definitions;
 
         let datasources = await this._loadDatasources();
@@ -109,12 +157,19 @@ class Godspeed {
 
         await this.subscribeToEvents();
 
-        let status = Object.keys(eventsources).map((esName: string) => {
-          let es: { client: PlainObject, config: PlainObject } = eventsources[esName];
-          return `${es.config.type}: ${es.config.port}`;
-        }).join(' ');
+        let status = Object.keys(eventsources)
+          .map((esName: string) => {
+            let es: { client: PlainObject; config: PlainObject } =
+              eventsources[esName];
+            return `${es.config.type}: ${es.config.port}`;
+          })
+          .join(' ');
 
-        logger.info(`[Dev Server][Running] ('${status.split(' ')[0]}' event source, '${status.split(' ')[1]}' port).`);
+        logger.info(
+          `[Dev Server][Running] ('${status.split(' ')[0]}' event source, '${
+            status.split(' ')[1]
+          }' port).`
+        );
       })
       .catch((error) => {
         logger.error(error.message);
@@ -123,7 +178,7 @@ class Godspeed {
 
   public initialize() {
     this.initilize();
-  };
+  }
 
   private async _loadEvents(): Promise<PlainObject> {
     logger.info('[START] Load events from %s', this.folderPaths.events);
@@ -131,11 +186,16 @@ class Godspeed {
     logger.debug('Events %o', events);
     logger.info('[END] Load events');
     return events;
-  };
+  }
 
   private async _loadDefinitions(): Promise<PlainObject> {
-    logger.info('[START] Load definitions from %s', this.folderPaths.definitions);
-    const definitions = await loadAndRegisterDefinitions(this.folderPaths.definitions);
+    logger.info(
+      '[START] Load definitions from %s',
+      this.folderPaths.definitions
+    );
+    const definitions = await loadAndRegisterDefinitions(
+      this.folderPaths.definitions
+    );
     logger.debug('Definitions %o', definitions);
     logger.info('[END] Load definitions');
     return definitions;
@@ -143,7 +203,10 @@ class Godspeed {
 
   private async _loadFunctions(): Promise<PlainObject> {
     logger.info('[START] Load functions from %s', this.folderPaths.workflows);
-    const loadFnStatus = await loadFunctions(this.datasources, this.folderPaths.workflows);
+    const loadFnStatus = await loadFunctions(
+      this.datasources,
+      this.folderPaths.workflows
+    );
     logger.debug('Functions %o', Object.keys(loadFnStatus.functions));
 
     if (loadFnStatus.success) {
@@ -155,21 +218,30 @@ class Godspeed {
   }
 
   private async _loadDatasources(): Promise<PlainObject> {
-    logger.info('[START] Load data sources from %s', this.folderPaths.datasources);
+    logger.info(
+      '[START] Load data sources from %s',
+      this.folderPaths.datasources
+    );
     let datasources = await loadDatasources(this.folderPaths.datasources);
     logger.debug('data sources %o', datasources);
     logger.info('[END] Load data sources');
     return datasources;
-  };
+  }
 
   private async _loadEventsources(): Promise<PlainObject> {
-    logger.info('[START] Load event sources from %s', this.folderPaths.eventsources);
+    logger.info(
+      '[START] Load event sources from %s',
+      this.folderPaths.eventsources
+    );
 
-    let eventsources = await loadEventsources(this.folderPaths.eventsources, this.datasources);
+    let eventsources = await loadEventsources(
+      this.folderPaths.eventsources,
+      this.datasources
+    );
     logger.debug('event sources %o', eventsources);
     logger.info('[END] event sources.');
     return eventsources;
-  };
+  }
 
   private async subscribeToEvents(): Promise<void> {
     for await (let route of Object.keys(this.events)) {
@@ -182,17 +254,22 @@ class Godspeed {
       await eventSource.subscribeToEvent(
         route,
         this.events[eventKey],
-        processEventHandler,
+        processEventHandler
       );
     }
   }
 
   private async processEvent(
     local: Godspeed
-  ): Promise<(event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>> {
+  ): Promise<
+    (event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>
+  > {
     const { workflows, datasources } = local;
 
-    return async (event: GSCloudEvent, eventConfig: PlainObject): Promise<GSStatus> => {
+    return async (
+      event: GSCloudEvent,
+      eventConfig: PlainObject
+    ): Promise<GSStatus> => {
       // TODO: improve child logger initilization
       // initilize child logger
       initializeChildLogger({});
@@ -200,11 +277,15 @@ class Godspeed {
       childLogger.info('processing event ... %s %o', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config
       const responseStructure: GSResponse = {
-        apiVersion: '1.0'
+        apiVersion: '1.0',
       };
 
       let eventHandlerWorkflow: GSSeriesFunction;
-      let validateStatus = validateRequestSchema(event.type, event, eventConfig);
+      let validateStatus = validateRequestSchema(
+        event.type,
+        event,
+        eventConfig
+      );
       let eventSpec = eventConfig;
 
       if (validateStatus.success === false) {
@@ -213,7 +294,7 @@ class Godspeed {
         const responseData: PlainObject = {
           message: 'request validation failed.',
           error: validateStatus.message,
-          data: validateStatus.data
+          data: validateStatus.data,
         };
 
         // if `on_validation_error` is defined in the event, let's execute that
@@ -221,7 +302,7 @@ class Godspeed {
           const validationError = {
             success: false,
             code: validateStatus.code,
-            ...responseData
+            ...responseData,
           };
 
           childLogger.error(validationError);
@@ -236,11 +317,22 @@ class Godspeed {
           return validateStatus;
         }
       } else {
-        childLogger.info('Request JSON Schema validated successfully %o', validateStatus);
-        eventHandlerWorkflow = <GSSeriesFunction>(workflows[eventSpec.fn]);
+        childLogger.info(
+          'Request JSON Schema validated successfully %o',
+          validateStatus
+        );
+        eventHandlerWorkflow = <GSSeriesFunction>workflows[eventSpec.fn];
       }
 
-      const ctx = new GSContext(config, datasources, event, {}, {}, logger, childLogger);
+      const ctx = new GSContext(
+        config,
+        datasources,
+        event,
+        {},
+        {},
+        logger,
+        childLogger
+      );
 
       let eventHandlerStatus;
 
@@ -253,33 +345,32 @@ class Godspeed {
         if (eventHandlerStatus.success) {
           // event workflow executed successfully
           // lets validate the response schema
-          let validateResponseStatus = validateResponseSchema(event.type, eventHandlerStatus);
+          let validateResponseStatus = validateResponseSchema(
+            event.type,
+            eventHandlerStatus
+          );
           if (!validateResponseStatus.success) {
             childLogger.error('Response JSON schema validation failed.');
-            return new GSStatus(
-              false, 500, 'response validation error', {
+            return new GSStatus(false, 500, 'response validation error', {
               error: {
                 message: validateResponseStatus.message,
-                info: validateResponseStatus.data
-              }
-            }
-            );
+                info: validateResponseStatus.data,
+              },
+            });
           }
         }
 
         return eventHandlerStatus;
-
       } catch (error) {
         return new GSStatus(
           false,
           500,
-          `Error in executing handler ${eventSpec.fn} for the event ${event.type
-          } `,
+          `Error in executing handler ${eventSpec.fn} for the event ${event.type} `,
           error
         );
       }
     };
-  };
+  }
 };
 
 export {

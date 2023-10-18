@@ -1,10 +1,18 @@
 {
   "jsc": {
+    "target": "es2015",
     "parser": {
-      "syntax": "typescript",
-      "tsx": false
+      "syntax": "typescript"
     },
-    "target": "es2015"
+    "transform": {
+      "react": {
+        "pragma": "React.createElement",
+        "pragmaFrag": "React.Fragment",
+        "throwIfNamespace": true,
+        "development": false,
+        "useBuiltins": false
+      }
+    }
   },
   "module": {
     "type": "commonjs"

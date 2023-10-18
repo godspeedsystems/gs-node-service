@@ -11,6 +11,7 @@
     "clean": "rm -rf dist",
     "dev": "tsc --watch",
     "build": "npx swc src/index.js --config-file .swcrc",
+    "build-swc": "NODE_ENV=production swc src -d dist && rsync -a --exclude '*.ts' ./src/ ./dist/",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "author": "Godspeed Systems Pte",
