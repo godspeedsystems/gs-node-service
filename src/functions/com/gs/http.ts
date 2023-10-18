@@ -63,6 +63,9 @@ export default async function(args:{[key:string]:any;}) {
                             contentType: file.mimetype,
                             knownLength: file.size
                         });
+                        if(file.tempFilePath){
+                            fs.unlinkSync(file.tempFilePath);
+                        } 
                     }
                 } else if (_.isPlainObject(args.files)) {
                     for (let key in args.files) {
@@ -81,6 +84,9 @@ export default async function(args:{[key:string]:any;}) {
                                         contentType: singleFile.mimetype,
                                         knownLength: singleFile.size
                                     });
+                                    if(singleFile.tempFilePath){
+                                        fs.unlinkSync(singleFile.tempFilePath);
+                                    } 
                                 }
                             }
                         } else{
@@ -95,7 +101,10 @@ export default async function(args:{[key:string]:any;}) {
                                     filename: file.name,
                                     contentType: file.mimetype,
                                     knownLength: file.size
-                                });    
+                                }); 
+                                if(file.tempFilePath){
+                                    fs.unlinkSync(file.tempFilePath);
+                                }    
                             }
                         }
                     }
