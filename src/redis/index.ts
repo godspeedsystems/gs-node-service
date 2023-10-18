@@ -20,7 +20,7 @@ export default async function (datasource: PlainObject): Promise<{[key: string]:
   // cluster mode
   // in yaml, we define all the createCluster props in `cluster` key
   // for more info, https://github.com/redis/node-redis/blob/master/docs/clustering.md
-  if(cluster) {
+  if(clusterConfig) {
     client = await createCluster({
       ...clusterConfig,
     });
