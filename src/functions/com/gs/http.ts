@@ -162,35 +162,6 @@ export default async function(args:{[key:string]:any;}) {
         const status_code = res.status;
         childLogger.debug('southbound metric labels route %s method %s status_code %s', route, method, status_code);
         southboundCount.inc({route, method, status_code});
-
-        if (args.files) {
-            if (Array.isArray(args.files)) {
-                let files:PlainObject[] = _.flatten(args.files);
-
-                for (let file of files) {
-                    fs.unlinkSync(file.tempFilePath);
-                }
-            } else if (_.isPlainObject(args.files)) {
-                for (let key in args.files) {
-                    let file = args.files[key];
-                    if (Array.isArray(file)) {
-                        for (let singleFile of file) {
-                            if (singleFile.url) {
-                                // do nothing
-                            } else {
-                                fs.unlinkSync(singleFile.tempFilePath);
-                            }
-                        }
-                    } else{
-                        if (file.url) {
-                            // do nothing
-                        } else {  
-                            fs.unlinkSync(file.tempFilePath); 
-                        }
-                    }
-                }
-            }
-        }
         
         childLogger.debug('res: %o', res);
         return {success: true, code: res.status, data: res.data, message: res.statusText, headers: res.headers};
