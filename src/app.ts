@@ -392,7 +392,7 @@ async function main() {
           return;
         }
 
-        if(event.data?.files && event?.data?.files?.length > 0){
+        if(event.channel == 'REST' && event.data?.files && event?.data?.files?.length > 0){
           handleTempFiles(event.data);
         }
 
@@ -500,7 +500,7 @@ async function main() {
             error: valid_status.message,
             data: valid_status.data,
           };
-          if(event.data?.files && event?.data?.files?.length > 0){
+          if(event.channel == 'REST' && event.data?.files && event?.data?.files?.length > 0){
             handleTempFiles(event.data);
           }
           return (event.metadata?.http?.express.res as express.Response)
@@ -534,10 +534,10 @@ async function main() {
       childLogger.error('return value %o %o %o', _.cloneDeep(data), code, headers);
     }
 
-    if(event.data?.files && event?.data?.files?.length > 0){
+    if(event.channel == 'REST' && event.data?.files && event?.data?.files?.length > 0){
       handleTempFiles(event.data);
     }
-    
+
     (event.metadata?.http?.express.res as express.Response)
       .status(code)
       .header(headers)
