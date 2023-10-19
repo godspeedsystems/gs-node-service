@@ -34,7 +34,7 @@ import { loadAndRegisterDefinitions } from './core/definitionsLoader';
 import salesforce from "./salesforce";
 import cron from './cron';
 import loadMappings from './core/mappingLoader';
-import jsonata from "jsonata";
+import fs from 'fs';
 
 let childLogger: Pino.Logger;
 let mappings: PlainObject;
@@ -246,6 +246,41 @@ function subscribeToEvents(
   app.use(baseUrl, router);
 }
 
+function handleTempFiles(args:any){
+  if(args.files){
+    if (args.files) {
+      if (Array.isArray(args.files)) {
+          let files:PlainObject[] = _.flatten(args.files);
+
+          for (let file of files) {
+              if(fs.existsSync(file.tempFilePath)){
+                  fs.unlinkSync(file.tempFilePath);
+              }
+          }
+      } else if (_.isPlainObject(args.files)) {
+          for (let key in args.files) {
+              let file = args.files[key];
+              if (Array.isArray(file)) {
+                  for (let singleFile of file) {
+                      if (singleFile.url) {
+                          // do nothing
+                      } else if(fs.existsSync(singleFile.tempFilePath)){
+                          fs.unlinkSync(singleFile.tempFilePath);
+                      }
+                  }
+              } else{
+                  if (file.url) {
+                      // do nothing
+                  } else if(fs.existsSync(file.tempFilePath)){  
+                      fs.unlinkSync(file.tempFilePath); 
+                  }
+              }
+          }
+      }
+    }
+  }
+}
+
 async function main() {
   logger.info('Main execution NODE_ENV: %s', process.env.NODE_ENV);
   let functions: PlainObject;
@@ -356,6 +391,11 @@ async function main() {
         if (event.channel !== 'REST') {
           return;
         }
+
+        if(event.data?.files && event?.data?.files?.length > 0){
+          handleTempFiles(event.data);
+        }
+
         return (event.metadata?.http?.express.res as express.Response)
           .status(valid_status.code)
           .send(response_data);
@@ -460,6 +500,9 @@ async function main() {
             error: valid_status.message,
             data: valid_status.data,
           };
+          if(event.data?.files && event?.data?.files?.length > 0){
+            handleTempFiles(event.data);
+          }
           return (event.metadata?.http?.express.res as express.Response)
             .status(valid_status.code)
             .send(response_data);
@@ -491,6 +534,10 @@ async function main() {
       childLogger.error('return value %o %o %o', _.cloneDeep(data), code, headers);
     }
 
+    if(event.data?.files && event?.data?.files?.length > 0){
+      handleTempFiles(event.data);
+    }
+    
     (event.metadata?.http?.express.res as express.Response)
       .status(code)
       .header(headers)
