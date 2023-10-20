@@ -1,6 +1,6 @@
 /* eslint-disable import/first */
 try {
-  if (process.env.OTEL_ENABLED) {
+  if (process.env.OTEL_ENABLED == 'true') {
       require('@godspeedsystems/tracing').initialize();
   }    
 } catch(error) {
