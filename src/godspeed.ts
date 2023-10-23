@@ -16,6 +16,7 @@ import { join } from 'path';
 import { cwd } from 'process';
 import _ from 'lodash';
 import swaggerUI from 'swagger-ui-express';
+import promClient from '@godspeedsystems/metrics';
 
 // loaders
 import loadAndRegisterDefinitions from './core/definitionsLoader';
@@ -210,6 +211,25 @@ class Godspeed {
       logger.info('HTTP event source: %o', _httpEvents);
       // @ts-ignore
       httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
+    }
+
+    if (process.env.OTEL_ENABLED == 'true') {
+      // @ts-ignore
+      httpEventSource.client.get('/metrics', async (req, res) => {
+        let prismaMetrics: string = '';
+        for (let ds in this.datasources) {
+          // @ts-ignore
+          if (this.datasources[ds].config.type === 'prisma') {
+            // @ts-ignore
+            prismaMetrics += await this.datasources[ds].client.$metrics.prometheus({
+              globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
+            });
+          }
+        }
+        let appMetrics = await promClient.register.metrics();
+
+        res.end(appMetrics + prismaMetrics);
+      });
     }
   }
 
