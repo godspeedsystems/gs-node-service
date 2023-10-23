@@ -219,16 +219,14 @@ class Godspeed {
         let prismaMetrics: string = '';
         for (let ds in this.datasources) {
           // @ts-ignore
-          if (this.datasources[ds].type === 'prisma') {
+          if (this.datasources[ds].config.type === 'prisma') {
             // @ts-ignore
             prismaMetrics += await this.datasources[ds].client.$metrics.prometheus({
               globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
             });
           }
         }
-        logger.info('*** prismaMetrics: %s', prismaMetrics);
         let appMetrics = await promClient.register.metrics();
-        logger.info('*** appMetrics: %s', appMetrics);
 
         res.end(appMetrics + prismaMetrics);
       });
