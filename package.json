@@ -1,6 +1,6 @@
 {
   "name": "@godspeedsystems/core",
-  "version": "2.0.3-with.tracing-2",
+  "version": "2.0.3-with-metrics",
   "description": "> 4th Generation Declarative Microservice Framework",
   "main": "dist/godspeed.js",
   "publishConfig": {
@@ -16,7 +16,8 @@
   "author": "Godspeed Systems Pte",
   "license": "ISC",
   "dependencies": {
-    "@mindgrep/express-prometheus-middleware": "^0.0.3",
+    "@godspeedsystems/metrics": "^0.0.3",
+    "@opentelemetry/api": "^1.6.0",
     "ajv": "^8.11.0",
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^2.1.1",
@@ -32,7 +33,6 @@
     "pino": "^8.14.1",
     "pino-debug": "^2.0.0",
     "pino-http": "^8.3.3",
-    "prom-client": "^12.0.0",
     "socket.io": "^4.7.2",
     "sonic-boom": "^3.2.0",
     "swagger-ui-express": "^4.6.3",

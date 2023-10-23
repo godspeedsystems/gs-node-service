@@ -11,7 +11,7 @@ import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from '../logger';
 import { compileScript } from './utils';
 import evaluateScript from './scriptRuntime';
-import { promClient } from '../telemetry/monitoring';
+import promClient from '@godspeedsystems/metrics';
 import config from 'config';
 import pino from 'pino';
 
