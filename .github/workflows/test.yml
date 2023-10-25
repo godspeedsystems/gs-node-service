@@ -16,18 +16,27 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - name: Checkout test project
-        uses: actions/checkout@v4
-        with:
-          repository: godspeedsystems/gs-test-project
-          token: ${{ secrets.GIT_TOKEN }}  
-          path: gs-test-project
-              
-      - name: Set up Node.js (or your programming environment)
+      - name: Checkout gs-node-service
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
           node-version: 18
 
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run compile
+        run: npm run build
+
+      - name: Checkout test project
+        uses: actions/checkout@v4
+        with:
+          repository: godspeedsystems/gs-test-project
+          token: ${{ secrets.GIT_TOKEN }}
+          path: gs-test-project
+          ref: dev-test
       - name: Install project dependencies
         run: |
           cd gs-test-project  
