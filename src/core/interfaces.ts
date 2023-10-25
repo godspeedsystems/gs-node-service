@@ -120,11 +120,9 @@ export async function executefn(ctx: GSContext, taskValue: any,fn: Function, arg
 
     let res;
 
-    if (Array.isArray(args)) {
-      res = await fn(...args.concat({childLogger, promClient, tracer}));
-    } else {
-      res = await fn(args, {childLogger, promClient, tracer});
-    }
+    
+    res = await fn(args, {childLogger, promClient, tracer});
+    
 
     if (res instanceof GSStatus) {
       status = res;
