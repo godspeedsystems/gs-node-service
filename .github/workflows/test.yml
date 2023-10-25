@@ -44,4 +44,5 @@ jobs:
       - name: Run test-project test-suite
         run: |
           cd gs-test-project  
+          npm run build
           npm run dev-test
