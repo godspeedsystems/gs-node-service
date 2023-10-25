@@ -1,4 +1,6 @@
 /* eslint-disable import/first */
+require('dotenv').config();
+
 try {
   if (process.env.OTEL_ENABLED == 'true') {
       require('@godspeedsystems/tracing').initialize();
@@ -9,7 +11,6 @@ try {
   process.exit(1);
 }
 
-require('dotenv').config();
 var config = require('config');
 
 import { join } from 'path';
