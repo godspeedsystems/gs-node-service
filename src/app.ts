@@ -287,7 +287,8 @@ async function main() {
 
   await loadAndRegisterDefinitions(PROJECT_ROOT_DIRECTORY + '/definitions');
   mappings = loadMappings();
-
+  Object.freeze(mappings);
+  
   const datasources = await loadDatasources(
     PROJECT_ROOT_DIRECTORY + '/datasources'
   );
