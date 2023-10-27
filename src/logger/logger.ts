@@ -27,7 +27,7 @@ for (const redactAttr of configRedact) {
 }
 
 let logTarget: string;
-if (process.env.OTEL_ENABLED && process.env.NODE_ENV != 'dev') {
+if (process.env.OTEL_ENABLED == 'true' && process.env.NODE_ENV != 'dev') {
   logTarget = "../pino/pino-opentelemetry-transport.js";
 } else {
   logTarget = "pino-pretty";
