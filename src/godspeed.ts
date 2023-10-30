@@ -288,13 +288,13 @@ class Godspeed {
 
       const ctx = new GSContext(config, datasources, event, {}, {}, logger, childLogger);
 
-      let eventHandlerStatus;
+      let eventHandlerStatus: GSStatus;
 
       try {
-        await eventHandlerWorkflow(ctx);
+        const eventHandlerResponse = await eventHandlerWorkflow(ctx);
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
-        eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id];
-        logger.info('eventHandlerStatus', eventHandlerStatus);
+        eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
+        childLogger.info('eventHandlerStatus: %o', eventHandlerStatus);
 
         if (eventHandlerStatus.success) {
           // event workflow executed successfully
