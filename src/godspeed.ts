@@ -3,9 +3,9 @@ require('dotenv').config();
 
 try {
   if (process.env.OTEL_ENABLED == 'true') {
-      require('@godspeedsystems/tracing').initialize();
-  }    
-} catch(error) {
+    require('@godspeedsystems/tracing').initialize();
+  }
+} catch (error) {
   console.error("OTEL_ENABLED is set, unable to initialize opentelemetry tracing.");
   console.error(error);
   process.exit(1);
@@ -203,6 +203,7 @@ class Godspeed {
         route,
         this.events[eventKey],
         processEventHandler,
+        { ...this.events[route] }
       );
     }
 

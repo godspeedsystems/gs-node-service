@@ -38,6 +38,7 @@ export abstract class GSDataSourceAsEventSource {
     eventKey: string,
     eventConfig: PlainObject,
     processEvent: (event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>,
+    event?: PlainObject
   ): Promise<void>
 };
 
@@ -61,5 +62,6 @@ export abstract class GSEventSource {
     eventKey: string,
     eventConfig: PlainObject,
     processEvent: (event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>,
+    event?: PlainObject
   ): Promise<void>
 }
