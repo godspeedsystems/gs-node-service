@@ -62,6 +62,8 @@ class Godspeed {
 
   public config: PlainObject = {};
 
+  public isProd: boolean = process.env.NODE_ENV === 'production';
+
   public folderPaths: {
     events: string;
     workflows: string;
@@ -77,8 +79,6 @@ class Godspeed {
     // let's assume we a re getting the current directory, where module is imported
     const currentDir = cwd();
 
-    const isProd = process.env.NODE_ENV === 'production';
-
     // destruct GodspeedParams, if not supplied, assign the default value
     let {
       eventsFolderPath,
@@ -91,37 +91,37 @@ class Godspeed {
 
     eventsFolderPath = join(
       currentDir,
-      isProd
+      this.isProd
         ? params.eventsFolderPath || '/dist/events'
         : params.eventsFolderPath || '/src/events'
     );
     workflowsFolderPath = join(
       currentDir,
-      isProd
+      this.isProd
         ? params.workflowsFolderPath || '/dist/functions'
         : params.workflowsFolderPath || '/src/functions'
     );
     definitionsFolderPath = join(
       currentDir,
-      isProd
+      this.isProd
         ? params.definitionsFolderPath || '/dist/definitions'
         : params.definitionsFolderPath || '/src/definitions'
     );
     configFolderPath = join(
       currentDir,
-      isProd
+      this.isProd
         ? params.configFolderPath || '/config'
         : params.configFolderPath || '/config'
     );
     datasourcesFolderPath = join(
       currentDir,
-      isProd
+      this.isProd
         ? params.datasourcesFolderPath || '/dist/datasources'
         : params.datasourcesFolderPath || '/src/datasources'
     );
     eventsourcesFolderPath = join(
       currentDir,
-      isProd
+      this.isProd
         ? params.eventsourcesFolderPath || '/dist/eventsources'
         : params.eventsourcesFolderPath || '/src/eventsources'
     );
@@ -166,9 +166,9 @@ class Godspeed {
           .join(' ');
 
         logger.info(
-          `[Dev Server][Running] ('${status.split(' ')[0]}' event source, '${
-            status.split(' ')[1]
-          }' port).`
+          `[${this.isProd ? 'Production' : 'Server'} Server][Running] ('${
+            status.split(' ')[0]
+          }' event source, '${status.split(' ')[1]}' port).`
         );
       })
       .catch((error) => {
@@ -371,7 +371,7 @@ class Godspeed {
       }
     };
   }
-};
+}
 
 export {
   GSActor,
@@ -382,7 +382,7 @@ export {
   GSResponse,
   GSDataSourceAsEventSource, // kafk, it share the client with datasource
   GSEventSource, // express. it has own mechanisim for initClient
-  GSDataSource
+  GSDataSource,
 };
 
 export default Godspeed;
