@@ -3,15 +3,6 @@
     "target": "es2015",
     "parser": {
       "syntax": "typescript"
-    },
-    "transform": {
-      "react": {
-        "pragma": "React.createElement",
-        "pragmaFrag": "React.Fragment",
-        "throwIfNamespace": true,
-        "development": false,
-        "useBuiltins": false
-      }
     }
   },
   "module": {
