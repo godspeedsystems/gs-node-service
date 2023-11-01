@@ -36,7 +36,7 @@ jobs:
           repository: godspeedsystems/gs-test-project
           token: ${{ secrets.GIT_TOKEN }}
           path: gs-test-project
-
+          ref: fixed_db_test
       - name: Install project dependencies
         run: |
           cd gs-test-project
@@ -46,9 +46,6 @@ jobs:
         run: |
           cd gs-test-project
           sed -i 's#@godspeedsystems/core#../../dist/godspeed.js#g' src/index.ts
-          # sed -i 's#file:///home/godspeed/gs-test-project/godspeed1.db#file:///home/srihari/godspeed/gs-node-service/gs-test-project/godspeed1.db#g' src/datasources/sqlite.prisma
-          apt-get update -y
-          apt-get install -y openssl
       - name: Run test-project test-suite
         run: |
           cd gs-test-project
