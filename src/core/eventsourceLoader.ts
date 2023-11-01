@@ -24,7 +24,7 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
       let Constructor = Module.default;
 
       if (isPureEventSource) {
-        eventSourceInatance = new Constructor(eventsourcesConfigs[esName]) as GSEventSource;
+        eventSourceInatance = new Constructor(eventsourcesConfigs[esName], datasources) as GSEventSource;
         if ('init' in eventSourceInatance) {
           await eventSourceInatance.init();
         }

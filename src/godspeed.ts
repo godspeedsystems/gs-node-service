@@ -1,11 +1,23 @@
 /* eslint-disable import/first */
-require('./telemetry/tracing').initialize();
 require('dotenv').config();
+
+try {
+  if (process.env.OTEL_ENABLED == 'true') {
+      require('@godspeedsystems/tracing').initialize();
+  }    
+} catch(error) {
+  console.error("OTEL_ENABLED is set, unable to initialize opentelemetry tracing.");
+  console.error(error);
+  process.exit(1);
+}
+
 var config = require('config');
 
 import { join } from 'path';
 import { cwd } from 'process';
 import _ from 'lodash';
+import swaggerUI from 'swagger-ui-express';
+import promClient from '@godspeedsystems/metrics';
 
 // loaders
 import loadAndRegisterDefinitions from './core/definitionsLoader';
@@ -39,6 +51,7 @@ import {
   validateResponseSchema,
 } from './core/jsonSchemaValidation';
 import { childLogger, initializeChildLogger, logger } from './logger';
+import { generateSwaggerJSON } from './router/swagger';
 
 export interface GodspeedParams {
   eventsFolderPath?: string;
@@ -244,10 +257,17 @@ class Godspeed {
   }
 
   private async subscribeToEvents(): Promise<void> {
+    const httpEvents: { [key: string]: any } = {};
+
     for await (let route of Object.keys(this.events)) {
       let eventKey = route;
       let eventSourceName = route.split('.')[0];
       const eventSource = this.eventsources[eventSourceName];
+
+      // for swagger UI
+      if (eventSourceName === 'http') {
+        httpEvents[eventKey] = { ...this.events[eventKey] };
+      }
 
       const processEventHandler = await this.processEvent(this);
 
@@ -256,6 +276,33 @@ class Godspeed {
         this.events[eventKey],
         processEventHandler
       );
+    }
+
+    const httpEventSource = this.eventsources['http']; // eslint-disable-line
+    if (httpEventSource?.config?.docs) {
+      const _httpEvents = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
+      logger.info('HTTP event source: %o', _httpEvents);
+      // @ts-ignore
+      httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
+    }
+
+    if (process.env.OTEL_ENABLED == 'true') {
+      // @ts-ignore
+      httpEventSource.client.get('/metrics', async (req, res) => {
+        let prismaMetrics: string = '';
+        for (let ds in this.datasources) {
+          // @ts-ignore
+          if (this.datasources[ds].config.type === 'prisma') {
+            // @ts-ignore
+            prismaMetrics += await this.datasources[ds].client.$metrics.prometheus({
+              globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
+            });
+          }
+        }
+        let appMetrics = await promClient.register.metrics();
+
+        res.end(appMetrics + prismaMetrics);
+      });
     }
   }
 
@@ -334,13 +381,13 @@ class Godspeed {
         childLogger
       );
 
-      let eventHandlerStatus;
+      let eventHandlerStatus: GSStatus;
 
       try {
-        await eventHandlerWorkflow(ctx);
+        const eventHandlerResponse = await eventHandlerWorkflow(ctx);
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
-        eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id];
-        logger.info('eventHandlerStatus', eventHandlerStatus);
+        eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
+        childLogger.info('eventHandlerStatus: %o', eventHandlerStatus);
 
         if (eventHandlerStatus.success) {
           // event workflow executed successfully

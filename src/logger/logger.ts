@@ -26,10 +26,17 @@ for (const redactAttr of configRedact) {
   }
 }
 
+let logTarget: string;
+if (process.env.OTEL_ENABLED == 'true' && process.env.NODE_ENV != 'dev') {
+  logTarget = "../pino/pino-opentelemetry-transport.js";
+} else {
+  logTarget = "pino-pretty";
+}
+
 const logger: Pino.Logger = Pino({
   level: (config as any).log_level || 'info',
   transport: {
-    target: "pino-pretty",
+    target: logTarget,
     options: {
       destination: 1,
       Resource: {
