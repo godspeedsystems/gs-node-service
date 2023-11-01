@@ -36,7 +36,6 @@ jobs:
           repository: godspeedsystems/gs-test-project
           token: ${{ secrets.GIT_TOKEN }}
           path: gs-test-project
-          ref: fixed_db_test
       - name: Install project dependencies
         run: |
           cd gs-test-project
