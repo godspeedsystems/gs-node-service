@@ -13,7 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout gs-node-service
@@ -36,13 +36,21 @@ jobs:
           repository: godspeedsystems/gs-test-project
           token: ${{ secrets.GIT_TOKEN }}
           path: gs-test-project
-          ref: dev-test
+
       - name: Install project dependencies
         run: |
-          cd gs-test-project  
+          cd gs-test-project
           npm install
+
+      - name: Modify src/index.ts
+        run: |
+          cd gs-test-project
+          sed -i 's#@godspeedsystems/core#../../dist/godspeed.js#g' src/index.ts
+          # sed -i 's#file:///home/godspeed/gs-test-project/godspeed1.db#file:///home/srihari/godspeed/gs-node-service/gs-test-project/godspeed1.db#g' src/datasources/sqlite.prisma
+          apt-get update -y
+          apt-get install -y openssl
       - name: Run test-project test-suite
         run: |
-          cd gs-test-project  
-          npm run build
+          cd gs-test-project
+          npx prisma generate --schema=src/datasources/sqlite.prisma
           npm run dev-test
