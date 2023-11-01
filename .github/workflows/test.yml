@@ -45,7 +45,6 @@ jobs:
         run: |
           cd gs-test-project
           sed -i 's#@godspeedsystems/core#../../dist/godspeed.js#g' src/index.ts
-          sed -i 's#sleep 8 #sleep 30#g' package.json
       - name: Run test-project test-suite
         run: |
           cd gs-test-project
