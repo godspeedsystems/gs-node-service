@@ -46,9 +46,12 @@ export abstract class GSEventSource {
 
   client: false | PlainObject;
 
-  constructor(config: PlainObject) {
+  datasources: PlainObject;
+
+  constructor(config: PlainObject, datasources: PlainObject) {
     this.config = config;
     this.client = false;
+    this.datasources = datasources;
   };
 
   public async init() {
