@@ -45,6 +45,10 @@ jobs:
         run: |
           cd gs-test-project
           sed -i 's#@godspeedsystems/core#../../dist/godspeed.js#g' src/index.ts
+          cd src/datasources
+          sed -i 's#file:home/godspeed/gs-test-project/godspeed1.db#file:///home/srihari/godspeed/gs-node-service/gs-test-project/godspeed1.db#g' sqlite.prisma
+          apt-get update -y
+          apt-get install -y openssl
       - name: Run test-project test-suite
         run: |
           cd gs-test-project
