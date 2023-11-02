@@ -53,4 +53,4 @@ jobs:
         run: |
           cd gs-test-project
           npx prisma generate --schema=src/datasources/sqlite.prisma
-          npm run dev-test
+          npm run dev
