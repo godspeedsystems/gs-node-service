@@ -3,9 +3,9 @@ require('dotenv').config();
 
 try {
   if (process.env.OTEL_ENABLED == 'true') {
-      require('@godspeedsystems/tracing').initialize();
-  }    
-} catch(error) {
+    require('@godspeedsystems/tracing').initialize();
+  }
+} catch (error) {
   console.error("OTEL_ENABLED is set, unable to initialize opentelemetry tracing.");
   console.error(error);
   process.exit(1);
@@ -33,18 +33,16 @@ import {
   GSContext,
   GSSeriesFunction,
   GSStatus,
+  GSResponse
 } from './core/interfaces';
-import * as interfaces from './core/interfaces';
 
 import {
   GSDataSource,
   GSEventSource,
   GSDataSourceAsEventSource,
 } from './core/_interfaces/sources';
-import * as types from './types';
+import { PlainObject } from './types';
 
-const { PlainObject } = types;
-const { GSResponse } = interfaces;
 // validators
 import {
   validateRequestSchema,
@@ -179,8 +177,7 @@ class Godspeed {
           .join(' ');
 
         logger.info(
-          `[${this.isProd ? 'Production' : 'Server'} Server][Running] ('${
-            status.split(' ')[0]
+          `[${this.isProd ? 'Production' : 'Server'} Server][Running] ('${status.split(' ')[0]
           }' event source, '${status.split(' ')[1]}' port).`
         );
       })
