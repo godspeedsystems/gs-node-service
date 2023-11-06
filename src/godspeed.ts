@@ -177,7 +177,7 @@ class Godspeed {
           .join(' ');
 
         logger.info(
-          `[${this.isProd ? 'Production' : 'Server'} Server][Running] ('${status.split(' ')[0]
+          `[${this.isProd ? 'Production' : 'Dev'} Server][Running] ('${status.split(' ')[0]
           }' event source, '${status.split(' ')[1]}' port).`
         );
       })
@@ -278,7 +278,6 @@ class Godspeed {
     const httpEventSource = this.eventsources['http']; // eslint-disable-line
     if (httpEventSource?.config?.docs) {
       const _httpEvents = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
-      logger.info('HTTP event source: %o', _httpEvents);
       // @ts-ignore
       httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
     }
