@@ -297,6 +297,7 @@ export class GSFunction extends Function {
   async _executefn(ctx: GSContext, taskValue: any): Promise<GSStatus> {
     // final status to return
     let status: GSStatus;
+    
     let args = this.args;
     try {
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
@@ -599,6 +600,8 @@ export class GSFunction extends Function {
       }
     }
 
+    console.log(`print status from ${status}`)
+
     return status;
   };
 }
@@ -611,19 +614,31 @@ export class GSSeriesFunction extends GSFunction {
 
     for (const child of this.args!) {
       ret = await child(ctx, taskValue);
+      ctx.childLogger.debug('verifying the child from return :%o', ret)
+
+      
       if (ctx.exitWithStatus) {
         if (child.yaml.isEachParallel) {
-          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
           ctx.outputs[this.id] = ret;
           return ret;
-        } else {
-          ctx.outputs[this.id] = ctx.exitWithStatus;
-          return ctx.exitWithStatus;
         }
-      }
+        if (child.yaml.isParallel) {
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isParallel: %s, ret: %o', child.yaml.isParallel, ret);
+          ctx.outputs[this.id] = ret;
+          console.log("this is from the parallel condition")
+        }
+        else {
+          ctx.outputs[this.id] = ret;
+          return ret;
+        }
+        
+       }
     }
+    
     ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
     ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
+    ctx.childLogger.debug('verifying the child from return :%o', ctx.exitWithStatus)
     ctx.outputs[this.id] = ret;
     return ret;
   }
