@@ -7,6 +7,6 @@ build
 project
 coverage
 .nyc_output
-yarn-error.log
-package-lock.json 
+yarn-error.log 
 .DS_Store
+package-lock.json
