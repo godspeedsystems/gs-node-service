@@ -1,6 +1,6 @@
 {
   "name": "@godspeedsystems/core",
-  "version": "2.0.6",
+  "version": "2.1.0",
   "description": "> 4th Generation Declarative Microservice Framework",
   "main": "dist/godspeed.js",
   "publishConfig": {
@@ -10,7 +10,7 @@
     "start": "cd dist && node -r ./telemetry/tracing.js app.js;",
     "clean": "rm -rf dist",
     "dev": "tsc --watch",
-    "build": "tsc",
+    "build": "NODE_ENV=production swc src -d dist && rsync -a --exclude '*.ts' ./src/ ./dist/",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "author": "Godspeed Systems Pte",
@@ -39,6 +39,8 @@
     "yaml": "^2.0.0"
   },
   "devDependencies": {
+    "@swc/cli": "^0.1.62",
+    "@swc/core": "^1.3.96",
     "@types/chai": "^4.3.1",
     "@types/coffeescript": "^2.5.1",
     "@types/config": "^0.0.41",
