@@ -210,7 +210,6 @@ class Godspeed {
     const httpEventSource = this.eventsources['http']; // eslint-disable-line
     if (httpEventSource?.config?.docs) {
       const _httpEvents = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
-      logger.info('HTTP event source: %o', _httpEvents);
       // @ts-ignore
       httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
     }

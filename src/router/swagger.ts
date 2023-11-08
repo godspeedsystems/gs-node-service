@@ -4,7 +4,7 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
 
   const finalSpecs: { [key: string]: any } = { openapi: "3.0.0", paths: {} };
 
-  const { port, docs: { info }, jwt } = eventSourceConfig;
+  const { port, docs: { info, servers }, jwt } = eventSourceConfig;
 
   Object.keys(events).forEach(event => {
     let apiEndPoint = event.split('.')[2];
@@ -36,9 +36,14 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
     };
   });
 
-  finalSpecs.servers = [{
-    "url": `http://localhost:${port}`
-  }];
+  if (servers && Array.isArray(servers)) {
+    finalSpecs.servers = servers;
+  } else {
+    finalSpecs.servers = [{
+      "url": `http://localhost:${port}`
+    }];
+  }
+
   finalSpecs.info = info;
   finalSpecs.definitions = definitions;
 
