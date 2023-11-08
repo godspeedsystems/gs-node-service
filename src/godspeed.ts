@@ -294,7 +294,8 @@ class Godspeed {
       await eventSource.subscribeToEvent(
         route,
         this.events[eventKey],
-        processEventHandler
+        processEventHandler,
+        { ...this.events[route] }
       );
     }
 
