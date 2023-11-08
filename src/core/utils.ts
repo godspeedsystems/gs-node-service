@@ -272,3 +272,8 @@ export function removeNulls (obj: PlainObject) {
   }
   return obj;
 }
+
+export function getDataKeysExcluding(obj: PlainObject, excludedKeys: Array<string>) {
+  const keys = Object.keys(obj);
+  return keys.filter(key => !excludedKeys.includes(key));
+}

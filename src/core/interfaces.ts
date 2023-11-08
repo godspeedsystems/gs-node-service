@@ -9,7 +9,7 @@ import opentelemetry from "@opentelemetry/api";
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from './logger';
-import { compileScript, isPlainObject } from './utils';  // eslint-disable-line
+import { compileScript, getDataKeysExcluding, isPlainObject } from './utils';  // eslint-disable-line
 import evaluateScript from '../scriptRuntime'; // eslint-disable-line
 import { promClient } from '../telemetry/monitoring';
 import authnWorkflow from './authnWorkflow';
@@ -131,7 +131,24 @@ export async function executefn(ctx: GSContext, taskValue: any,fn: Function, arg
         //Some framework functions like HTTP return an object in following format. Check if that is the case.
         //All framework functions are expected to set success as boolean variable. Can not be null.
         let {success, code, data, message, headers, exitWithStatus} = res;
-        status = new GSStatus(success, code, message, data, headers);
+
+          const excludedDataKeys = ['success', 'code', 'data', 'message', 'headers' , 'exitWithStatus'];
+          const excludedDataNodes = getDataKeysExcluding(res, excludedDataKeys);
+          if (!data) {
+              data = {};
+            }
+          if(excludedDataNodes.length >0){
+            
+            for (const key of excludedDataNodes) {
+              if (Array.isArray(data)) {
+                data.push(res[key]);
+              } else {
+                data[key] = res[key];
+              }
+            }
+          }
+          
+          status = new GSStatus(success, code, message, data, headers);
 
         //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
         if (exitWithStatus) {
@@ -492,6 +509,23 @@ export class GSFunction extends Function {
           //Some framework functions like HTTP return an object in following format. Check if that is the case.
           //All framework functions are expected to set success as boolean variable. Can not be null.
           let {success, code, data, message, headers, exitWithStatus} = res;
+
+          const excludedDataKeys = ['success', 'code', 'data', 'message', 'headers' , 'exitWithStatus'];
+          const excludedDataNodes = getDataKeysExcluding(res, excludedDataKeys);
+          if (!data) {
+              data = {};
+            }
+          if(excludedDataNodes.length >0){
+            
+            for (const key of excludedDataNodes) {
+              if (Array.isArray(data)) {
+                data.push(res[key]);
+              } else {
+                data[key] = res[key];
+              }
+            }
+          }
+          
           status = new GSStatus(success, code, message, data, headers);
 
           //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
