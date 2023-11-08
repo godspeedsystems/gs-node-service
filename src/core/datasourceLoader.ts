@@ -36,9 +36,6 @@ export default async function (
     // there is an assumption that for each datasource, the type's .ts file should be inside /datasources/types folder
     const fileName = datasourcesConfigs[dsName].type;
 
-    console.log('fileName', fileName);
-    console.log('pathString', pathString);
-
     await import(path.join(pathString, 'types', `${fileName}`)).then(
       async (Module: GSDataSource) => {
         const dsYamlConfig: PlainObject = datasourcesConfigs[dsName];

@@ -25,6 +25,7 @@ import loadDatasources from './core/datasourceLoader';
 import loadEventsources from './core/eventsourceLoader';
 import loadFunctions from './core/functionLoader';
 import loadEvents from './core/eventLoader';
+import loadMappings from './core/mappingLoader';
 
 // interfaces
 import {
@@ -58,6 +59,7 @@ export interface GodspeedParams {
   datasourcesFolderPath?: string;
   configFolderPath?: string;
   eventsourcesFolderPath?: string;
+  mappingsFolderPath?: string;
 }
 
 class Godspeed {
@@ -73,6 +75,8 @@ class Godspeed {
 
   public config: PlainObject = {};
 
+  public mappings: PlainObject = {};
+
   public isProd: boolean = process.env.NODE_ENV === 'production';
 
   public folderPaths: {
@@ -82,6 +86,7 @@ class Godspeed {
     config: string;
     datasources: string;
     eventsources: string;
+    mappings: string
   };
 
   constructor(params = {} as GodspeedParams) {
@@ -98,6 +103,7 @@ class Godspeed {
       configFolderPath,
       datasourcesFolderPath,
       eventsourcesFolderPath,
+      mappingsFolderPath
     } = params;
 
     eventsFolderPath = join(
@@ -137,6 +143,13 @@ class Godspeed {
         : params.eventsourcesFolderPath || '/src/eventsources'
     );
 
+    mappingsFolderPath = join(
+      currentDir,
+      this.isProd
+        ? params.mappingsFolderPath || '/dist/mappings'
+        : params.mappingsFolderPath || '/src/mappings'
+    );
+
     this.folderPaths = {
       events: eventsFolderPath,
       workflows: workflowsFolderPath,
@@ -144,6 +157,7 @@ class Godspeed {
       definitions: definitionsFolderPath,
       datasources: datasourcesFolderPath,
       eventsources: eventsourcesFolderPath,
+      mappings: mappingsFolderPath
     };
 
     Object.freeze(this.folderPaths);
@@ -153,6 +167,7 @@ class Godspeed {
     this._loadDefinitions()
       .then(async (definitions) => {
         this.definitions = definitions;
+        this.mappings = await this._loadMappings();
 
         let datasources = await this._loadDatasources();
         this.datasources = datasources;
@@ -189,6 +204,14 @@ class Godspeed {
   public initialize() {
     this.initilize();
   }
+
+  public async _loadMappings(): Promise<PlainObject> {
+    logger.info('[START] Load mappings from %s', this.folderPaths.mappings);
+    let mappings = loadMappings(this.folderPaths.mappings);
+    logger.debug('Mappings %o', mappings);
+    logger.info('[END] Load mappings');
+    return mappings;
+  };
 
   private async _loadEvents(): Promise<PlainObject> {
     logger.info('[START] Load events from %s', this.folderPaths.events);
@@ -307,7 +330,7 @@ class Godspeed {
   ): Promise<
     (event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>
   > {
-    const { workflows, datasources } = local;
+    const { workflows, datasources, mappings } = local;
 
     return async (
       event: GSCloudEvent,
@@ -371,7 +394,7 @@ class Godspeed {
         config,
         datasources,
         event,
-        {},
+        mappings,
         {},
         logger,
         childLogger

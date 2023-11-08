@@ -12,4 +12,5 @@ let config: PlainObject = {};
   config.app = iterate_yaml_directories(__dirname + '/..')['..'];
   logger.info('Loaded yaml configuration');
 })();
+
 export { config };
