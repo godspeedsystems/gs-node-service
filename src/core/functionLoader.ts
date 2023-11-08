@@ -69,6 +69,7 @@ export function createGSFunction(
 
             tasks = tasks.filter(Boolean);
 
+            workflowJson.isParallel = true;
             return new GSParallelFunction(workflowJson, workflows, nativeFunctions, undefined, tasks, false);
 
         case 'com.gs.switch': {

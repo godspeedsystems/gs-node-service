@@ -6,9 +6,5 @@ import { PlainObject } from "../../../types";
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 export default function (ctx: PlainObject, args: PlainObject) {
-  if (args instanceof GSStatus) {
-    return args;
-  } else {
-    return new GSStatus(true, 200, undefined, args, undefined);
-  }
+  return {success: true, code: 200, data: args, exitWithStatus: true };
 }
