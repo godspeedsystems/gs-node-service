@@ -10,7 +10,7 @@
     "start": "cd dist && node -r ./telemetry/tracing.js app.js;",
     "clean": "rm -rf dist",
     "dev": "tsc --watch",
-    "build": "NODE_ENV=production swc src -d dist && rsync -a --exclude '*.ts' ./src/ ./dist/",
+    "build": "NODE_ENV=production swc src -d dist && rsync -a --exclude '*.ts' ./src/ ./dist/ && tsc --emitDeclarationOnly",
     "prepublishOnly": "npm run clean && npm run build"
   },
   "author": "Godspeed Systems Pte",
