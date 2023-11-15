@@ -39,6 +39,8 @@ const password_hash = crypto
   .toUpperCase();
 const iv = Buffer.alloc(16);
 
+const DS_EXT = '.yaml';
+
 export default async function loadDatasources(pathString: string) {
   logger.info('Loading datasources');
 
@@ -59,17 +61,17 @@ export default async function loadDatasources(pathString: string) {
 
   for (let ds in datasources) {
     logger.info('evaluating datasource: %s', ds);
-
     // Expand config variables
     datasources[ds] = expandVariables(datasources[ds]);
 
+    const ds_name_simple = pathString.split('/').pop() + '/' + ds + DS_EXT;
     logger.info('evaluated datasource %s: %o', ds, datasources[ds]);
 
     if (datasources[ds].type === 'api') {
       if (isValidApiDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
       } else {
-        logger.error('Invalid API datasource %s', ds);
+        logger.error('Invalid API datasource %s', ds_name_simple);
         process.exit(1);
       }
     } else if (datasources[ds].type === 'datastore') {
@@ -80,20 +82,23 @@ export default async function loadDatasources(pathString: string) {
       if (isValidKafkaDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadKafkaClient(datasources[ds]);
       } else {
+        logger.error('Invalid Kafka datasource %s', ds_name_simple);
         process.exit(1);
       }
     } else if (datasources[ds].type === 'salesforce') {
-        loadedDatasources[ds] = await salesforce.init(datasources[ds]);
+      loadedDatasources[ds] = await salesforce.init(datasources[ds]);
     } else if (datasources[ds].type === 'redis') {
       if (isValidRedisDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadRedisClient(datasources[ds]);
       } else {
+        logger.error('Invalid Redis datasource %s', ds_name_simple);
         process.exit(1);
       }
     } else if (datasources[ds].type === 'elasticgraph') {
       if (isValidElasticgraphDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
       } else {
+        logger.error('Invalid Elasticgraph datasource %s', ds_name_simple);
         process.exit(1);
       }
     } else if (datasources[ds].type === 'aws') {
