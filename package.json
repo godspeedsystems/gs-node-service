@@ -9,7 +9,7 @@
     "clean": "rm -rf project build dist coverage",
     "lint": "eslint . --ext .ts --format table",
     "fix-lint": "eslint . --ext .ts --fix",
-    "service-build": "mkdir -p build && cp -r src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' build/ dist/ && npm install && npx swc ./build -d dist --config-file .swcrc",
+    "service-build": "mkdir -p build && cp -r src/* typings/* build/ && rsync -rv --delete --exclude='*.ts' --exclude='node_modules' --exclude='package-lock.json' build/ dist/  && ./node_modules/typescript/bin/tsc",
     "build": "mkdir -p build project/src && cp -r src/* project/src/* typings/* build/ && rsync -rv --ignore-missing-args project/package.json build/ && rsync -rv --delete --exclude='*.ts' --exclude='node_modules' --exclude='package-lock.json' build/ dist/ && rsync -rv --delete --exclude='*.ts' --exclude='node_modules' --exclude='package-lock.json' project/config dist/ && if [ ! -f dist/package.json ]; then cp package.json dist/; fi && npm install dist/ && npm run elasticbuild && npx swc ./build -d dist --config-file .swcrc && node dist/core/transpiler.js",
     "elasticbuild": "npm install elasticgraph/",
     "commit-test": "NODE_CONFIG_DIR=./dist/tests/fixtures/config mocha -b ./dist/tests/*.test.js --timeout 15000",
