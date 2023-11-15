@@ -15,79 +15,80 @@ require('ajv-errors')(ajvInstance);
 
 const validateEvent = ajvInstance.compile(eventSchema);
 const validateWorkflow = ajvInstance.compile(workflowSchema);
-const validateApiDs = ajvInstance.compile(apiDsSchema);
+const validateApiDs = ajvInstance.compile(apiDsSchema)
 const validateRedisDs = ajvInstance.compile(redisDsSchema);
 const validateKafkaDs = ajvInstance.compile(kafkaDsSchema);
 const validElasticgraphDs = ajvInstance.compile(elasticgraphSchema);
 
 export const isValidEvent = (event: PlainObject, eventKey: string): boolean => {
-  if (!validateEvent(event)) {
+  const valid = validateEvent(event);
+  if (!valid) {
     logger.error('Event validation failed for %s', eventKey);
     logger.error(validateEvent.errors);
-    return false;
   }
-  return true;
+  return valid;
 };
 
 export const isValidWorkflow = (
   workflow: PlainObject,
   workflowKey: string
 ): boolean => {
-  if (!validateWorkflow(workflow)) {
+  const valid = validateWorkflow(workflow);
+  if (!valid) {
     logger.error('Workflow validation failed for %s', workflowKey);
     logger.error(validateWorkflow.errors);
-    return false;
   }
-  return true;
+  return valid;
 };
 
 export const isValidApiDatasource = (datasource: PlainObject): boolean => {
-  if (!validateApiDs(datasource)) {
+  const valid = validateApiDs(datasource);
+  if (!valid) {
     logger.error(
       'Datasource validation failed for %s datasource',
       JSON.stringify(datasource)
     );
     logger.error(validateApiDs.errors);
-    return false;
   }
-  return true;
+  return valid;
 };
 
 export const isValidRedisDatasource = (datasource: PlainObject): boolean => {
-  if (!validateRedisDs(datasource)) {
+  const valid = validateRedisDs(datasource);
+  if (!valid) {
     logger.error(
       'Datasource validation failed for %s datasource',
       JSON.stringify(datasource)
     );
     logger.error(validateRedisDs.errors);
-    return false;
   }
-  return true;
+  return valid;
 };
 
 export const isValidKafkaDatasource = (datasource: PlainObject): boolean => {
-  if (!validateKafkaDs(datasource)) {
+  const valid = validateKafkaDs(datasource);
+  if (!valid) {
     logger.error(
       'Datasource validation failed for %s datasource',
       JSON.stringify(datasource)
     );
     logger.error(validateKafkaDs.errors);
-    return false;
   }
-  return true;
+  return valid;
 };
 
 export const isValidElasticgraphDatasource = (
   datasource: PlainObject
 ): boolean => {
-  if (!validElasticgraphDs(datasource)) {
+  const valid = validElasticgraphDs(datasource);
+  if (!valid) {
     logger.error(
       'Datasource validation failed for %s datasource',
       JSON.stringify(datasource)
     );
-    return false;
+    logger.error(validElasticgraphDs.errors);
   }
-  return true;
+  return valid;
 };
 
 export default ajvInstance;
