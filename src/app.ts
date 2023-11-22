@@ -445,7 +445,13 @@ async function main() {
     try {
       childLogger.setBindings({ workflow_name: '' });
       // Execute the workflow
-      await eventHandlerWorkflow(ctx);
+      const fnResponse = await eventHandlerWorkflow(ctx,functions);
+      
+      // if the workflow has return gsStatus response we append fnResponse in the ctx output for JS workflows
+      if(fnResponse instanceof GSStatus){
+        ctx.outputs[eventHandlerWorkflow.id] = fnResponse;
+      }
+
     } catch (err: any) {
       childLogger.error(
         { workflow_name: events[event.type].fn },

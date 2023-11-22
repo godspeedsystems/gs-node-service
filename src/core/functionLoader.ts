@@ -266,7 +266,7 @@ export async function loadFunctions(datasources: PlainObject,pathString: string)
         }
     } else {
         // @ts-ignore
-        global.functions = nativeFunctions
+        global.functions = nativeFunctions;
         yamlFunctions = {};
     }
     loadFnStatus = { success: true, functions: Object.assign(nativeFunctions, yamlFunctions)};
