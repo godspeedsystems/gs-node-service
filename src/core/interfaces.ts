@@ -63,7 +63,11 @@ const tracer = opentelemetry.trace.getTracer(
  *
  */
 
+export async function executeDatasource(ctx: GSContext,fn:Function,args: any){
 
+  return executefn(ctx,0,fn,args);
+  
+}
 
 export async function executefn(ctx: GSContext, taskValue: any,fn: Function, args: any):Promise<GSStatus> {
   let status: GSStatus; //Final status to return
