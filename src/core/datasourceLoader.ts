@@ -69,6 +69,7 @@ export default async function loadDatasources(pathString: string) {
       if (isValidApiDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadHttpDatasource(datasources[ds]);
       } else {
+        logger.error('Invalid API datasource %s', ds);
         process.exit(1);
       }
     } else if (datasources[ds].type === 'datastore') {

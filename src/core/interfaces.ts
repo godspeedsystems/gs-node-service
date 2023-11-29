@@ -63,7 +63,11 @@ const tracer = opentelemetry.trace.getTracer(
  *
  */
 
+export async function executeDatasource(ctx: GSContext,fn:Function,args: any){
 
+  return executefn(ctx,0,fn,args);
+  
+}
 
 export async function executefn(ctx: GSContext, taskValue: any,fn: Function, args: any):Promise<GSStatus> {
   let status: GSStatus; //Final status to return
@@ -120,11 +124,9 @@ export async function executefn(ctx: GSContext, taskValue: any,fn: Function, arg
 
     let res;
 
-    if (Array.isArray(args)) {
-      res = await fn(...args.concat({childLogger, promClient, tracer}));
-    } else {
-      res = await fn(args, {childLogger, promClient, tracer});
-    }
+    
+    res = await fn(args, {childLogger, promClient, tracer});
+    
 
     if (res instanceof GSStatus) {
       status = res;
