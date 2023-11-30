@@ -1,82 +1,176 @@
 {
     "$id": "event_schema",
     "type": "object",
-    "properties": {
-        "fn": {
-            "type": "string"
-        },
-        "summary": {
-            "type": "string"
-        },
-        "description": {
-            "type": "string"
-        },
-        "body": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "object"
-                }
-            }
-        },
-        "params": {
-            "type": "array",
-            "$ref": "#/definitions/params"
-        },
-        "parameters": {
-            "type": "array",
-            "$ref": "#/definitions/params"
-        },
-        "responses": {
-            "type": "object"
-        },
-        "authn": {
-            "type": "boolean"
-        },
-        "on_validation_error": {
-            "type": "string"
+    "patternProperties": {
+        "(kafka|http)(.)(get|put|post|delete|options)(.)([a-zA-Z0-9:/-]+){1}": {
+          "description": "eventKey",
+          "type": "object",
+          "examples": [{ "summary": "summary of the event" }],
+          "properties": {
+            "description": { "$ref": "#/definitions/description" },
+            "summary": { "$ref": "#/definitions/summary" },
+            "fn": {"$ref": "#/definitions/fn"},
+            "params": { "$ref": "#/definitions/params"},
+            "body": {"$ref": "#/definitions/body"},
+            "authn": {"$ref": "#/definitions/authn"},
+            "on_validation_error": {"$ref": "#/definitions/on_validation_error"}
+          }
         }
-    },
+      },
     "additionalProperties": true,
     "definitions": {
         "params": {
             "type": "array",
-            "items": [
-                {
-                    "type": "object",
-                    "properties": {
-                        "in": {
-                            "enum": [
-                                "cookie",
-                                "path",
-                                "query",
-                                "header"
-                            ]
-                        },
-                        "name": {
-                            "type": "string"
-                        },
-                        "required": {
-                            "type": "boolean"
-                        },
-                        "schema": {
-                            "type": "object"
-                        },
-                        "description": {
-                            "type": "string"
-                        },
-                        "allow_empty_value": {
-                            "type": "boolean"
-                        }
-                    },
-                    "required": [
-                        "in",
-                        "schema"
-                    ]
+            "title": "Params",
+            "description": "Define list of params from path, query, cookie or header",
+            "items": {
+              "$ref": "#/definitions/param"
+            },
+            "minItems": 1
+          },
+          "param": {
+            "type":"object",
+            "additionalItems": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "title": "Name",
+                "description": "Name of Params",
+                "default": "name_one"
+              },
+              "in": {
+                "$ref": "#/definitions/in"
+              },
+              "required": {
+                "type": "boolean",
+                "default": false
+              },
+              "description": {
+                "type": "string",
+                "title": "Description",
+                "description": "Detail description of Params",
+                "default": "Detailed description of the Params",
+                "maxLength": 50,
+                "minLength": 2
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "default": "string"
+                  }
                 }
-            ],
-            "minItems": 1,
-            "maxItems": 10
+              },
+              "examples": {
+                "type": "object"
+              }
+            },
+            "required": ["name", "in"]
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Detail description of Event",
+            "default": "Detailed description of the Event",
+            "maxLength": 50,
+            "minLength": 2
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "Quick summary of Event",
+            "default": "Quick summary of the Event",
+            "maxLength": 50,
+            "minLength": 2
+        },
+        "fn": {
+            "type": "string"
+          },
+        "in": {
+        "type": "string",
+        "default": "query",
+        "oneOf": [
+            {
+            "const": "query",
+            "title": "Query"
+            },
+            {
+            "const": "path",
+            "title": "Path"
+            },
+            {
+            "const": "header",
+            "title": "Header"
+            }
+        ]
+        },
+        "body": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "title": "Description",
+                "default": "This is the Description of body"
+              },
+              "required": {
+                "type": "boolean",
+                "title": "Required or Not",
+                "description": "if this param is required then set it to true else false",
+                "default": false
+              },
+              "content": {
+                "type": "object",
+                "properties": {
+                  "application/json" : {
+                    "type": "object" ,
+                    "properties": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "default": "string"
+                          }
+                        },
+                        "required": ["type"]
+                      },
+                      "properties": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "default": "string"
+                              }
+                            }
+                          },
+                          "email": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "default": "string"
+                              }
+                            }
+                          }
+                        },
+                        "required": []
+                      }
+                    },
+                    "required": ["schema"]
+                  }
+                },
+                "required": ["application/json"]
+              }
+            },
+            "required": ["content"]
+          },
+        "on_validation_error": {
+        "type": "string",
+        "default": "com.jfs.handle_validation_error"
         }
     },
     "errorMessage": "It's not a valid event definition. Refer above error for more detail."

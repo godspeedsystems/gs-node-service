@@ -3,56 +3,553 @@
     "type": "object",
     "properties": {
         "id": {
-            "type": "string"
-        },
-        "summary": {
-            "type": "string"
+          "$ref": "#/definitions/id"
         },
         "description": {
-            "type": "string"
+          "$ref": "#/definitions/description"
+        },
+        "summary": {
+          "$ref": "#/definitions/summary"
         },
         "tasks": {
-            "type": "array",
-            "items": [
-                {
-                    "$ref": "#/definitions/task"
-                }
-            ]
+          "$ref": "#/definitions/tasks"
+        },
+        "on_error": {
+          "$ref": "#/definitions/on_error"
+        },
+        "retry": {
+          "$ref": "#/definitions/retry"
+        },
+        "additionalProperties": {
+          "$ref": "#/definitions/additionalProperties"
         }
-    },
+      },
+      "required": [
+        "tasks"
+      ],
     "additionalProperties": true,
     "definitions": {
-        "task": {
+        "args": {
+            "type": ["string", "object"],
+            "default": "<% %>"
+          },
+          "id": {
+            "type": "string",
+            "title": "ID",
+            "description": "Unique ID for the workflow, It is recommanded for better logging visibility.",
+            "default": "unique_id",
+            "maxLength": 45,
+            "minLength": 1,
+            "pattern": "^[^\\s]+$"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Detail description of workflow",
+            "default": "detailed description of workflow",
+            "maxLength": 50,
+            "minLength": 2
+          },
+          "summary": {
+            "type": "string",
+            "title": "Title",
+            "description": "Title of the workflow, meta info about the workflow",
+            "default": "short summary of the workflow",
+            "maxLength": 50,
+            "minLength": 2
+          },
+          "additionalProperties": {
+            "type": "boolean",
+            "default": false
+          },
+          "fn": {
+            "type": "string",
+            "oneOf": [
+              {
+                "const": "com.gs.return",
+                "title": "com.gs.return",
+                "description": "Return the arguments and end the task."
+              },
+              {
+                "const": "com.gs.log",
+                "title": "com.gs.log",
+                "description": "Log the arguments to console."
+              },
+              {
+                "const": "com.gs.transform",
+                "title": "com.gs.transform",
+                "description": "This function allows to transform data from one format to another using coffee/js scripting."
+              },
+              {
+                "const": "com.gs.parallel",
+                "title": "com.gs.parallel",
+                "description": "Executes the tasks in parallel."
+              },
+              {
+                "const": "com.gs.switch",
+                "title": "com.gs.switch",
+                "description": "The classic switch-case flow execution."
+              },
+              {
+                "const": "com.gs.each_sequential",
+                "title": "com.gs.each_sequential",
+                "description": "The classic for-each flow execution"
+              },
+              {
+                "const": "com.gs.each_parallel",
+                "title": "com.gs.each_parallel",
+                "description": "The args is list of values in `value` field along with associated tasks. For each value in `value` tasks are executed in parallel. The final output each_parallel is the array of status of the last executed task of each iteration."
+              },
+              {
+                "const": "com.gs.if",
+                "title": "com.gs.if",
+                "description": "The args are `condition` and `tasks`. `condition` takes a coffee/js expression to be evaluated during runtime. The `tasks` can invoke another function or a workflow."
+              },
+              {
+                "const": "com.gs.elif",
+                "title": "com.gs.elif",
+                "description": "The args are `condition` and `tasks`. `condition` takes a coffee/js expression to be evaluated during runtime. The `tasks` can invoke another function or a workflow."
+              },
+              {
+                "const": "com.gs.else",
+                "title": "com.gs.else",
+                "description": "The args are `condition` and `tasks`. `condition` takes a coffee/js expression to be evaluated during runtime. The `tasks` can invoke another function or a workflow."
+              },
+              {
+                "pattern": "^datasource."
+              }
+            ]
+          },
+          "tasks": {
+            "type": "array",
+            "title": "Tasks",
+            "description": "The tasks (workflows or sub-workflows) to be run in series (sequence, or one by one). The tasks invoke other workflows written in YAML or JS/TS. \n Default value is `sequence`",
+            "items": {
+              "$ref": "#/definitions/task"
+            },
+            "minItems": 1
+          },
+          "task": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "#/definitions/id"
+              },
+              "description": {
+                "$ref": "#/definitions/description"
+              },
+              "fn": {
+                "$ref": "#/definitions/fn"
+              },
+              "on_error": {
+                "$ref": "#/definitions/on_error"
+              },
+              "args": {
+                "$ref": "#/definitions/args"
+              },
+              "defaults": {
+                "type": ["array", "object"] ,
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/id"
+                  },
+                  "args": {
+                    "$ref": "#/definitions/args"
+                  },
+                  "fn": {
+                    "$ref": "#/definitions/fn"
+                  }
+                 
+                }
+              },
+              "cache": {
+                "type": "object"
+              },
+              "authz": {
+                "type": "object"
+              },
+              "params": true,
+              "retry": true,
+              "tasks": true,
+              "value": true,
+              "cases": true,
+              "condition": true
+            },
+            "required": [
+              "id",
+              "fn"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.return"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-return"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.log"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-log"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.transform"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-transform"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.parallel"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-series-and-parallel"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.switch"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-switch"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.each_sequential"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-each_sequential_and_parallel"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.each_parallel"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-each_sequential_and_parallel"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.if"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-if-elif"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.elif"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-if-elif"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "fn": {
+                      "const": "com.gs.else"
+                    }
+                  },
+                  "required": [
+                    "fn"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/definitions/com-gs-else"
+                }
+              }
+            ]
+          },
+          "on_error": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "fn": {
-                    "type": "string"
-                },
-                "args": {
-                    "anyOf": [
-                        {
-                            "type": "object"
-                        },
-                        {
-                            "type": "string"
-                        }
-                    ]
-                },
-                "description": {
-                    "type": "string"
-                },
-                "tasks": {
-                    "type": "array",
-                    "items": [
-                        {
-                            "$ref": "#/definitions/task"
-                        }
-                    ]
-                }
+              "continue": {
+                "type": "boolean",
+                "default": true,
+                "title": "Continue",
+                "description": "Whether the next task should be executed, in case this wokflow/task fails."
+              },
+              "response": {
+                "type": ["string", "object"]
+              }
             }
-        }
+          },
+          "retry": {
+            "type": "object",
+            "title": "Retry mechanism",
+            "description": "Retry logic helps to handle transient failures, internal server errors, and network errors with support for constant, exponential and random types.\n`Currently applied only for com.gs.http workflow.`",
+            "properties": {
+              "max_attempts": {
+                "type": "number",
+                "default": 5
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "constant",
+                  "exponential",
+                  "random"
+                ],
+                "default": "constant"
+              },
+              "interval": {
+                "type": "string",
+                "title": "Interval",
+                "default": "PT15S"
+              },
+              "min_interval": {
+                "title": "Min interval",
+                "type": "string"
+              },
+              "max_interval": {
+                "title": "Max interval",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "interval"
+            ]
+          },
+          "com-gs-return": {
+            "title": "args",
+            "description": "Can be template string with `js` or an `object`",
+            "properties": {
+              "args": {
+                "type": [
+                  "object",
+                  "string"
+                ],
+                "default": "<% %>"
+              }
+            },
+            "required": [
+              "args"
+            ]
+          },
+          "com-gs-log": {
+            "title": "args",
+            "description": "Can be template string with `js` or an `object`",
+            "properties": {
+              "args": {
+                "type": [
+                  "object",
+                  "string"
+                ],
+                "properties": {
+                  "level": {
+                    "type": "string",
+                    "title": "Log level",
+                    "enum": [
+                      "info",
+                      "debug",
+                      "error",
+                      "warn",
+                      "fatal",
+                      "silent",
+                      "trace"
+                    ],
+                    "default": "debug"
+                  },
+                  "data": {
+                    "type": [
+                      "string",
+                      "object"
+                    ],
+                    "default": "<% %>"
+                  }
+                }
+              }
+            },
+            "required": [
+              "args"
+            ]
+          },
+          "com-gs-transform": {
+            "title": "args",
+            "properties": {
+              "args": {
+                "type": [
+                  "object",
+                  "string"
+                ],
+                "properties": {
+                  "data": {
+                    "title": "data",
+                    "type": [
+                      "object",
+                      "string"
+                    ],
+                    "default": ""
+                  }
+                }
+              }
+            },
+            "required": [
+              "args"
+            ]
+          },
+          "com-gs-series-and-parallel": {
+            "properties": {
+              "tasks": {
+                "$ref": "#/definitions/tasks"
+              }
+            },
+            "required": [
+              "tasks"
+            ]
+          },
+          "com-gs-switch": {
+            "properties": {
+              "value": {
+                "type": [
+                  "string"
+                ]
+              },
+              "cases": {
+                "type": "object"
+              },
+              "defaults": {
+                "type": ["array", "object"],
+                "properties": {
+                  "id": {
+                    "type":"string"
+                  },
+                  "fn": {
+                    "type": "string"
+                  },
+                  "args": {
+                    "type": "string" 
+                  }
+                }
+              }
+            },
+            "required": [
+              "cases"
+            ]
+          },
+          "com-gs-each_sequential_and_parallel": {
+            "properties": {
+              "value": {
+                "type": "array",
+                "items": {
+                  "type": [
+                    "number",
+                    "string",
+                    "object"
+                  ]
+                },
+                "minItems": 1,
+                "default": []
+              },
+              "tasks": {
+                "$ref": "#/definitions/tasks"
+              }
+            },
+            "required": [
+              "value",
+              "tasks"
+            ]
+          },
+          "com-gs-if-elif": {
+            "type": "object",
+            "properties": {
+              "condition": {
+                "type": "string",
+                "default": ""
+              },
+              "tasks": {
+                "$ref": "#/definitions/tasks"
+              }
+            },
+            "required": [
+              "condition",
+              "tasks"
+            ]
+          },
+          "com-gs-else": {
+            "type": "object",
+            "properties": {
+              "tasks": {
+                "$ref": "#/definitions/tasks"
+              }
+            },
+            "required": [
+              "tasks"
+            ]
+          }
     }
 }
