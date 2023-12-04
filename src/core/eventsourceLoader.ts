@@ -3,6 +3,7 @@ import { logger } from "../logger";
 import { PlainObject } from "../types";
 import loadYaml from "./yamlLoader";
 import { GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources";
+import expandVariables from "./expandVariables"; // Import the expandVariables function
 
 export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource | GSDataSourceAsEventSource }> {
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
@@ -14,34 +15,43 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
 
   for await (let esName of Object.keys(eventsourcesConfigs)) {
     // let's load the event source
-    const eventSourceConfig = eventsourcesConfigs[esName];
-    try {
-      const Module = await import(path.join(eventsourcesFolderPath, 'types', eventSourceConfig.type));
-      const isPureEventSource = 'initClient' in Module.default.prototype;
-      // const isPureEventSource = !!Object.hasOwnProperty.call(Module.default.prototype, 'initClient');
-      let eventSourceInatance: GSEventSource | GSDataSourceAsEventSource;
+    logger.debug('evaluating event source %s', esName);
+    eventsourcesConfigs[esName] = expandVariables(eventsourcesConfigs[esName]);
+    logger.debug(
+      'evaluated eventsource %s %o',
+      esName,
+      eventsourcesConfigs[esName]
+    );
 
-      let Constructor = Module.default;
+    const fileName = eventsourcesConfigs[esName].type;
 
-      if (isPureEventSource) {
-        eventSourceInatance = new Constructor(eventsourcesConfigs[esName], datasources) as GSEventSource;
-        if ('init' in eventSourceInatance) {
-          await eventSourceInatance.init();
-        }
-      } else {
-        let correspondingDatasource = datasources[esName]; // By design, datasource and event source need to share the same name.
-        if (!correspondingDatasource) {
-          throw new Error(`Corresponding data source for event source ${esName} is not defined. Please ensure a data source type exists with the same file name in /datasources directory`);
+    await import(path.join(eventsourcesFolderPath, 'types', `${fileName}`)).then(
+      async (Module: GSEventSource | GSDataSourceAsEventSource) => {
+        const esYamlConfig: PlainObject = eventsourcesConfigs[esName];
+        // @ts-ignore
+        const Constructor = Module.default;
+        let esInstance: GSEventSource | GSDataSourceAsEventSource;
+
+        if ('initClient' in Constructor.prototype) {
+          esInstance = new Constructor(esYamlConfig, datasources) as GSEventSource;
+          if ('init' in esInstance) {
+            await esInstance.init();
+          }
         } else {
-          eventSourceInatance = new Constructor(eventsourcesConfigs[esName], correspondingDatasource.client) as GSDataSourceAsEventSource;
+          let correspondingDatasource = datasources[esName];
+          if (!correspondingDatasource) {
+            throw new Error(`Corresponding data source for event source ${esName} is not defined.`);
+          } else {
+            esInstance = new Constructor(esYamlConfig, correspondingDatasource.client) as GSDataSourceAsEventSource;
+          }
         }
-      }
 
-      eventSources[esName] = eventSourceInatance;
-    } catch (error) {
+        eventSources[esName] = esInstance;
+      }
+    ).catch((error) => {
       logger.error(error);
-    }
+    });
   }
 
   return eventSources;
-};
+}

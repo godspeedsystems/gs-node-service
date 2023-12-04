@@ -15,9 +15,13 @@ function substitute(value: string): any {
       logger.debug('value before %s', value);
 
       let script = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
-      //TODO: pass other context variables
-      value = Function('config', 'mappings', 'return ' + script)(config, mappings);
-      logger.debug('value after %s', value);
+      try {
+        //TODO: pass other context variables
+        value = Function('config', 'mappings', 'return ' + script)(config, mappings);
+        logger.debug('value after %s', value);
+    } catch (error) {
+        logger.error('Error executing dynamic script: %o', error);
+    }
     }
   } catch (ex) {
     //console.error(ex);
