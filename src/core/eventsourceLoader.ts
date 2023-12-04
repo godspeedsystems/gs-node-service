@@ -25,32 +25,32 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
 
     const fileName = eventsourcesConfigs[esName].type;
 
-    await import(path.join(eventsourcesFolderPath, 'types', `${fileName}`)).then(
-      async (Module: GSEventSource | GSDataSourceAsEventSource) => {
-        const esYamlConfig: PlainObject = eventsourcesConfigs[esName];
-        // @ts-ignore
-        const Constructor = Module.default;
-        let esInstance: GSEventSource | GSDataSourceAsEventSource;
+    try {
+      const Module = await import(path.join(eventsourcesFolderPath, 'types', `${fileName}`));
+      const isPureEventSource = 'initClient' in Module.default.prototype;
+      // const isPureEventSource = !!Object.hasOwnProperty.call(Module.default.prototype, 'initClient');
+      let eventSourceInatance: GSEventSource | GSDataSourceAsEventSource;
 
-        if ('initClient' in Constructor.prototype) {
-          esInstance = new Constructor(esYamlConfig, datasources) as GSEventSource;
-          if ('init' in esInstance) {
-            await esInstance.init();
-          }
-        } else {
-          let correspondingDatasource = datasources[esName];
-          if (!correspondingDatasource) {
-            throw new Error(`Corresponding data source for event source ${esName} is not defined.`);
-          } else {
-            esInstance = new Constructor(esYamlConfig, correspondingDatasource.client) as GSDataSourceAsEventSource;
-          }
+      let Constructor = Module.default;
+
+      if (isPureEventSource) {
+        eventSourceInatance = new Constructor(eventsourcesConfigs[esName], datasources) as GSEventSource;
+        if ('init' in eventSourceInatance) {
+          await eventSourceInatance.init();
         }
-
-        eventSources[esName] = esInstance;
+      } else {
+        let correspondingDatasource = datasources[esName]; // By design, datasource and event source need to share the same name.
+        if (!correspondingDatasource) {
+          throw new Error(`Corresponding data source for event source ${esName} is not defined. Please ensure a data source type exists with the same file name in /datasources directory`);
+        } else {
+          eventSourceInatance = new Constructor(eventsourcesConfigs[esName], correspondingDatasource.client) as GSDataSourceAsEventSource;
+        }
       }
-    ).catch((error) => {
+
+      eventSources[esName] = eventSourceInatance;
+    } catch (error) {
       logger.error(error);
-    });
+    }
   }
 
   return eventSources;
