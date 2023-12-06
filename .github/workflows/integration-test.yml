@@ -1,0 +1,45 @@
+name: Run Integration Tests
+
+
+on:
+  workflow_call:
+    secrets:
+      GIT_TOKEN:
+        required: true
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Run compile
+        run: npm run build
+
+      - name: Checkout test project
+        uses: actions/checkout@v4
+        with:
+          repository: godspeedsystems/gs-test-project
+          token: ${{ secrets.GIT_TOKEN }}
+          path: gs-test-project
+          
+      - name: Install project dependencies
+        run: |
+          cd gs-test-project
+          npm install
+
+      - name: Modify src/index.ts
+        run: |
+          cd gs-test-project
+          sed -i 's#@godspeedsystems/core#../../dist/godspeed.js#g' src/index.ts
+          cd src/datasources
+          sed -i 's#file:home/godspeed/gs-test-project/godspeed1.db#file:../../godspeed1.db#g' sqlite.prisma
+          sudo apt-get update -y
+          sudo apt-get install -y openssl
+      - name: Run test-project test-suite
+        run: |
+          cd gs-test-project
+          npx prisma generate --schema=src/datasources/sqlite.prisma
+          npm run dev-test
