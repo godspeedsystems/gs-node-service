@@ -28,6 +28,8 @@ import {
 } from './validation';
 import config from 'config';
 import salesforce from '../salesforce';
+import soap from 'soap';
+import fs from 'fs';
 
 const axiosTime = require('axios-time');
 
@@ -98,6 +100,8 @@ export default async function loadDatasources(pathString: string) {
       }
     } else if (datasources[ds].type === 'aws') {
       loadedDatasources[ds] = await loadAWSClient(datasources[ds]);
+    } else if (datasources[ds].type === 'soap') {
+      loadedDatasources[ds] = await loadSoapClient(datasources[ds]);
     } else if (datasources[ds].type) {
       //some other type
       if (datasources[ds].loadFn) {
@@ -256,6 +260,70 @@ async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
     ...datasource,
     client: new KafkaMessageBus(datasource),
   };
+  return ds;
+}
+
+async function loadSoapClient(datasource: PlainObject): Promise<PlainObject> {
+  let options = datasource.options || {
+    suppressStack: process.env.NODE_ENV == 'production'
+  };
+  let client = await soap.createClientAsync(datasource.url, options);
+
+  const ds = {
+    ...datasource,
+    client
+  };
+
+  if (datasource.security) {
+    let security = datasource.security;
+    switch(security.type) {
+      case 'basic':
+        client.setSecurity(new soap.BasicAuthSecurity(security.username, security.password));
+        break;
+
+      case 'bearer':
+        client.setSecurity(new soap.BearerSecurity(security.token));
+        break;
+
+      case 'clientcert':
+        if (security.pfx) {
+          client.setSecurity(new soap.ClientSSLSecurityPFX(
+            security.pfx,
+            security.passphrase,
+            security.options
+          ));
+        } else {
+          client.setSecurity(new soap.ClientSSLSecurity(
+            security.key,
+            security.cert,
+            security.caCert,
+            security.options
+          ));
+        }
+        break;
+
+      case 'ws':
+        {
+          let wsSecurity = new soap.WSSecurity(security.username, security.password, security.options)
+          client.setSecurity(wsSecurity);
+        }
+        break;
+
+      case 'wscert':
+        {
+          let privateKey = fs.readFileSync(security.privateKey);
+          let publicKey = fs.readFileSync(security.publicKey);
+          let wsSecurity = new soap.WSSecurityCert(privateKey, publicKey, security.password, security.options);
+          client.setSecurity(wsSecurity);
+        }
+        break;
+
+      default:
+        logger.error('Invalid Security Sheme for soap data source');
+        process.exit(1);
+    }
+  }
+
   return ds;
 }
 
