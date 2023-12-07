@@ -6,11 +6,15 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
 
   const { port, docs: { info, servers }, jwt } = eventSourceConfig;
 
-  Object.keys(events).forEach(event => {
+  const eventObjStr = JSON.stringify(events);
+  const modifiedStr = eventObjStr.replace('https://godspeed.systems/definitions.json', '');
+  const eventObj = JSON.parse(modifiedStr);
+
+  Object.keys(eventObj).forEach(event => {
     let apiEndPoint = event.split('.')[2];
     apiEndPoint = apiEndPoint.replace(/:([^\/]+)/g, '{$1}'); //We take :path_param. OAS3 takes {path_param}
     const method = event.split('.')[1];
-    const eventSchema = events[event];
+    const eventSchema = eventObj[event];
 
     //Initialize the schema for this method, for given event
     let methodSpec: PlainObject = {
