@@ -13,24 +13,24 @@ const validateEvent = ajvInstance.compile(eventSchema);
 const validateWorkflow = ajvInstance.compile(workflowSchema);
 
 export const isValidEvent = (event: PlainObject, eventKey: string): boolean => {
-  if (!validateEvent(event)) {
+  const valid = validateEvent(event);
+  if (!valid) {
     logger.error('Event validation failed for %s', eventKey);
     logger.error(validateEvent.errors);
-    return false;
   }
-  return true;
+  return valid;
 };
 
 export const isValidWorkflow = (
   workflow: PlainObject,
   workflowKey: string
 ): boolean => {
-  if (!validateWorkflow(workflow)) {
+  const valid = validateWorkflow(workflow);
+  if (!valid) {
     logger.error('Workflow validation failed for %s', workflowKey);
     logger.error(validateWorkflow.errors);
-    return false;
   }
-  return true;
+  return valid;
 };
 
 export default ajvInstance;

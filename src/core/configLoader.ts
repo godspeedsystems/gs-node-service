@@ -26,9 +26,14 @@ function iterate_yaml_directories(current_yaml_root: any) {
   for (const file of files) {
     let temp_obj: any;
     if (file.endsWith('.yaml') || file.endsWith('.yml') || file.endsWith('.json')) {
-      temp_obj = yaml.load(
-        fs.readFileSync(current_yaml_root + '/' + file, { encoding: 'utf-8' })
-      );
+      try {
+        temp_obj = yaml.load(
+          fs.readFileSync(current_yaml_root + '/' + file, { encoding: 'utf-8' })
+        );
+      } catch (error) {
+        logger.error(`Error while loading ${file}: ${error}`);
+        process.exit(1);
+      }
 
       if (temp_obj) {
         const temp_obj_keys = Object.keys(temp_obj);
