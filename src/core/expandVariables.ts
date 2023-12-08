@@ -20,7 +20,7 @@ function substitute(value: string): any {
         value = Function('config', 'mappings', 'return ' + script)(config, mappings);
         logger.debug('value after %s', value);
     } catch (error) {
-        logger.error('Error executing dynamic script: %o', error);
+        logger.error('Error executing dynamic script: %s', error);
     }
     }
   } catch (ex) {

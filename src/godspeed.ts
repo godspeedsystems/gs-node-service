@@ -303,13 +303,19 @@ class Godspeed {
     if (httpEventSource?.config?.docs) {
       const _httpEvents = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
       // @ts-ignore
-      httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
+      if(httpEventSource.client.express){
+      // @ts-ignore
+        httpEventSource.client.express.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
+      }else{
+      // @ts-ignore
+        httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
+      }
     }
 
     if (process.env.OTEL_ENABLED == 'true') {
-      // @ts-ignore
-      httpEventSource.client.get('/metrics', async (req, res) => {
-        let prismaMetrics: string = '';
+      //@ts-ignore
+      const handleMetrics = async (req, res) => {
+        let prismaMetrics = '';
         for (let ds in this.datasources) {
           // @ts-ignore
           if (this.datasources[ds].config.type === 'prisma') {
@@ -319,10 +325,17 @@ class Godspeed {
             });
           }
         }
-        let appMetrics = await promClient.register.metrics();
-
+        const appMetrics = await promClient.register.metrics();
         res.end(appMetrics + prismaMetrics);
-      });
+      };
+      //@ts-ignore
+      if (httpEventSource.client.express) {
+        //@ts-ignore
+        httpEventSource.client.express.get('/metrics', handleMetrics);
+      } else {
+        // @ts-ignore
+        httpEventSource.client.get('/metrics', handleMetrics);
+      }      
     }
   }
 
