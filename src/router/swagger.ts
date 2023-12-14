@@ -7,7 +7,7 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
   const { port, docs: { info, servers }, jwt } = eventSourceConfig;
 
   const eventObjStr = JSON.stringify(events);
-  const modifiedStr = eventObjStr.replace('https://godspeed.systems/definitions.json', '');
+  const modifiedStr = eventObjStr.replace(/https:\/\/godspeed\.systems\/definitions\.json/g, '');
   const eventObj = JSON.parse(modifiedStr);
 
   Object.keys(eventObj).forEach(event => {
