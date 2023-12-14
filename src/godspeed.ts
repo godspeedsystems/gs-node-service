@@ -15,7 +15,7 @@ var config = require('config');
 
 import { join } from 'path';
 import { cwd } from 'process';
-import _ from 'lodash';
+import _, { functions } from 'lodash';
 import swaggerUI from 'swagger-ui-express';
 import promClient from '@godspeedsystems/metrics';
 
@@ -409,6 +409,7 @@ class Godspeed {
         datasources,
         event,
         mappings,
+        workflows,
         {},
         logger,
         childLogger
