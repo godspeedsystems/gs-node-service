@@ -69,8 +69,12 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
 
 export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
   for (let task of workflowJson.tasks) {
-    if (task.tasks) {
+    if (task.tasks) { 
+      //sub-workflow
       const status: GSStatus = checkDatasource(task, datasources);
+      if (!status.success) {
+        return status;
+      }
     } else {
       if (task.fn.includes('datasource.')) {
         /*
