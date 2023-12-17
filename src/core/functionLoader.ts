@@ -12,17 +12,25 @@ import path from 'path';
 
 let lastIfFn: GSIFFunction | null;
 
+/**
+ * 
+ * @param workflowJson single task or array of tasks
+ * @param workflows 
+ * @param nativeFunctions 
+ * @param onError 
+ * @returns 
+ */
 export function createGSFunction(
-    workflowJson: PlainObject,
+    workflowJson: PlainObject | Array<PlainObject>,
     workflows: PlainObject,
     nativeFunctions: PlainObject,
     onError: PlainObject | null
 ): GSFunction | null {
-
+    //@ts-ignore
     logger.debug('Creating GSFunction %s workflow_name %s', workflowJson.id, workflowJson.workflow_name);
-
+    //@ts-ignore
     if (!workflowJson.fn) {
-        if (Array.isArray(workflowJson)) {
+        if (Array.isArray(workflowJson)) { //These are workflow tasks
             // @ts-ignore
             workflowJson = { tasks: workflowJson, fn: 'com.gs.sequential', workflow_name: workflowJson?.workflow_name };
         } else {
