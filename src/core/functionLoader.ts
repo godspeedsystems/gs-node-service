@@ -3,7 +3,7 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import { PlainObject } from './common';
-import { GSDynamicFunction, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSIFFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction } from './interfaces';
+import { GSContext, GSDynamicFunction, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSIFFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction } from './interfaces';
 import { checkDatasource, compileScript } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
@@ -350,7 +350,6 @@ export function createGSFunction(
     }
 
     if (taskJson.authz) {
-        //@ts-ignore
         taskJson.authz.workflow_name = json.workflow_name;
         //@ts-ignore
         taskJson.authz = createGSFunction(taskJson.authz as TasksJSON, workflows, nativeFunctions, onError);
@@ -380,10 +379,9 @@ export default async function loadFunctions(datasources: PlainObject, pathString
 
     let _datasourceFunctions = Object
         .keys(datasources)
-        .reduce((acc, dsName) => {
-            // @ts-ignore
+        .reduce((acc: {[key: string]: Function}, dsName) => {
             // dsName, eg., httpbin, mongo, prostgres, salesforce
-            acc[`datasource.${dsName}`] = async (ctx, args) => {
+            acc[`datasource.${dsName}`] = async (ctx: GSContext, args:PlainObject) => {
                 return datasources[dsName].execute(ctx, args);
             };
             return acc;
