@@ -1,0 +1,59 @@
+name: Testing Godspeed
+
+on:
+  push:
+    branches: [ v2 ]
+  pull_request:
+    branches:
+      - v2
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+      - name: Checkout gs-node-service
+        uses: actions/checkout@v2
+        with:
+          path: repo/gs-node-service
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: |
+          cd repo/gs-node-service
+          npm install
+
+      - name: Run build
+        run: |
+          apt update 
+          apt install rsync openssl -y
+          cd repo/gs-node-service
+          npm run build
+
+      - name: Checkout test project
+        uses: actions/checkout@v2
+        with:
+          repository: godspeedsystems/gs-test-project
+          token: ${{ secrets.GIT_TOKEN }}
+          path: repo/gs-test-project
+      
+      - name: Install project dependencies
+        run: |
+          cd repo/gs-test-project
+          npm install
+
+      - name: Run Integration Tests
+        run: |
+          cd repo/gs-test-project
+          npm run build 
+          sed -i 's#@godspeedsystems/core#../../gs-node-service/dist/godspeed.js#g' src/index.ts
+          npm i -g @godspeedsystems/godspeed
+          npx prisma generate --schema=src/datasources/sqlite.prisma
+          npm run dev-test
