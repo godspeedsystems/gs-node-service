@@ -32,8 +32,8 @@ jobs:
 
       - name: Run build
         run: |
-          apt update 
-          apt install rsync openssl -y
+          sudo apt update 
+          sudo apt install rsync openssl -y
           cd repo/gs-node-service
           npm run build
 
@@ -54,6 +54,6 @@ jobs:
           cd repo/gs-test-project
           npm run build 
           sed -i 's#@godspeedsystems/core#../../gs-node-service/dist/godspeed.js#g' src/index.ts
-          npm i -g @godspeedsystems/godspeed
+          sudo npm i -g @godspeedsystems/godspeed
           npx prisma generate --schema=src/datasources/sqlite.prisma
           npm run dev-test
