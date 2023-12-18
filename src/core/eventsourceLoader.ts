@@ -54,4 +54,4 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
   }
 
   return eventSources;
-}
+};
