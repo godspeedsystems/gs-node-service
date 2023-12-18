@@ -396,6 +396,7 @@ class Godspeed {
         datasources,
         event,
         mappings,
+        workflows,
         {},
         logger,
         childLogger
