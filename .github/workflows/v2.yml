@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout gs-node-service
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           path: repo/gs-node-service
 
@@ -38,7 +38,7 @@ jobs:
           npm run build
 
       - name: Checkout test project
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: godspeedsystems/gs-test-project
           token: ${{ secrets.GIT_TOKEN }}
