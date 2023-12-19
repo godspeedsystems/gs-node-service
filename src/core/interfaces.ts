@@ -981,6 +981,8 @@ export class GSContext { //span executions
 
   mappings: any;
 
+  functions: PlainObject;
+
   plugins: PlainObject;
 
   exitWithStatus?: GSStatus;
@@ -989,12 +991,13 @@ export class GSContext { //span executions
 
   childLogger: pino.Logger;
 
-  constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, plugins: PlainObject, logger: pino.Logger, childLogger: pino.Logger) {//_function?: GSFunction
+  constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, functions: PlainObject, plugins: PlainObject, logger: pino.Logger, childLogger: pino.Logger) {//_function?: GSFunction
     this.inputs = event;
     this.config = config;
     this.outputs = {};
     this.datasources = datasources;
     this.mappings = mappings;
+    this.functions = functions;
     this.plugins = plugins;
     this.logger = logger;
     this.childLogger = childLogger;
@@ -1008,6 +1011,7 @@ export class GSContext { //span executions
       this.datasources,
       this.inputs?.cloneWithNewData(data),
       this.mappings,
+      this.functions,
       this.plugins,
       this.logger,
       this.childLogger
