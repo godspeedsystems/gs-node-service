@@ -3,7 +3,7 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import { PlainObject } from './common';
-import { GSContext, GSDynamicFunction, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSIFFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction } from './interfaces';
+import { GSContext, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSIFFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction } from './interfaces';
 import { checkDatasource, compileScript } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
@@ -27,7 +27,7 @@ type BaseJSON = {
     workflow_name?: string,
     on_error?: OnError
 }
-type WorkflowJSON = BaseJSON & {
+export type WorkflowJSON = BaseJSON & {
     tasks: Array<TaskJSON>
 }
 type OnError = {
@@ -49,7 +49,11 @@ type TaskJSON = BaseJSON & {
     isEachParallel?: boolean,
     authz?: TasksJSON,
     args: any
-}
+};
+export type NativeFunctions = {
+    [key: string]: Function | null}
+;
+
 /**
  * 
  * @param json a workflow or array of yaml tasks or a single yaml task
@@ -61,7 +65,7 @@ type TaskJSON = BaseJSON & {
 export function createGSFunction(
     json: WorkflowJSON | TasksJSON | TaskJSON,
     workflows: PlainObject,
-    nativeFunctions: PlainObject,
+    nativeFunctions: NativeFunctions,
     onError: OnError | null
 ): GSFunction | null {
     
@@ -355,7 +359,7 @@ export function createGSFunction(
         taskJson.authz = createGSFunction(taskJson.authz as TasksJSON, workflows, nativeFunctions, onError);
     }
 
-    return new GSFunction(taskJson, workflows, nativeFunctions, fn, taskJson.args, subwf, fnScript);
+    return new GSFunction(taskJson, workflows, nativeFunctions, fn as GSFunction , taskJson.args, subwf, fnScript);
 }
 
 export default async function loadFunctions(datasources: PlainObject, pathString: string): Promise<PlainObject> {
@@ -386,8 +390,8 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             };
             return acc;
         }, {});
-
-    frameworkFunctions = { ...frameworkFunctions, ..._datasourceFunctions, ...nativeMicroserviceFunctions };
+    
+    const nativeFunctions = { ...frameworkFunctions, ..._datasourceFunctions, ...nativeMicroserviceFunctions };
 
     for (let f in yamlWorkflows) {
         try {
@@ -411,9 +415,9 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             yamlWorkflows[f].workflow_name = f;
             if (yamlWorkflows[f].on_error?.tasks) {
                 yamlWorkflows[f].on_error.tasks.workflow_name = f;
-                yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, frameworkFunctions, null);
+                yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, nativeFunctions, null);
             }
-            yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, frameworkFunctions, yamlWorkflows[f].on_error);
+            yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, nativeFunctions, yamlWorkflows[f].on_error);
         }
     }
 
