@@ -21,6 +21,7 @@ function substitute(value: string): any {
         logger.debug('value after %s', value);
       } catch (error) {
         logger.error('Error executing dynamic script: %o', error);
+        process.exit(1);
       }
     }
   } catch (ex) {
