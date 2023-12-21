@@ -28,7 +28,7 @@ import {
 } from './validation';
 import config from 'config';
 import salesforce from '../salesforce';
-import soap from 'soap';
+import * as soap from 'soap';
 import fs from 'fs';
 
 const axiosTime = require('axios-time');
