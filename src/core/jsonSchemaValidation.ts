@@ -85,8 +85,9 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
               responses[k]?.schema?.data?.content?.['application/json']?.schema; //Legacy implementation
             if (response_s) {
               const response_schema = response_s;
-              const topic_response = topic + ':responses:' + k;
-              //console.log("topic_response: ",topic_response)
+              const _topic = topic.replace(/{(.*?)}/g, ':$1'); //removing curly braces in topic (event key)
+              const endpoint = _topic.split('.').pop() //extracting endpoint from eventkey
+              const topic_response = endpoint + ':responses:' + k;
               if (!ajvInstance.getSchema(topic_response)) {
                 ajvInstance.addSchema(response_schema, topic_response);
               }
@@ -114,7 +115,7 @@ export function validateRequestSchema(
   if (event.data.body && hasSchema) {
     childLogger.info('event body and eventSpec exist');
     childLogger.debug('event.data.body: %o', event.data.body);
-    const ajv_validate = ajvInstance.getSchema(topic);
+    const ajv_validate = ajvInstance.getSchema(eventSpec.key);
     if (ajv_validate) {
       childLogger.debug('ajv_validate for body');
       if (!ajv_validate(event.data.body)) {
@@ -166,7 +167,7 @@ export function validateRequestSchema(
 
   if (params) {
     for (let param in MAP) {
-      const topic_param = topic + ':' + param;
+      const topic_param = eventSpec.key + ':' + param;
       const ajv_validate = ajvInstance.getSchema(topic_param);
 
       childLogger.debug('topic_param: %s', topic_param);
