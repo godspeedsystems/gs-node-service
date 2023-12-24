@@ -6,7 +6,7 @@ labels: feature
 assignees: ""
 ---
 
-## Problem Description
+## The Problem 
 
 <!--
   Describe the issue or problem you're facing that led to this feature request.
@@ -15,7 +15,7 @@ assignees: ""
 
 (Explain the problem here.)
 
-## Proposed Solution
+## The Solution
 
 <!--
   Describe your idea for a solution or the feature you'd like to see.
@@ -23,24 +23,18 @@ assignees: ""
 
 (Describe your proposed solution here.)
 
-## Alternative Approaches
+## How will we solve
 
 <!--
-  If you've explored other ideas or solutions, please share them here.
+  Outline how the proposed solution will be implemented.
 -->
 
-(Share any alternative approaches you've considered.)
+(Provide an overview of how the proposed solution will be implemented.)
 
-## Additional Information
+## Test Cases
 
 <!--
-  Include any extra context, links to related issues, or anything else that might help us understand your proposal better.
+  List the test cases that should be considered to ensure the proper functioning of the new feature.
 -->
 
-(Provide any additional information here.)
-
-## Supporting Documents
-
-<!--
-  If you have any documents or references that support this feature request, please mention them here.
--->
+(Provide a list of test cases for the new feature.)
