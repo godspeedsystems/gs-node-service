@@ -47,7 +47,7 @@ type EachTaskJSON = WorkflowJSON & {value:Array<any>}
 type TasksJSON = Array<TaskJSON> & {workflow_name?: string}
 type TaskJSON = BaseJSON & {
     isEachParallel?: boolean,
-    authz?: TasksJSON,
+    authz?: TasksJSON | GSFunction,
     args: any
 };
 
@@ -165,8 +165,10 @@ export function createGSFunction(
              */
              
             const tasksJSON: WorkflowJSON = {...ifWorkflowJSON};
-            //@ts-ignore
-            delete tasksJSON.condition;
+            if ('condition' in tasksJSON) {
+                delete tasksJSON.condition;
+            }
+            
             const tasksGSSeriesFunction = new GSSeriesFunction(tasksJSON, workflows, nativeFunctions, undefined, tasks, false);
 
             args.push(tasksGSSeriesFunction);
@@ -200,8 +202,9 @@ export function createGSFunction(
              */
              
             const tasksJSON: WorkflowJSON = {...elifWorkflowJSON};
-            //@ts-ignore
-            delete tasksJSON.condition;
+            if ('condition' in tasksJSON) {
+                delete tasksJSON.condition;
+            }
             let tasksGSSeriesFunction = new GSSeriesFunction(tasksJSON, workflows, nativeFunctions, undefined, tasks, false);
 
             args.push(tasksGSSeriesFunction);
@@ -358,8 +361,7 @@ export function createGSFunction(
 
     if (taskJson.authz) {
         taskJson.authz.workflow_name = json.workflow_name;
-        //@ts-ignore
-        taskJson.authz = createGSFunction(taskJson.authz as TasksJSON, workflows, nativeFunctions, onError);
+        taskJson.authz = createGSFunction(taskJson.authz as TasksJSON, workflows, nativeFunctions, onError) as GSFunction;
     }
 
     return new GSFunction(taskJson, workflows, nativeFunctions, fn as GSFunction , taskJson.args, subwf, fnScript);
@@ -372,7 +374,6 @@ export type LoadedFunctions = {
 export default async function loadFunctions(datasources: PlainObject, pathString: string): Promise<LoadedFunctions> {
 
     // framework defined js/ts functions
-    //@ts-ignore
     let frameworkFunctions = await loadModules(path.resolve(__dirname, '../functions'));
 
     // project defined yaml worlflows
