@@ -124,7 +124,7 @@ export function validateRequestSchema(
           success: false,
           code: 400,
           message: ajv_validate.errors![0].message,
-          data: ajv_validate.errors![0],
+          data: {message: "The API cannot be executed due to a failure in request body schema validation.", error: ajv_validate.errors![0]}
         };
         return status;
       } else {
@@ -178,7 +178,7 @@ export function validateRequestSchema(
             success: false,
             code: 400,
             message: ajv_validate.errors![0].message,
-            data: ajv_validate.errors![0],
+            data: {message: "The API cannot be executed due to a failure in request params schema validation.", error: ajv_validate.errors![0]}
           };
           return status;
         } else {
@@ -196,21 +196,32 @@ export function validateResponseSchema(
   topic: string,
   gs_status: GSStatus
 ): GSStatus {
-  let status: GSStatus;
-  //console.log("gs_status: ",gs_status)
-
-  if (gs_status.data) {
+  let status: any;
+  
+  if (gs_status) {
     const topic_response = topic + ':responses:' + gs_status.code;
     const ajv_validate = ajvInstance.getSchema(topic_response);
     if (ajv_validate) {
       if (!ajv_validate(gs_status.data)) {
         childLogger.error('ajv_validate failed');
-        status = {
-          success: false,
-          code: 500,
-          message: ajv_validate.errors![0].message,
-          data: ajv_validate.errors![0],
-        };
+        let code = gs_status.code
+        if(code){
+          if(code >= 200 && code < 300)
+          status = {
+            success: false,
+            code: 500,
+            message: ajv_validate.errors![0].message,
+            data: {message: "The API execution was successful, but there was a failure in validating the response schema.", error:{ error: ajv_validate.errors![0],originalResponse: gs_status}}
+          };
+          else{
+            status = {
+              success: false,
+              code: 500,
+              message: ajv_validate.errors![0].message,
+              data: {message: "The API execution was unsuccessful, and there was a failure in validating the response schema.", error:{ error: ajv_validate.errors![0],originalResponse: gs_status}}
+            };
+          }
+        }
         return status;
       } else {
         childLogger.info('ajv_validate success');
