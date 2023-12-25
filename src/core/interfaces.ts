@@ -77,9 +77,9 @@ export class GSFunction extends Function {
       }
     }
 
-    if (this.yaml.authz?.args) {
-      this.yaml.authz.args = compileScript(this.yaml.authz?.args);
-    }
+    // if (this.yaml.authz) {
+    //   this.yaml.authz.args = compileScript(this.yaml.authz?.args);
+    // }
 
     // retry
     this.retry = yaml.retry;
@@ -454,21 +454,21 @@ export class GSFunction extends Function {
       let prismaArgs;
 
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
-      if (this.yaml.authz) {
-        ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'invoking authz workflow, creating new ctx');
-        let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
+      // if (this.yaml.authz) {
+      //   ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'invoking authz workflow, creating new ctx');
+      //   let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
 
-        const newCtx = ctx.cloneWithNewData(args);
-        let allow = await this.yaml.authz(newCtx, taskValue);
-        if (allow.success) {
-          if (allow.data === false) {
-            ctx.exitWithStatus = new GSStatus(false, 403, allow.message || 'Unauthorized');
-            return ctx.exitWithStatus;
-          } else if (_.isPlainObject(allow.data)) {
-            prismaArgs = allow.data;
-          }
-        }
-      }
+      //   const newCtx = ctx.cloneWithNewData(args);
+      //   let allow = await this.yaml.authz(newCtx, taskValue);
+      //   if (allow.success) {
+      //     if (allow.data === false) {
+      //       ctx.exitWithStatus = new GSStatus(false, 403, allow.message || 'Unauthorized');
+      //       return ctx.exitWithStatus;
+      //     } else if (_.isPlainObject(allow.data)) {
+      //       prismaArgs = allow.data;
+      //     }
+      //   }
+      // }
 
       if (this.caching) {
         caching = await evaluateScript(ctx, this.caching, taskValue);
@@ -863,6 +863,8 @@ export class GSStatus {
   data?: any;
 
   headers?: { [key: string]: any; };
+
+  exitWithStatus?: boolean;
 
   constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: { [key: string]: any; }) {
     this.message = message;
