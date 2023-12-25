@@ -412,15 +412,26 @@ class Godspeed {
       if (eventConfig.authz) { 
         //If authorization workflow fails, we return with its status right away.
         const authzStatus: GSStatus = await eventConfig.authz(ctx);
-        if (!authzStatus.success) {
-          authzStatus.code = authzStatus.code || 403;
-          authzStatus.message = authzStatus.message || 'Access Forbidden';
-          if (!authzStatus.data?.message) {
-            setAtPath(authzStatus, 'data.message', 'Access Denied');
-          }
+        // if (!authzStatus.success) {
+        //   authzStatus.code = authzStatus.code || 403;
+        //   if (!authzStatus.data?.message) {
+        //     setAtPath(authzStatus, 'data.message', 'Access Forbidden');
+        //   }
           
-          //In non-expected case, it could be either a 500 internal server error
-          //Expected case: 401. But allow developer to choose his response code, data and message
+        //   //In non-expected case, it could be either a 500 internal server error
+        //   //Expected case: 403. But allow developer to choose his response code, data and message
+        //   return authzStatus;
+        // }
+        if (authzStatus.code === 403) { 
+          //Authorization task executed successfully and returned user is not authorized
+          if (!authzStatus.data?.message) {
+            setAtPath(authzStatus, 'data.message', authzStatus.message || 'Access Forbidden');
+          }
+          authzStatus.success = false;
+          return authzStatus;
+        } else if(!authzStatus.success) {
+          //Maybe some internal server error 
+          //or any other error where code was not 403
           return authzStatus;
         }
       }
@@ -441,7 +452,7 @@ class Godspeed {
           );
           if (!validateResponseStatus.success) {
             childLogger.error('Response JSON schema validation failed.');
-            return new GSStatus(false, 500, 'response validation error', {
+            return new GSStatus(false, 888, 'response validation error', {
               error: {
                 message: validateResponseStatus.message,
                 info: validateResponseStatus.data,
