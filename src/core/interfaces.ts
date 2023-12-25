@@ -19,49 +19,6 @@ const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
 );
 
-//import R from 'ramda';
-/**
-  * SPEC:
-  * Lender's integration:
-  * YAML workflow spec
-  * project scaffolding
-  * API schema spec (includes channel integration)
-  * runtime interfaces
-  *
-  * DEV:
-  * dev: runtime engine (execute workflow and includes adapters for different channels)
-  * dev: telemetry
-  * dev: special functions:
-  *  http
-  *  transformation
-  *
-  * Parallel:
-  *   GS_data
-  */
-
-
-/**
- * About hooks:
- *
- * LOG EVENT HANDLING (including error)
- * OPTION A:
- *  Whether error happens or not, it can return multiple GSEvents of type: error, warning,
- *  debug, info. On error, the called Function MUST itself handle error internally.
- *  These events will be logged by the common code. If there is an event with error,
- *  the common code will straightaway jump to the finally block.
- * OPTION B:
- *  Dev logs all events himself within the function. And if there is an error,
- *  return GSError (preferred), or throw the error for default handling.
- *  On catching an error, the common code will straightaway jump to the finally block.
- *
- *
- *  NO RETURN (Or any return will be ignored)
- *  If a hook needs subsequent hooks or _function to read any data calculated by it,
- *  it must set that data as per the expected key in ctx.{private | shared}, for the subsequent
- *  logic to consume it. If it returns anything, it will be ignored and not passed to subsequent hooks.
- *
- */
-
 export class GSFunction extends Function {
   yaml: PlainObject;
 
