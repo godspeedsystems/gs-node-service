@@ -7,10 +7,20 @@ import { PlainObject } from "../../../types";
 */
 
 export default function (ctx: PlainObject, args: PlainObject) {
+  let success = args.success;
+  let code;
+  delete args.success;
   if (ctx.forAuth) {
-    if(!args.success) {
-      args.success = false;
+    success = success || false;
+    if (!args.code && !success) {
+      code = args.code || 403;
     }
+    
+  } else {
+    success = true;
+    code = args.code || 200;
   }
-  return args;
+  
+  delete args.code;
+  return {success: success, code: code, data: args };
 }
