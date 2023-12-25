@@ -411,29 +411,23 @@ class Godspeed {
       //Now check authorization
       if (eventConfig.authz) { 
         //If authorization workflow fails, we return with its status right away.
+        ctx.forAuth = true;
         const authzStatus: GSStatus = await eventConfig.authz(ctx);
-        // if (!authzStatus.success) {
-        //   authzStatus.code = authzStatus.code || 403;
-        //   if (!authzStatus.data?.message) {
-        //     setAtPath(authzStatus, 'data.message', 'Access Forbidden');
-        //   }
-          
-        //   //In non-expected case, it could be either a 500 internal server error
-        //   //Expected case: 403. But allow developer to choose his response code, data and message
-        //   return authzStatus;
-        // }
-        if (authzStatus.code === 403) { 
+        ctx.forAuth = false;
+        if(authzStatus.code === 403 || authzStatus.success !== true) {
           //Authorization task executed successfully and returned user is not authorized
+           
+          authzStatus.success = false;
+          authzStatus.code = authzStatus.code || 403;
+          childLogger.debug(`Authorization task failed at the event level with code ${authzStatus.code}`);
+          
           if (!authzStatus.data?.message) {
             setAtPath(authzStatus, 'data.message', authzStatus.message || 'Access Forbidden');
           }
-          authzStatus.success = false;
-          return authzStatus;
-        } else if(!authzStatus.success) {
-          //Maybe some internal server error 
-          //or any other error where code was not 403
           return authzStatus;
         }
+        //Autorization is passed. Proceeding.
+        childLogger.debug('Authorization passed at the event level');
       }
       let eventHandlerStatus: GSStatus;
 

@@ -460,9 +460,11 @@ export class GSFunction extends Function {
       if (this.yaml.authz) {
         ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'invoking authz workflow, creating new ctx');
         //let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
-
+        ctx.forAuth = true;
         //const newCtx = ctx.cloneWithNewData(args);
+        ctx.forAuth = true;
         let authzRes: GSStatus = await this.yaml.authz(ctx);
+        ctx.forAuth = false;
         if (authzRes.code === 403) { 
           //Authorization task executed successfully and returned user is not authorized
           authzRes.success = false;
@@ -470,15 +472,23 @@ export class GSFunction extends Function {
             setAtPath(authzRes, 'data.message', authzRes.message || 'Access Forbidden');
           }
           ctx.exitWithStatus = authzRes;
+          ctx.childLogger.debug('Authorization task failed at the task level with code 403');
+
           //This task has failed and task must not be allowed to execute further
           return authzRes;
-        } else if(!authzRes.success) {
-          //We can't know for sure if this is an authorization error or another error
-          //Maybe some internal server error 
-          //or any other error where code was not 403
+        } else if(authzRes.success !== true) {
+          //Ensure success = false for no ambiguity further
+          authzRes.success =  false;
+          authzRes.code = authzRes.code || 403;
+          if (!authzRes.data?.message) {
+            setAtPath(authzRes, 'data.message', authzRes.message || 'Access Forbidden');
+          }
+          ctx.childLogger.debug(`Task level auth failed. Authorization task did not explicitly return success === true, hence failed with code ${authzRes.code}`);
           ctx.exitWithStatus = authzRes;
           return authzRes;
         }
+        ctx.childLogger.debug('Authorization passed at the task level');
+
         //Authorization successful. 
         //Whatever is in the data of the authzRes is to be passed on to
         //the datasource plugin's execute function as it is.
@@ -962,6 +972,8 @@ export class GSContext { //span executions
   logger: pino.Logger;
 
   childLogger: pino.Logger;
+
+  forAuth?: boolean = false;
 
   constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, plugins: PlainObject, logger: pino.Logger, childLogger: pino.Logger) {//_function?: GSFunction
     this.inputs = event;

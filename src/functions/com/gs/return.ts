@@ -1,3 +1,4 @@
+import { P } from "pino";
 import { GSContext, GSStatus } from "../../../godspeed";
 import { PlainObject } from "../../../types";
 
@@ -6,9 +7,17 @@ import { PlainObject } from "../../../types";
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 export default function (ctx: GSContext, args: PlainObject) {
-  if (args instanceof GSStatus || (typeof (args) == 'object' && (args.success !== undefined))) {
-    args.exitWithStatus = true;
-    return args;
+  let success = args.success;
+  let code;
+  delete args.success;
+  if (ctx.forAuth) {
+    success = success || false;
+    code = args.code || 403;
+  } else {
+    success = true;
+    code = args.code || 200;
   }
-  return {success: true, code: 200, data: args, exitWithStatus: true };
+  
+  delete args.code;
+  return {success: success, code: code, data: args, exitWithStatus: true };
 }

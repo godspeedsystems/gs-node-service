@@ -7,5 +7,10 @@ import { PlainObject } from "../../../types";
 */
 
 export default function (ctx: PlainObject, args: PlainObject) {
+  if (ctx.forAuth) {
+    if(!args.success) {
+      args.success = false;
+    }
+  }
   return args;
 }
