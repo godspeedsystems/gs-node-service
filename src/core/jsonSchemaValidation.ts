@@ -85,8 +85,9 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
               responses[k]?.schema?.data?.content?.['application/json']?.schema; //Legacy implementation
             if (response_s) {
               const response_schema = response_s;
-              const topic_response = topic + ':responses:' + k;
-              //console.log("topic_response: ",topic_response)
+              const _topic = topic.replace(/{(.*?)}/g, ':$1'); //removing curly braces in topic (event key)
+              const endpoint = _topic.split('.').pop() //extracting endpoint from eventkey
+              const topic_response = endpoint + ':responses:' + k;
               if (!ajvInstance.getSchema(topic_response)) {
                 ajvInstance.addSchema(response_schema, topic_response);
               }
@@ -114,7 +115,7 @@ export function validateRequestSchema(
   if (event.data.body && hasSchema) {
     childLogger.info('event body and eventSpec exist');
     childLogger.debug('event.data.body: %o', event.data.body);
-    const ajv_validate = ajvInstance.getSchema(topic);
+    const ajv_validate = ajvInstance.getSchema(eventSpec.key);
     if (ajv_validate) {
       childLogger.debug('ajv_validate for body');
       if (!ajv_validate(event.data.body)) {
@@ -123,7 +124,7 @@ export function validateRequestSchema(
           success: false,
           code: 400,
           message: ajv_validate.errors![0].message,
-          data: ajv_validate.errors![0],
+          data: {message: "The API cannot be executed due to a failure in request body schema validation.", error: ajv_validate.errors![0]}
         };
         return status;
       } else {
@@ -166,7 +167,7 @@ export function validateRequestSchema(
 
   if (params) {
     for (let param in MAP) {
-      const topic_param = topic + ':' + param;
+      const topic_param = eventSpec.key + ':' + param;
       const ajv_validate = ajvInstance.getSchema(topic_param);
 
       childLogger.debug('topic_param: %s', topic_param);
@@ -177,7 +178,7 @@ export function validateRequestSchema(
             success: false,
             code: 400,
             message: ajv_validate.errors![0].message,
-            data: ajv_validate.errors![0],
+            data: {message: "The API cannot be executed due to a failure in request params schema validation.", error: ajv_validate.errors![0]}
           };
           return status;
         } else {
@@ -195,21 +196,32 @@ export function validateResponseSchema(
   topic: string,
   gs_status: GSStatus
 ): GSStatus {
-  let status: GSStatus;
-  //console.log("gs_status: ",gs_status)
-
-  if (gs_status.data) {
+  let status: any;
+  
+  if (gs_status) {
     const topic_response = topic + ':responses:' + gs_status.code;
     const ajv_validate = ajvInstance.getSchema(topic_response);
     if (ajv_validate) {
       if (!ajv_validate(gs_status.data)) {
         childLogger.error('ajv_validate failed');
-        status = {
-          success: false,
-          code: 500,
-          message: ajv_validate.errors![0].message,
-          data: ajv_validate.errors![0],
-        };
+        let code = gs_status.code
+        if(code){
+          if(code >= 200 && code < 300)
+          status = {
+            success: false,
+            code: 500,
+            message: ajv_validate.errors![0].message,
+            data: {message: "The API execution was successful, but there was a failure in validating the response schema.", error:{ error: ajv_validate.errors![0],originalResponse: gs_status}}
+          };
+          else{
+            status = {
+              success: false,
+              code: 500,
+              message: ajv_validate.errors![0].message,
+              data: {message: "The API execution was unsuccessful, and there was a failure in validating the response schema.", error:{ error: ajv_validate.errors![0],originalResponse: gs_status}}
+            };
+          }
+        }
         return status;
       } else {
         childLogger.info('ajv_validate success');
