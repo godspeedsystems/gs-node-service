@@ -25,7 +25,7 @@ Your support motivates us to continue improving the framework and providing new 
 
 ## Building your first microservice 
 
-If you want to learn and develop a microservice here is the [step by step walkthrough of Godspeed]( https://docs.godspeed.systems/microservice-meta-framework/introduction/overview)
+If you want to learn and develop a microservice here is the [step by step walkthrough of Godspeed](https://docs.godspeed.systems/microservices-framework/getting-started/overview)
 
 Video Walkthrough of Godspeed tutorials are -
 1. [Getting Started with Godspeed]( https://youtu.be/f1jlvaM7Sbo?si=xT3nd2RQckIzOMO4)
