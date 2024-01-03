@@ -36,6 +36,8 @@ export default function loadYaml(pathString: string, global: boolean = false):Pl
                     ...api,
                     ...module
                   };
+                  const moduleKey = Object.keys(module);
+                  if(moduleKey[0]) api[`${moduleKey[0]}`].path = file.replace(new RegExp(`.*?\/${basePath}\/`), '').replace(/\//g, '.');
                 } else {
                   if (id == 'index') {
                       api = module;
