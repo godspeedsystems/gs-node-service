@@ -535,11 +535,11 @@ async function main() {
       data = data.toString();
     }
 
-    // if (code < 400) {
-    //   childLogger.info('return value %o %o %o', _.cloneDeep(data), code, headers);
-    // } else {
-    //   childLogger.error('return value %o %o %o', _.cloneDeep(data), code, headers);
-    // }
+    if (code < 400) {
+      // childLogger.info('return value %o %o %o', _.cloneDeep(data), code, headers);
+    } else {
+      childLogger.error('return value %o %o %o', _.cloneDeep(data), code, headers);
+    }
 
     if(event.channel == 'REST' && event.data?.files && event?.data?.files?.length > 0){
       handleTempFiles(event.data);
