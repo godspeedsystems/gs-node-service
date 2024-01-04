@@ -366,7 +366,7 @@ async function main() {
 
     childLogger.info('Processing event %s', event.type);
     childLogger.info('event inputs %o', _.cloneDeep(event.data));
-    childLogger.debug('event spec: %o', events[event.type]);
+    // childLogger.debug('event spec: %o', events[event.type]);
     const responseStructure: GSResponse = {
       apiVersion: (config as any).api_version || '1.0',
     };
@@ -419,19 +419,19 @@ async function main() {
         );
       }
     } else {
-      childLogger.info(
-        'Request JSON Schema validated successfully %o',
-        valid_status
-      );
+      // childLogger.info(
+      //   'Request JSON Schema validated successfully %o',
+      //   valid_status
+      // );
 
       // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
       eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].fn];
     }
 
-    childLogger.info(
-      'calling processevent, type of handler is %s',
-      typeof eventHandlerWorkflow
-    );
+    // childLogger.info(
+    //   'calling processevent, type of handler is %s',
+    //   typeof eventHandlerWorkflow
+    // );
 
     const ctx = new GSContext(
       config,
@@ -499,7 +499,7 @@ async function main() {
         valid_status = validateResponseSchema(event.type, eventHandlerStatus);
 
         if (valid_status.success) {
-          childLogger.info('Validate Response JSON Schema Success', valid_status);
+          // childLogger.info('Validate Response JSON Schema Success', valid_status);
         } else {
           childLogger.error('Failed to validate Response JSON Schema', valid_status);
           const response_data: PlainObject = {
@@ -535,11 +535,11 @@ async function main() {
       data = data.toString();
     }
 
-    if (code < 400) {
-      childLogger.info('return value %o %o %o', _.cloneDeep(data), code, headers);
-    } else {
-      childLogger.error('return value %o %o %o', _.cloneDeep(data), code, headers);
-    }
+    // if (code < 400) {
+    //   childLogger.info('return value %o %o %o', _.cloneDeep(data), code, headers);
+    // } else {
+    //   childLogger.error('return value %o %o %o', _.cloneDeep(data), code, headers);
+    // }
 
     if(event.channel == 'REST' && event.data?.files && event?.data?.files?.length > 0){
       handleTempFiles(event.data);

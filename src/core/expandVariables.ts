@@ -22,6 +22,7 @@ function substitute(value: string): any {
     }
   } catch (ex) {
     //console.error(ex);
+    logger.error('Error compiling script: %o', ex);
   }
 
   return value;

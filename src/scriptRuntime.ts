@@ -22,7 +22,7 @@
   */
  export default async function evaluateScript(ctx: GSContext, script: Function, taskValue?: any) {
  
-     childLogger.debug('before evaluateScript %s', script);
+    //  childLogger.debug('before evaluateScript %s', script);
  
      if (!script) {
          return;
