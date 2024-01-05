@@ -218,8 +218,8 @@ function subscribeToEvents(
         }
       } else {
         logger.error(
-          'Client not found for %s in datasources. Exiting.',
-          datasource
+          'Client not found for %s in datasources, for %s event in %s file. Exiting.',
+          datasource,route,events[route].path
         );
         process.exit(1);
       }

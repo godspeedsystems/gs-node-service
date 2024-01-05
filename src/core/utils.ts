@@ -243,9 +243,13 @@ export function compileScript(args: any) {
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {
   for (let event in events) {
-    if (! (events[event].fn in functions)) {
-      logger.error('function %s of event %s is not present in functions', events[event].fn, event);
-      const msg = `function ${events[event].fn} of event ${event} is not present in functions`;
+    if(events[event].fn === undefined){
+      logger.error('No function is present for the %s event in %s file',event,events[event].path);
+      const msg = `No function is present for the ${event} event in ${events[event].path} file`;
+      return new GSStatus(false,500,msg);
+    }else if (! (events[event].fn in functions)) {
+      logger.error('function %s of event %s is not present in functions, check events %s file.', events[event].fn, event,events[event].path);
+      const msg = `function ${events[event].fn} of event ${event} is not present in functions, check events ${events[event].path} file.`;
       return new GSStatus(false,500,msg);
     }
   }
