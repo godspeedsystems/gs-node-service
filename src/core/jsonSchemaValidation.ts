@@ -111,11 +111,11 @@ export function validateRequestSchema(
   // Validate event.data.body
   const hasSchema: any = eventSpec?.body || eventSpec?.data?.schema?.body;
   if (event.data.body && hasSchema) {
-    childLogger.info('event body and eventSpec exist');
-    childLogger.debug('event.data.body: %o', event.data.body);
+    // childLogger.info('event body and eventSpec exist');
+    // childLogger.debug('event.data.body: %o', event.data.body);
     const ajv_validate = ajvInstance.getSchema(topic);
     if (ajv_validate) {
-      childLogger.debug('ajv_validate for body');
+      // childLogger.debug('ajv_validate for body');
       if (!ajv_validate(event.data.body)) {
         childLogger.error('ajv_validate failed');
         status = {
@@ -126,7 +126,7 @@ export function validateRequestSchema(
         };
         return status;
       } else {
-        childLogger.info('ajv_validate success for body');
+        // childLogger.info('ajv_validate success for body');
         status = { success: true };
       }
     } else {
@@ -161,14 +161,14 @@ export function validateRequestSchema(
     cookie: 'cookie',
   };
 
-  childLogger.debug('ajv_validate for params');
+  // childLogger.debug('ajv_validate for params');
 
   if (params) {
     for (let param in MAP) {
       const topic_param = topic + ':' + param;
       const ajv_validate = ajvInstance.getSchema(topic_param);
 
-      childLogger.debug('topic_param: %s', topic_param);
+      // childLogger.debug('topic_param: %s', topic_param);
       if (ajv_validate) {
         if (!ajv_validate(event.data[MAP[param]])) {
           ajv_validate.errors![0].message += ' in ' + param;
@@ -180,7 +180,7 @@ export function validateRequestSchema(
           };
           return status;
         } else {
-          childLogger.info('ajv_validate success for params');
+          // childLogger.info('ajv_validate success for params');
           status = { success: true };
         }
       }
@@ -211,7 +211,7 @@ export function validateResponseSchema(
         };
         return status;
       } else {
-        childLogger.info('ajv_validate success');
+        // childLogger.info('ajv_validate success');
         status = { success: true };
       }
     } else {

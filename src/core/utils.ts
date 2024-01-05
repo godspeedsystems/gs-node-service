@@ -72,12 +72,12 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
 
 
 export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
-  logger.debug('checkDatasource');
-  logger.debug('workflowJson: %o',workflowJson);
+  // logger.debug('checkDatasource');
+  // logger.debug('workflowJson: %o',workflowJson);
 
   for (let task of workflowJson.tasks) {
       if (task.tasks) {
-          logger.debug('checking nested tasks');
+          // logger.debug('checking nested tasks');
           const status:GSStatus = checkDatasource(task,datasources);
       } else {
           if (task.args?.datasource) {
@@ -160,8 +160,8 @@ export function prepareScript(str: string): Function {
     str = "'" + str.replace(/<(.*?)%/g, "' + ").replace(/%>/g, " + '") + "'";
   }
 
-  logger.debug('lang: %s', lang);
-  logger.debug('script: %s', str);
+  // logger.debug('lang: %s', lang);
+  // logger.debug('script: %s', str);
 
   str = str.trim();
   const initialStr = str;
@@ -228,9 +228,9 @@ export function compileScript(args: any) {
   } else if (typeof(args) == 'string') {
 
     if (args.match(/(^|\/):([^/]+)/)) {
-      logger.debug('before replacing path params %s', args);
+      // logger.debug('before replacing path params %s', args);
       args = args.replace(/(^|\/):([^/]+)/g, '$1<%inputs.params.$2%>');
-      logger.debug('after replacing path params %s', args);  
+      // logger.debug('after replacing path params %s', args);  
     }
 
     if (args.match(/<(.*?)%/) && args.includes('%>')) {

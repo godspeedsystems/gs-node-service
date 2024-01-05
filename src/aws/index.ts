@@ -3,7 +3,6 @@
  * © 2022 Mindgrep Technologies Pvt Ltd
  */
 import { PlainObject } from '../core/common';
-import { logger } from '../core/logger';
 
 export default async function (datasource: PlainObject) {
   // @ts-ignore
