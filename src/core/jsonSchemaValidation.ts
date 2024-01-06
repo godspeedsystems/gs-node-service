@@ -194,35 +194,28 @@ export function validateRequestSchema(
 /* Function to validate GSStatus */
 export function validateResponseSchema(
   topic: string,
-  gs_status: GSStatus
+  gsStatus: GSStatus
 ): GSStatus {
   let status: any;
   
-  if (gs_status) {
-    const topic_response = topic + ':responses:' + gs_status.code;
-    const ajv_validate = ajvInstance.getSchema(topic_response);
-    if (ajv_validate) {
-      if (!ajv_validate(gs_status.data)) {
-        childLogger.error('ajv_validate failed');
-        let code = gs_status.code
-        if(code){
-          if(code >= 200 && code < 300)
-          status = {
-            success: false,
-            code: 500,
-            message: ajv_validate.errors![0].message,
-            data: {message: "The API execution was successful, but there was a failure in validating the response schema.", error:{ error: ajv_validate.errors![0],originalResponse: gs_status}}
-          };
-          else{
-            status = {
-              success: false,
-              code: 500,
-              message: ajv_validate.errors![0].message,
-              data: {message: "The API execution was unsuccessful, and there was a failure in validating the response schema.", error:{ error: ajv_validate.errors![0],originalResponse: gs_status}}
-            };
-          }
-        }
-        return status;
+  if (gsStatus) {
+    const topicResponse = topic + ':responses:' + gsStatus.code;
+    const ajvValidate = ajvInstance.getSchema(topicResponse);
+    if (ajvValidate) {
+      if (!ajvValidate(gsStatus.data)) {
+        childLogger.error('ajv_validation of the response data failed');
+        let message: string ;
+        if (gsStatus.success) {
+          message = `The API execution was successful. But, there was a failure in validating the response body as per the API schema for response with status code ${gsStatus.code}.`;
+      } else {
+          message = `The API execution was unsuccessful. Further on top of that, there was a failure in validating the API's response body as per the API schema for response with status code ${gsStatus.code}.`;
+      }
+      return new GSStatus(false, 500, undefined, {
+          message: message,
+          errors: ajvValidate.errors,
+          originalResponseBody: gsStatus.data,
+          originalResponseCode: gsStatus.code 
+      });
       } else {
         childLogger.info('ajv_validate success');
         status = { success: true };

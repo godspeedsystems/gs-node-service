@@ -420,12 +420,7 @@ class Godspeed {
         );
         if (!validateResponseStatus.success) {
           childLogger.error('Response JSON schema validation failed');
-          return new GSStatus(false, 500, 'response validation error', {
-            response: {
-              message: validateResponseStatus.data.message,
-              data: validateResponseStatus.data.error,
-            },
-          });
+          return new GSStatus(false, 500, 'response validation error', validateResponseStatus.data);
         }
         
 
