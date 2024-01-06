@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import { childLogger } from '../../../app';
 
 export default async function kafka(args:{[key:string]:any;}) {
-    childLogger.debug('com.gs.kafka args: %o',args);
+    // childLogger.debug('com.gs.kafka args: %o',args);
     let kafka;
     if(args.datasource) {
         kafka = args.datasource.client;
@@ -22,7 +22,7 @@ export default async function kafka(args:{[key:string]:any;}) {
 
     let producer = await kafka.producer();
 
-    childLogger.info('Sending messages to topic %s', args.config.topic);
+    // childLogger.info('Sending messages to topic %s', args.config.topic);
     childLogger.debug('Sending messages to topic %s %o', args.config.topic, data);
 
     return producer.send({

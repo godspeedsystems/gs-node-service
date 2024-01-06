@@ -3,7 +3,7 @@ import { logger } from "../../../core/logger";
 
 
 export default async function soap(args:{[key:string]:any;}) {
-    logger.debug('com.gs.soap args: %o', args);
+    // logger.debug('com.gs.soap args: %o', args);
     const ds = args.datasource;
 
     let method = ds.client[args.config.method + 'Async'];

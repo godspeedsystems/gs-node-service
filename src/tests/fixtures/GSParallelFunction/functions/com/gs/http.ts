@@ -23,7 +23,7 @@ export default async function(args:{[key:string]:any;}) {
             logger.debug('invoking with schema');
             res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config);
         } else {
-            logger.info('invoking wihout schema');
+            // logger.info('invoking wihout schema');
             logger.debug('invoking wihout schema args: %o', args);
             let form;
 

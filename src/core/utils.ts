@@ -72,12 +72,12 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
 
 
 export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
-  logger.debug('checkDatasource');
-  logger.debug('workflowJson: %o',workflowJson);
+  // logger.debug('checkDatasource');
+  // logger.debug('workflowJson: %o',workflowJson);
 
   for (let task of workflowJson.tasks) {
       if (task.tasks) {
-          logger.debug('checking nested tasks');
+          // logger.debug('checking nested tasks');
           const status:GSStatus = checkDatasource(task,datasources);
       } else {
           if (task.args?.datasource) {
@@ -160,8 +160,8 @@ export function prepareScript(str: string): Function {
     str = "'" + str.replace(/<(.*?)%/g, "' + ").replace(/%>/g, " + '") + "'";
   }
 
-  logger.debug('lang: %s', lang);
-  logger.debug('script: %s', str);
+  // logger.debug('lang: %s', lang);
+  // logger.debug('script: %s', str);
 
   str = str.trim();
   const initialStr = str;
@@ -228,9 +228,9 @@ export function compileScript(args: any) {
   } else if (typeof(args) == 'string') {
 
     if (args.match(/(^|\/):([^/]+)/)) {
-      logger.debug('before replacing path params %s', args);
+      // logger.debug('before replacing path params %s', args);
       args = args.replace(/(^|\/):([^/]+)/g, '$1<%inputs.params.$2%>');
-      logger.debug('after replacing path params %s', args);  
+      // logger.debug('after replacing path params %s', args);  
     }
 
     if (args.match(/<(.*?)%/) && args.includes('%>')) {
@@ -243,9 +243,13 @@ export function compileScript(args: any) {
 
 export function checkFunctionExists(events: PlainObject, functions: PlainObject): GSStatus {
   for (let event in events) {
-    if (! (events[event].fn in functions)) {
-      logger.error('function %s of event %s is not present in functions', events[event].fn, event);
-      const msg = `function ${events[event].fn} of event ${event} is not present in functions`;
+    if(events[event].fn === undefined){
+      logger.error('No function is present for the %s event in %s file',event,events[event].path);
+      const msg = `No function is present for the ${event} event in ${events[event].path} file`;
+      return new GSStatus(false,500,msg);
+    }else if (! (events[event].fn in functions)) {
+      logger.error('function %s of event %s is not present in functions, check events %s file.', events[event].fn, event,events[event].path);
+      const msg = `function ${events[event].fn} of event ${event} is not present in functions, check events ${events[event].path} file.`;
       return new GSStatus(false,500,msg);
     }
   }

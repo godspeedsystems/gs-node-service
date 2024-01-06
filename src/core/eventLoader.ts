@@ -45,11 +45,11 @@ const rewiteRefsToAbsolutePath = (
 
       const responses =
         eventObject?.responses || eventObject?.data?.schema?.responses;
-      logger.info('responses %o', responses);
+      // logger.info('responses %o', responses);
       if (responses) {
         Object.keys(responses).forEach((responseCode) => {
           let responseContent = responses[responseCode].content;
-          logger.info('responseContent %o', responseContent);
+          // logger.info('responseContent %o', responseContent);
           if (responseContent) {
             Object.keys(responseContent).forEach((responseContentType) => {
               let responseContentTypeSchema =
