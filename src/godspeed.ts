@@ -437,7 +437,7 @@ class Godspeed {
         eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
         childLogger.info('eventHandlerStatus: %o', eventHandlerStatus);
 
-        if (eventHandlerStatus.success) {
+        if (eventHandlerStatus.success) { //means this is GSStatus and success is true
           // event workflow executed successfully
           // lets validate the response schema
           let validateResponseStatus = validateResponseSchema(
@@ -453,6 +453,8 @@ class Godspeed {
               },
             });
           }
+        } else {
+
         }
 
         return eventHandlerStatus;

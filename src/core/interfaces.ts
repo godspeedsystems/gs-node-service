@@ -262,11 +262,11 @@ export class GSFunction extends Function {
         args = { ...this.args };
       }
 
-      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Retry logic is %o', this.retry);
+      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Retry logic is %o`, this.retry);
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (String(this.yaml.fn).startsWith('datasource.')) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
-        const [datasourceName, entityType, method] = this.yaml.fn.split('.');
+        const [, datasourceName, entityType, method] = this.yaml.fn.split('.');
         const datasource: any = ctx.datasources[datasourceName];
 
         // so that prisma plugin get the entityName and method in plugin to execute respective method.
@@ -456,9 +456,10 @@ export class GSFunction extends Function {
       which it has access to.
     */
 
-      ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (this.yaml.authz) {
-        ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'invoking authz workflow, creating new ctx');
+        ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
+
+        ctx.childLogger.debug( `Invoking authz workflow`);
         //let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
         ctx.forAuth = true;
         //const newCtx = ctx.cloneWithNewData(args);
@@ -494,6 +495,7 @@ export class GSFunction extends Function {
         //the datasource plugin's execute function as it is.
         datastoreAuthzArgs = authzRes.data;
       }
+      ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
 
       if (this.caching) {
         caching = await evaluateScript(ctx, this.caching, taskValue);
@@ -527,7 +529,8 @@ export class GSFunction extends Function {
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
 
       if (datastoreAuthzArgs && this.yaml.fn?.startsWith("datasource.")) {
-        args.data = _.merge(args.data, datastoreAuthzArgs);
+        //args.data = _.merge(args.data, datastoreAuthzArgs);
+        args.authzData = datastoreAuthzArgs;
         ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'merged args with authz args.data: %o', args);
       }
 

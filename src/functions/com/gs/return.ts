@@ -8,16 +8,17 @@ import { PlainObject } from "../../../types";
 */
 export default function (ctx: GSContext, args: PlainObject) {
   let success = args.success;
-  let code;
+  let code = args.code;
   delete args.success;
+  delete args.code;
+
   if (ctx.forAuth) {
     success = success || false;
-    code = args.code || 403;
+    code = code || (!success && 403) || 200;
   } else {
     success = true;
-    code = args.code || 200;
+    code = code || 200;
   }
   
-  delete args.code;
   return {success: success, code: code, data: args, exitWithStatus: true };
 }
