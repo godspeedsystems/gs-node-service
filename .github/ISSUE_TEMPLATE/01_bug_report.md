@@ -48,9 +48,3 @@ CLI Version (if applicable):
 <!--
   Share any ideas you have for resolving or working around the issue.
 -->
-
-## Keywords
-
-<!--
-  List keywords you used while searching for similar issues, so others can find this report easily.
--->
