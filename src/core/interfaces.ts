@@ -2,14 +2,13 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
-import { randomUUID } from 'crypto';
 import _ from 'lodash';
 import parseDuration from 'parse-duration';
 import opentelemetry from "@opentelemetry/api";
 
 import { CHANNEL_TYPE, ACTOR_TYPE, EVENT_TYPE, PlainObject } from './common';
 import { logger } from '../logger';
-import { compileScript } from './utils';
+import { compileScript, isPlainObject, setAtPath } from './utils';
 import evaluateScript from './scriptRuntime';
 import promClient from '@godspeedsystems/metrics';
 import config from 'config';
@@ -77,9 +76,9 @@ export class GSFunction extends Function {
       }
     }
 
-    if (this.yaml.authz?.args) {
-      this.yaml.authz.args = compileScript(this.yaml.authz?.args);
-    }
+    // if (this.yaml.authz) {
+    //   this.yaml.authz.args = compileScript(this.yaml.authz?.args);
+    // }
 
     // retry
     this.retry = yaml.retry;
@@ -259,11 +258,11 @@ export class GSFunction extends Function {
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
       if (Array.isArray(this.args)) {
         args = [...this.args];
-      } else if (_.isPlainObject(this.args)) {
+      } else if (isPlainObject(this.args)) {
         args = { ...this.args };
       }
 
-      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Retry logic is %o', this.retry);
+      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Retry logic is %o`, this.retry);
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (String(this.yaml.fn).startsWith('datasource.')) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
@@ -275,7 +274,9 @@ export class GSFunction extends Function {
           fnNameInWorkflow: this.yaml.fn,
           entityType,
           method,
+          authzPerms: args.authzPerms
         };
+        delete args.authzPerms;
 
         // REMOVE: this is not required, because now all the datasources are functions
 
@@ -450,25 +451,53 @@ export class GSFunction extends Function {
     let caching: PlainObject | null = null;
     let redisClient;
     try {
-      ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
-      let prismaArgs;
+      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
+      let datastoreAuthzArgs;/*
+      This is when datasource needs to modify its SQL query or something
+      else to ensure that the current user gets or mutates only the data
+      which it has access to.
+    */
 
-      ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (this.yaml.authz) {
-        ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'invoking authz workflow, creating new ctx');
-        let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
+        ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
 
-        const newCtx = ctx.cloneWithNewData(args);
-        let allow = await this.yaml.authz(newCtx, taskValue);
-        if (allow.success) {
-          if (allow.data === false) {
-            ctx.exitWithStatus = new GSStatus(false, 403, allow.message || 'Unauthorized');
-            return ctx.exitWithStatus;
-          } else if (_.isPlainObject(allow.data)) {
-            prismaArgs = allow.data;
+        ctx.childLogger.debug( `Invoking authz workflow`);
+        //let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
+        ctx.forAuth = true;
+        //const newCtx = ctx.cloneWithNewData(args);
+        ctx.forAuth = true;
+        let authzRes: GSStatus = await this.yaml.authz(ctx);
+        ctx.forAuth = false;
+        if (authzRes.code === 403) { 
+          //Authorization task executed successfully and returned user is not authorized
+          authzRes.success = false;
+          if (!authzRes.data?.message) {
+            setAtPath(authzRes, 'data.message', authzRes.message || 'Access Forbidden');
           }
+          ctx.exitWithStatus = authzRes;
+          ctx.childLogger.debug('Authorization task failed at the task level with code 403');
+
+          //This task has failed and task must not be allowed to execute further
+          return authzRes;
+        } else if(authzRes.success !== true) {
+          //Ensure success = false for no ambiguity further
+          authzRes.success =  false;
+          authzRes.code = authzRes.code || 403;
+          if (!authzRes.data?.message) {
+            setAtPath(authzRes, 'data.message', authzRes.message || 'Access Forbidden');
+          }
+          ctx.childLogger.debug(`Task level auth failed. Authorization task did not explicitly return success === true, hence failed with code ${authzRes.code}`);
+          ctx.exitWithStatus = authzRes;
+          return authzRes;
         }
+        ctx.childLogger.debug('Authorization passed at the task level');
+
+        //Authorization successful. 
+        //Whatever is in the data of the authzRes is to be passed on to
+        //the datasource plugin's execute function as it is.
+        datastoreAuthzArgs = authzRes.data;
       }
+      ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
 
       if (this.caching) {
         caching = await evaluateScript(ctx, this.caching, taskValue);
@@ -501,8 +530,10 @@ export class GSFunction extends Function {
       }
       ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
 
-      if (prismaArgs) {
-        args.data = _.merge(args.data, prismaArgs);
+      if (datastoreAuthzArgs && this.yaml.fn?.startsWith("datasource.")) {
+        //args.data = _.merge(args.data, datastoreAuthzArgs);
+        //setup authzPerms for now. delete that key in the _execugteFn, after moving the same to `args.meta` key
+        args.authzPerms = datastoreAuthzArgs;
         ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'merged args with authz args.data: %o', args);
       }
 
@@ -864,6 +895,8 @@ export class GSStatus {
 
   headers?: { [key: string]: any; };
 
+  exitWithStatus?: boolean;
+
   constructor(success: boolean = true, code?: number, message?: string, data?: any, headers?: { [key: string]: any; }) {
     this.message = message;
     this.code = code;
@@ -945,6 +978,8 @@ export class GSContext { //span executions
   logger: pino.Logger;
 
   childLogger: pino.Logger;
+
+  forAuth?: boolean = false;
 
   constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, plugins: PlainObject, logger: pino.Logger, childLogger: pino.Logger) {//_function?: GSFunction
     this.inputs = event;
@@ -1065,4 +1100,6 @@ export interface GSResponse {
       sendReport?: string;
     }[];
   };
+
+  
 }

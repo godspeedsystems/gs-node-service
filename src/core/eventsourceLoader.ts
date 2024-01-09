@@ -2,7 +2,7 @@ import path from "path";
 import { logger } from "../logger";
 import { PlainObject } from "../types";
 import loadYaml from "./yamlLoader";
-import { GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources";
+import { EventSources, GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources";
 
 export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource | GSDataSourceAsEventSource }> {
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
@@ -10,7 +10,7 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
     throw new Error(`There are no event sources defined in eventsource dir: ${eventsourcesFolderPath}`);
   }
 
-  const eventSources: { [key: string]: GSEventSource | GSDataSourceAsEventSource } = {};
+  const eventSources: EventSources = {};
 
   for await (let esName of Object.keys(eventsourcesConfigs)) {
     // let's load the event source
