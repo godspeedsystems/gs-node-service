@@ -54,7 +54,20 @@ function subscribeToEvents(
 
       [route, method] = route.split('.http.');
       route = route.replace(/{(.*?)}/g, ':$1');
-
+      if(!method){
+        logger.error(
+          'Http client expects a method, for %s event in %s file. Exiting.',
+          route,events[route].path
+        );
+        process.exit(1);
+      }
+      if(!route){
+        logger.error(
+          'Http client expects a valid endpoint for eg. /validendpoint.http.method, for %s event in %s file. Exiting.',
+          route,events[route].path
+        );
+        process.exit(1);
+      }
       logger.info('registering http handler %s %s', route, method);
 
       if (config.has('jwt')) {
@@ -175,16 +188,60 @@ function subscribeToEvents(
       );
     } else if (route.includes('.kafka.')) {
       let [topic, groupId] = route.split('.kafka.');
+      if(!topic){
+        logger.error(
+          'Kafka client expects a topic name before the dot for eg. topicName.kafka.groupId, for %s event in %s file. Exiting.',
+          route,events[route].path
+        );
+        process.exit(1);
+      }
+      if(!groupId){
+        logger.error(
+          'Kafka client expects a groudId after the dot for eg. topic.kafka.groupId, for %s event in %s file. Exiting.',
+          route,events[route].path
+        );
+        process.exit(1);
+      }
       logger.info('registering kafka handler %s %s', topic, groupId);
       kafka.subscribe(topic, groupId, 'kafka', processEvent);
     } else if (route.includes('.salesforce.')) {
 
       let [topic, datasourceName] = route.split('.salesforce.');
+      if(!topic){
+        logger.error(
+          'Salesforce client expects a topic name before the dot for eg. topicName.salesforce.datasourceName, for %s event in %s file. Exiting.',
+          route,events[route].path
+        );
+        process.exit(1);
+      }
+      if(!datasourceName){
+        logger.error(
+          'Salesforce client expects a datasource name after the dot for eg. topic.salesforce.datasourceName, for %s event in %s file. Exiting.',
+          route,events[route].path
+        );
+        process.exit(1);
+      }
       logger.info('registering salesforce handler %s %s', topic, datasourceName);
       salesforce.subscribe(topic, datasourceName, processEvent);
     } else if (route.includes('.cron.')) {
+      let [expression, timeZone] = route.split('.cron.');
+      if(!expression){
+        logger.error(
+          'Cron client expects expression before the dot for eg. cronExpression.cron.timeZone, for %s event in %s file. Exiting.',
+          route,events[route].path
+        );
+        process.exit(1);
+      }
+      if(!timeZone){
+        logger.error(
+          'Cron client expects timeZone name after the dot for eg. cronExpression.cron.timeZone [Asia/Kolkata etc], for %s event in %s file. Exiting.',
+          route,events[route].path
+        );
+        process.exit(1);
+      }
       cron(route, processEvent);
     } else {
+     
       // for kafka event source like {topic}.kafka1.{groupid}
       // for rabbitmq event source like {queue}.rabbitmq1
       // here we are assuming that various event sources for kafka are defined in the above format.
@@ -217,6 +274,29 @@ function subscribeToEvents(
           process.exit(1);
         }
       } else {
+        if (route.includes('.http')) {
+          logger.error(
+            'Http client expects a Dot . and method after defining the client in the url for %s event in %s file. For eg. helloworld.http.get . Exiting.',
+            route,events[route].path
+          );
+          process.exit(1);
+        }
+  
+        if (route.includes('.kafka')) {
+          logger.error(
+            'Kafka client expects a Dot . and groupId after defining the client in the url for %s event in %s file. For eg. topic.kafka.groupId . Exiting.',
+            route,events[route].path
+          );
+          process.exit(1);
+        }
+  
+        if (route.includes('.salesforce')) {
+          logger.error(
+            'Salesforce client expects a Dot . and datasource name after defining the client in the url for %s event in %s file. For eg. topic.salesforce.datasourceName . Exiting.',
+            route,events[route].path
+          );
+          process.exit(1);
+        }
         logger.error(
           'Client not found for %s in datasources, for %s event in %s file. Exiting.',
           datasource,route,events[route].path
