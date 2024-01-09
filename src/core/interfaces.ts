@@ -274,7 +274,9 @@ export class GSFunction extends Function {
           fnNameInWorkflow: this.yaml.fn,
           entityType,
           method,
+          authzPerms: args.authzPerms
         };
+        delete args.authzPerms;
 
         // REMOVE: this is not required, because now all the datasources are functions
 
@@ -530,7 +532,8 @@ export class GSFunction extends Function {
 
       if (datastoreAuthzArgs && this.yaml.fn?.startsWith("datasource.")) {
         //args.data = _.merge(args.data, datastoreAuthzArgs);
-        args.authzData = datastoreAuthzArgs;
+        //setup authzPerms for now. delete that key in the _execugteFn, after moving the same to `args.meta` key
+        args.authzPerms = datastoreAuthzArgs;
         ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'merged args with authz args.data: %o', args);
       }
 
