@@ -27,6 +27,7 @@
     "dotenv": "^16.3.1",
     "glob": "^8.1.0",
     "js-yaml": "^4.1.0",
+    "js-yaml-source-map": "^0.2.2",
     "kafkajs": "^2.2.3",
     "lodash": "^4.17.21",
     "parse-duration": "^1.0.2",
@@ -35,6 +36,7 @@
     "pino-http": "^8.3.3",
     "socket.io": "^4.7.2",
     "sonic-boom": "^3.2.0",
+    "source-map": "^0.7.4",
     "swagger-ui-express": "^4.6.3",
     "yaml": "^2.0.0"
   },

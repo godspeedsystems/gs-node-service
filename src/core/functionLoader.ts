@@ -365,8 +365,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
     // framework defined js/ts functions
     let frameworkFunctions = await loadModules(path.resolve(__dirname, '../functions'));
 
-    // project defined yaml worlflows
-    let yamlWorkflows = await loadYaml(pathString);
+    let yamlWorkflows;    
 
     // project defined js/ts functions
     let nativeMicroserviceFunctions = await loadModules(pathString);
@@ -374,7 +373,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
     let loadFnStatus: PlainObject;
 
     logger.debug('JS functions %s', Object.keys(nativeMicroserviceFunctions));
-    logger.debug('Yaml Workflows %s', Object.keys(yamlWorkflows));
+   
     logger.debug('Framework defined  functions %s', Object.keys(frameworkFunctions));
     logger.debug('Datasource Functions %o', Object.keys(datasources));
 
@@ -390,36 +389,48 @@ export default async function loadFunctions(datasources: PlainObject, pathString
 
     frameworkFunctions = { ...frameworkFunctions, ..._datasourceFunctions, ...nativeMicroserviceFunctions };
 
-    for (let f in yamlWorkflows) {
-        try {
-            if (!yamlWorkflows[f].tasks) {
-                throw new Error(`Error in loading tasks of function ${f}.`);
+    if(!process.env.GS_TRANSPILE){
+        // project defined yaml worlflows
+        yamlWorkflows = await loadYaml(pathString);
+        logger.debug('Yaml Workflows %s', Object.keys(yamlWorkflows));
+        for (let f in yamlWorkflows) {
+            try {
+                if (!yamlWorkflows[f].tasks) {
+                    throw new Error(`Error in loading tasks of function ${f}.`);
+                }
+            } catch (ex: unknown) {
+                (ex as Error).message = `Error in loading tasks of function ${f}.` + (ex as Error).message;
+                throw ex;
             }
-        } catch (ex: unknown) {
-            (ex as Error).message = `Error in loading tasks of function ${f}.` + (ex as Error).message;
-            throw ex;
-        }
-        const checkDS = checkDatasource(yamlWorkflows[f], datasources);
-        if (!checkDS.success) {
-            throw new Error(`Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
-        }
-    }
-
-    logger.debug('Creating workflows: %s', Object.keys(yamlWorkflows));
-
-    for (let f in yamlWorkflows) {
-        if (!(yamlWorkflows[f] instanceof GSFunction)) {
-            yamlWorkflows[f].workflow_name = f;
-            if (yamlWorkflows[f].on_error?.tasks) {
-                yamlWorkflows[f].on_error.tasks.workflow_name = f;
-                yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, frameworkFunctions, null);
+            const checkDS = checkDatasource(yamlWorkflows[f], datasources);
+            if (!checkDS.success) {
+                throw new Error(`Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
             }
-            yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, frameworkFunctions, yamlWorkflows[f].on_error);
         }
+    
+        logger.debug('Creating workflows: %s', Object.keys(yamlWorkflows));
+    
+        for (let f in yamlWorkflows) {
+            if (!(yamlWorkflows[f] instanceof GSFunction)) {
+                yamlWorkflows[f].workflow_name = f;
+                if (yamlWorkflows[f].on_error?.tasks) {
+                    yamlWorkflows[f].on_error.tasks.workflow_name = f;
+                    yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, frameworkFunctions, null);
+                }
+                yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, frameworkFunctions, yamlWorkflows[f].on_error);
+            }
+        }
+    }else {
+        // @ts-ignore
+        global.functions = frameworkFunctions;
+        yamlWorkflows = {};
     }
+    
+  
 
-    loadFnStatus = { success: true, functions: { ...yamlWorkflows, ...nativeMicroserviceFunctions } };
+    loadFnStatus = { success: true, functions: { ...nativeMicroserviceFunctions, ...yamlWorkflows  } };
     logger.info('Loaded YAML workflows: %o', Object.keys(yamlWorkflows));
     logger.info('Loaded JS workflows %o', Object.keys(nativeMicroserviceFunctions));
+    // global.functions = nativeFunctions;
     return loadFnStatus;
 }
