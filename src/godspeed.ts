@@ -1,5 +1,5 @@
 /* eslint-disable import/first */
-require('dotenv').config();
+import 'dotenv/config';
 
 try {
   if (process.env.OTEL_ENABLED == 'true') {
