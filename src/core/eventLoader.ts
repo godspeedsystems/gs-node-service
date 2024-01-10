@@ -10,6 +10,9 @@ import { loadJsonSchemaForEvents } from './jsonSchemaValidation';
 import expandVariables from './expandVariables';
 import _ from 'lodash';
 import { logger } from '../logger';
+import { NativeFunctions, WorkflowJSON, createGSFunction } from './functionLoader';
+import { GSDataSourceAsEventSource, GSEventSource } from '../godspeed';
+import { EventSources } from './_interfaces/sources';
 
 const rewiteRefsToAbsolutePath = (
   events: PlainObject
@@ -76,23 +79,65 @@ const rewiteRefsToAbsolutePath = (
 };
 
 export default async function loadEvents(
-  functions: PlainObject,
-  pathString: string
+  allFunctions: PlainObject,
+  nativeFunctions: NativeFunctions,
+  eventsFolderPath: string,
+  eventSources: EventSources
 ) {
-  const events = await loadYaml(pathString, true);
+  const events = await loadYaml(eventsFolderPath, true);
   if (events && !Object.keys(events).length) {
-    throw new Error(`There are no events defined in events dir: ${pathString}`);
+    logger.error(`There are no events defined in events dir: ${eventsFolderPath}. Exiting.`);
+    process.exit(1);
   }
 
   logger.debug('events %o', events);
   const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events));
-  const checkFn = checkFunctionExists(events, functions);
+
+  const checkFn = checkFunctionExists(events, allFunctions);
 
   if (!checkFn.success) {
-    throw new Error(`Error in loading functions for events. Error message: %s. Exiting. ${checkFn.message}`);
+    logger.error(`Error in loading functions for events. Error message: %s. Exiting. ${checkFn.message}`);
+    process.exit(1);
   }
   if (evalEvents) {
     await loadJsonSchemaForEvents(evalEvents);
   }
+  loadEventWorkflows(evalEvents, eventSources, allFunctions, nativeFunctions);
   return evalEvents;
 };
+  /**
+    * Iterate through all event definitions and 
+    * load the authz, on_validation_error and any such workflows
+  */
+const FUNCTIONS_TO_LOAD = ['authz', 'on_validation_error'];
+function loadEventWorkflows(events: PlainObject, eventSources: EventSources, allFunctions:{[key: string]: Function}, nativeFunctions: NativeFunctions) {
+  Object.keys(events).forEach((key: string) => {
+    const eventConfig = events[key];
+    const eventSourceName = key.split('.')[0];
+    const eventSource: GSEventSource | GSDataSourceAsEventSource = eventSources[eventSourceName];
+    if (!eventSource) {
+      logger.error(`No event source found for the event uri ${eventSourceName}`);
+      process.exit(1);
+    }
+    FUNCTIONS_TO_LOAD.forEach((functionType) => {
+
+      let functionConfig: WorkflowJSON | null = eventSource.config[functionType]; //default value from event source
+      if(eventConfig[functionType] === false) { 
+          //remove authorization if event config explicity says false
+          //ex. authz: false or on_validation_error: false
+          //If authz is undefined null or 0 it will not override default config
+          //because of zero trust policy.
+          functionConfig = null;
+      } else if(eventConfig[functionType]) {
+          //for a non-falsy value, lets override default config
+          functionConfig = eventConfig[functionType];
+      }
+      if (functionConfig) {
+        eventConfig[functionType] 
+          = createGSFunction(functionConfig,allFunctions,nativeFunctions,null);
+        // console.log(Array.isArray(eventConfig[functionType]))
+      }
+    })
+  })  
+}
+

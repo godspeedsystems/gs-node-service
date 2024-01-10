@@ -23,7 +23,7 @@ import promClient from '@godspeedsystems/metrics';
 import loadAndRegisterDefinitions from './core/definitionsLoader';
 import loadDatasources from './core/datasourceLoader';
 import loadEventsources from './core/eventsourceLoader';
-import loadFunctions from './core/functionLoader';
+import loadFunctions, { LoadedFunctions as LoadedFunctionsStatus, NativeFunctions, WorkflowJSON, createGSFunction } from './core/functionLoader';
 import loadEvents from './core/eventLoader';
 import loadMappings from './core/mappingLoader';
 
@@ -34,13 +34,15 @@ import {
   GSContext,
   GSSeriesFunction,
   GSStatus,
-  GSResponse
+  GSResponse,
+  GSFunction
 } from './core/interfaces';
 
 import {
   GSDataSource,
   GSEventSource,
   GSDataSourceAsEventSource,
+  EventSources,
 } from './core/_interfaces/sources';
 import { PlainObject } from './types';
 
@@ -51,6 +53,7 @@ import {
 } from './core/jsonSchemaValidation';
 import { childLogger, initializeChildLogger, logger } from './logger';
 import { generateSwaggerJSON } from './router/swagger';
+import { setAtPath } from './core/utils';
 
 export interface GodspeedParams {
   eventsFolderPath?: string;
@@ -65,9 +68,11 @@ export interface GodspeedParams {
 class Godspeed {
   public datasources: { [key: string]: GSDataSource } = {};
 
-  public eventsources: { [key: string]: GSEventSource } = {};
+  public eventsources: EventSources = {};
 
-  public workflows: PlainObject = {};
+  public workflows: {[key: string]: Function} = {};
+
+  public nativeFunctions: NativeFunctions = {};
 
   public events: PlainObject = {};
 
@@ -151,13 +156,13 @@ class Godspeed {
     );
 
     this.folderPaths = {
-      events: eventsFolderPath,
-      workflows: workflowsFolderPath,
-      config: configFolderPath,
-      definitions: definitionsFolderPath,
-      datasources: datasourcesFolderPath,
-      eventsources: eventsourcesFolderPath,
-      mappings: mappingsFolderPath
+      events: eventsFolderPath as string,
+      workflows: workflowsFolderPath as string,
+      config: configFolderPath as string,
+      definitions: definitionsFolderPath as string,
+      datasources: datasourcesFolderPath as string,
+      eventsources: eventsourcesFolderPath as string,
+      mappings: mappingsFolderPath as string
     };
 
     Object.freeze(this.folderPaths);
@@ -172,14 +177,16 @@ class Godspeed {
         let datasources = await this._loadDatasources();
         this.datasources = datasources;
 
-        let functions = await this._loadFunctions();
-        this.workflows = functions;
+        let fnLoadResponse: LoadedFunctionsStatus = await this._loadFunctions();
+        this.workflows = fnLoadResponse.functions;
+        this.nativeFunctions = fnLoadResponse.nativeFunctions;
 
         let eventsources = await this._loadEventsources();
         this.eventsources = eventsources;
 
         let events = await this._loadEvents();
         this.events = events;
+        
 
         await this.subscribeToEvents();
 
@@ -197,7 +204,8 @@ class Godspeed {
         );
       })
       .catch((error) => {
-        logger.error(error.message);
+        logger.error(error, error.message);
+        process.exit(1);
       });
   }
 
@@ -215,9 +223,9 @@ class Godspeed {
 
   private async _loadEvents(): Promise<PlainObject> {
     logger.info('[START] Load events from %s', this.folderPaths.events);
-    let events = await loadEvents(this.workflows, this.folderPaths.events);
+    let events = await loadEvents(this.workflows, this.nativeFunctions, this.folderPaths.events, this.eventsources);
     logger.debug('Events %o', events);
-    logger.info('[END] Load events');
+    logger.info('[END] Loaded events %o', events);
     return events;
   }
 
@@ -234,9 +242,9 @@ class Godspeed {
     return definitions;
   }
 
-  private async _loadFunctions(): Promise<PlainObject> {
+  private async _loadFunctions(): Promise<LoadedFunctionsStatus> {
     logger.info('[START] Load functions from %s', this.folderPaths.workflows);
-    const loadFnStatus = await loadFunctions(
+    const loadFnStatus: LoadedFunctionsStatus = await loadFunctions(
       this.datasources,
       this.folderPaths.workflows
     );
@@ -244,7 +252,7 @@ class Godspeed {
 
     if (loadFnStatus.success) {
       logger.info('[END] Load functions');
-      return loadFnStatus.functions;
+      return loadFnStatus;
     } else {
       throw new Error(`Failed to load functions.`);
     }
@@ -297,6 +305,8 @@ class Godspeed {
         processEventHandler,
         { ...this.events[route] }
       );
+
+
     }
 
     const httpEventSource = this.eventsources['http']; // eslint-disable-line
@@ -343,9 +353,7 @@ class Godspeed {
       // TODO: lot's of logging related steps
       childLogger.info('processing event ... %s %o', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config
-      const responseStructure: GSResponse = {
-        apiVersion: '1.0',
-      };
+      
 
       let eventHandlerWorkflow: GSSeriesFunction;
       let validateStatus = validateRequestSchema(
@@ -388,7 +396,7 @@ class Godspeed {
         );
         eventHandlerWorkflow = <GSSeriesFunction>workflows[eventSpec.fn];
       }
-
+      
       const ctx = new GSContext(
         config,
         datasources,
@@ -399,7 +407,27 @@ class Godspeed {
         logger,
         childLogger
       );
-
+      //Now check authorization
+      if (eventConfig.authz) { 
+        //If authorization workflow fails, we return with its status right away.
+        ctx.forAuth = true;
+        const authzStatus: GSStatus = await eventConfig.authz(ctx);
+        ctx.forAuth = false;
+        if(authzStatus.code === 403 || authzStatus.success !== true) {
+          //Authorization task executed successfully and returned user is not authorized
+           
+          authzStatus.success = false;
+          authzStatus.code = authzStatus.code || 403;
+          childLogger.debug(`Authorization task failed at the event level with code ${authzStatus.code}`);
+          
+          if (!authzStatus.data?.message) {
+            setAtPath(authzStatus, 'data.message', authzStatus.message || 'Access Forbidden');
+          }
+          return authzStatus;
+        }
+        //Autorization is passed. Proceeding.
+        childLogger.debug('Authorization passed at the event level');
+      }
       let eventHandlerStatus: GSStatus;
 
       try {
@@ -408,6 +436,26 @@ class Godspeed {
         eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
         childLogger.info('eventHandlerStatus: %o', eventHandlerStatus);
 
+// <<<<<<< 843_add_json_types_in_functionLoader
+//         if (eventHandlerStatus.success) { //means this is GSStatus and success is true
+//           // event workflow executed successfully
+//           // lets validate the response schema
+//           let validateResponseStatus = validateResponseSchema(
+//             event.type,
+//             eventHandlerStatus
+//           );
+//           if (!validateResponseStatus.success) {
+//             childLogger.error('Response JSON schema validation failed.');
+//             return new GSStatus(false, 500, 'response validation error', {
+//               error: {
+//                 message: validateResponseStatus.message,
+//                 info: validateResponseStatus.data,
+//               },
+//             });
+//           }
+//         } else {
+
+// =======
         if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
           //Assume workflow has returned just the data and has executed sucessfully
           eventHandlerStatus = new GSStatus(true, 200, undefined, eventHandlerResponse);
@@ -421,6 +469,7 @@ class Godspeed {
         if (!validateResponseStatus.success) {
           childLogger.error('Response JSON schema validation failed');
           return new GSStatus(false, 500, 'response validation error', validateResponseStatus.data);
+// >>>>>>> v2-dev
         }
         
 
@@ -436,6 +485,7 @@ class Godspeed {
       }
     };
   }
+  
 }
 
 export {

@@ -57,7 +57,7 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
   //Ensure there is an PlainObject as value till the second last key
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
-    if (key in obj) { //obj[key]
+    if (obj[key] !== undefined && obj[key] !== null) { //obj[key] has a non null value
       obj = obj[key];
     } else {
       obj = (obj[key] = {});
