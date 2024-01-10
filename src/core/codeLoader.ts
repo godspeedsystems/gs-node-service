@@ -36,19 +36,20 @@ export default function loadModules(
                     .replace(/\_index$/, '');
 
                   // Load plugins at global level to provide backward compatibilty
-                  api = { ...api, ...module };
+                  //api = { ...api, ...module };
 
                   // Load plugins with namespace using underscore notation
-                  if (id == 'index') {
+                  if (id === 'index') {
+                    delete module.default;
                     api = {
                       ...api,
                       ...module,
                     };
                   } else {
                     for (let f in module) {
-                      if (f == 'default') {
+                      if (f === 'default' && typeof module[f] === 'function') {
                         api[id] = module[f];
-                      } else {
+                      } else  if(f !== 'default'){
                         api[id + '_' + f] = module[f];
                       }
                     }

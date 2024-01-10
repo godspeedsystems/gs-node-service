@@ -527,7 +527,8 @@ export class GSFunction extends Function {
       let args = this.args;
       if (this.args_script) {
         args = await evaluateScript(ctx, this.args_script, taskValue);
-        if (args == 'Error in parsing script') {
+        if (ctx.exitWithStatus) {
+          //ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error in evaluation of script %s in task id: %s', this.args_script, this.id);
           throw ctx.exitWithStatus;
         }
       }

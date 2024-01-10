@@ -54,21 +54,26 @@ import {
 import { childLogger, initializeChildLogger, logger } from './logger';
 import { generateSwaggerJSON } from './router/swagger';
 import { setAtPath } from './core/utils';
+import loadModules from './core/codeLoader';
+import { importAll } from './core/scriptRuntime';
 
 export interface GodspeedParams {
-  eventsFolderPath?: string;
-  workflowsFolderPath?: string;
-  definitionsFolderPath?: string;
-  datasourcesFolderPath?: string;
-  configFolderPath?: string;
-  eventsourcesFolderPath?: string;
-  mappingsFolderPath?: string;
+  eventsFolderPath: string;
+  workflowsFolderPath: string;
+  definitionsFolderPath: string;
+  datasourcesFolderPath: string;
+  configFolderPath: string;
+  eventsourcesFolderPath: string;
+  mappingsFolderPath: string;
+  pluginsFolderPath: String;
 }
 
 class Godspeed {
   public datasources: { [key: string]: GSDataSource } = {};
 
   public eventsources: EventSources = {};
+  
+  public plugins: PlainObject = {};
 
   public workflows: {[key: string]: Function} = {};
 
@@ -91,7 +96,8 @@ class Godspeed {
     config: string;
     datasources: string;
     eventsources: string;
-    mappings: string
+    mappings: string;
+    plugins: string;
   };
 
   constructor(params = {} as GodspeedParams) {
@@ -108,7 +114,8 @@ class Godspeed {
       configFolderPath,
       datasourcesFolderPath,
       eventsourcesFolderPath,
-      mappingsFolderPath
+      mappingsFolderPath,
+      pluginsFolderPath
     } = params;
 
     eventsFolderPath = join(
@@ -155,6 +162,13 @@ class Godspeed {
         : params.mappingsFolderPath || '/src/mappings'
     );
 
+    pluginsFolderPath = join(
+      currentDir,
+      this.isProd
+        ? params.mappingsFolderPath || '/dist/plugins'
+        : params.mappingsFolderPath || '/src/plugins'
+    );
+
     this.folderPaths = {
       events: eventsFolderPath as string,
       workflows: workflowsFolderPath as string,
@@ -162,7 +176,8 @@ class Godspeed {
       definitions: definitionsFolderPath as string,
       datasources: datasourcesFolderPath as string,
       eventsources: eventsourcesFolderPath as string,
-      mappings: mappingsFolderPath as string
+      mappings: mappingsFolderPath as string,
+      plugins: pluginsFolderPath as string
     };
 
     Object.freeze(this.folderPaths);
@@ -177,6 +192,8 @@ class Godspeed {
         let datasources = await this._loadDatasources();
         this.datasources = datasources;
 
+        this.plugins = await this._loadPlugins();
+        
         let fnLoadResponse: LoadedFunctionsStatus = await this._loadFunctions();
         this.workflows = fnLoadResponse.functions;
         this.nativeFunctions = fnLoadResponse.nativeFunctions;
@@ -260,6 +277,14 @@ class Godspeed {
     } else {
       throw new Error(`Failed to load functions.`);
     }
+  }
+
+  private async _loadPlugins(): Promise<PlainObject> {
+    logger.info('[START] Load plugins from %s', this.folderPaths.plugins);
+    const modules: PlainObject = await loadModules(this.folderPaths.plugins);
+    importAll(modules, global);
+    logger.debug('Plugins loaded %o', Object.keys(modules));
+    return modules;
   }
 
   private async _loadDatasources(): Promise<PlainObject> {

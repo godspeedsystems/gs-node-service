@@ -29,13 +29,13 @@ export default async function evaluateScript(ctx: GSContext, script: Function, t
     try {
         return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings, taskValue);
     } catch (err: any) {
-        childLogger.error('Error in parsing script: %s', JSON.stringify(err.stack));
+        childLogger.error('Error in evaluating script: %s', JSON.stringify(err.stack));
         ctx.exitWithStatus = new GSStatus(
             false,
             undefined,
             err.message,
             err.stack
         );
-        return 'Error in parsing script';
+        //return 'Error in parsing script';
     }
 }
