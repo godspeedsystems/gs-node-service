@@ -83,6 +83,7 @@
   "keywords": [
     "express",
     "node",
-    "schema-driven"
-     "packageManager": "yarn@4.0.2"
+    "schema-driven",
+    "packageManager"
+  ]
 }

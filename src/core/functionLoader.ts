@@ -433,11 +433,11 @@ export default async function loadFunctions(datasources: PlainObject, pathString
         }
     }else {
         // @ts-ignore
-        global.functions = frameworkFunctions;
+        global.functions = nativeFunctions;
         yamlWorkflows = {};
     }
     
-    loadFnStatus = { success: true, functions: { ...nativeMicroserviceFunctions, ...yamlWorkflows  } };
+    loadFnStatus = { success: true,nativeFunctions, functions: { ...nativeMicroserviceFunctions, ...yamlWorkflows  } };
 
     logger.info('Loaded YAML workflows: %o', Object.keys(yamlWorkflows));
     logger.info('Loaded JS workflows %o', Object.keys(nativeMicroserviceFunctions));
