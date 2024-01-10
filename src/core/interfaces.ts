@@ -368,7 +368,9 @@ export class GSFunction extends Function {
         false,
         500,
         err.message,
-        `Caught error from execution in task id: ${this.id}, error: ${err}`
+        {
+          message: "Internal server error"  
+        }
       );
     }
 
@@ -465,7 +467,6 @@ export class GSFunction extends Function {
         //let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
         ctx.forAuth = true;
         //const newCtx = ctx.cloneWithNewData(args);
-        ctx.forAuth = true;
         let authzRes: GSStatus = await this.yaml.authz(ctx);
         ctx.forAuth = false;
         if (authzRes.code === 403) { 
@@ -482,7 +483,9 @@ export class GSFunction extends Function {
         } else if(authzRes.success !== true) {
           //Ensure success = false for no ambiguity further
           authzRes.success =  false;
-          authzRes.code = authzRes.code || 403;
+          if (!authzRes.code || authzRes.code < 400 || authzRes.code > 599) {
+            authzRes.code = 403;
+          }
           if (!authzRes.data?.message) {
             setAtPath(authzRes, 'data.message', authzRes.message || 'Access Forbidden');
           }
@@ -575,11 +578,18 @@ export class GSFunction extends Function {
         false,
         500,
         err.message,
-        `Caught error from execution in task id ${this.id}`
+        {
+          message: "Internal server error"  
+        }
       );
     }
 
     status = await this.handleError(ctx, status, taskValue);
+    if (ctx.forAuth) {
+      if (status.success !== true) {
+        ctx.exitWithStatus = status;
+      }
+    }
     if (caching && caching.key) {
       if (status?.success || caching.cache_on_failure) {
         ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Store result in cache');
