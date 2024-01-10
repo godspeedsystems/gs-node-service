@@ -465,7 +465,6 @@ export class GSFunction extends Function {
         //let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
         ctx.forAuth = true;
         //const newCtx = ctx.cloneWithNewData(args);
-        ctx.forAuth = true;
         let authzRes: GSStatus = await this.yaml.authz(ctx);
         ctx.forAuth = false;
         if (authzRes.code === 403) { 
@@ -580,6 +579,11 @@ export class GSFunction extends Function {
     }
 
     status = await this.handleError(ctx, status, taskValue);
+    if (ctx.forAuth) {
+      if (status.success !== true) {
+        ctx.exitWithStatus = status;
+      }
+    }
     if (caching && caching.key) {
       if (status?.success || caching.cache_on_failure) {
         ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Store result in cache');
