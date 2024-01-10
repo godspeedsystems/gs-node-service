@@ -366,18 +366,16 @@ class Godspeed {
       if (validateStatus.success === false) {
         childLogger.error('failed to validate request body.', validateStatus);
 
-        const responseData: PlainObject = {
-          message: 'request validation failed.',
-          error: validateStatus.message,
-          data: validateStatus.data,
-        };
+        
 
         // if `on_validation_error` is defined in the event, let's execute that
         if (eventSpec.on_validation_error) {
           const validationError = {
             success: false,
             code: validateStatus.code,
-            ...responseData,
+            message: 'request validation failed.',
+            error: validateStatus.message,
+            data: validateStatus.data
           };
 
           childLogger.error(validationError);
@@ -404,6 +402,7 @@ class Godspeed {
         datasources,
         event,
         mappings,
+        workflows,
         {},
         logger,
         childLogger
@@ -437,28 +436,46 @@ class Godspeed {
         eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
         childLogger.info('eventHandlerStatus: %o', eventHandlerStatus);
 
-        if (eventHandlerStatus.success) { //means this is GSStatus and success is true
-          // event workflow executed successfully
-          // lets validate the response schema
-          let validateResponseStatus = validateResponseSchema(
-            event.type,
-            eventHandlerStatus
-          );
-          if (!validateResponseStatus.success) {
-            childLogger.error('Response JSON schema validation failed.');
-            return new GSStatus(false, 500, 'response validation error', {
-              error: {
-                message: validateResponseStatus.message,
-                info: validateResponseStatus.data,
-              },
-            });
-          }
-        } else {
+// <<<<<<< 843_add_json_types_in_functionLoader
+//         if (eventHandlerStatus.success) { //means this is GSStatus and success is true
+//           // event workflow executed successfully
+//           // lets validate the response schema
+//           let validateResponseStatus = validateResponseSchema(
+//             event.type,
+//             eventHandlerStatus
+//           );
+//           if (!validateResponseStatus.success) {
+//             childLogger.error('Response JSON schema validation failed.');
+//             return new GSStatus(false, 500, 'response validation error', {
+//               error: {
+//                 message: validateResponseStatus.message,
+//                 info: validateResponseStatus.data,
+//               },
+//             });
+//           }
+//         } else {
 
+// =======
+        if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
+          //Assume workflow has returned just the data and has executed sucessfully
+          eventHandlerStatus = new GSStatus(true, 200, undefined, eventHandlerResponse);
         }
+        // event workflow executed successfully
+        // lets validate the response schema
+        let validateResponseStatus = validateResponseSchema(
+          event.type,
+          eventHandlerStatus
+        );
+        if (!validateResponseStatus.success) {
+          childLogger.error('Response JSON schema validation failed');
+          return new GSStatus(false, 500, 'response validation error', validateResponseStatus.data);
+// >>>>>>> v2-dev
+        }
+        
 
         return eventHandlerStatus;
       } catch (error) {
+        childLogger.error(`Error occured in event handler execution for event ${eventConfig.key}. Error: ${error}`);
         return new GSStatus(
           false,
           500,
