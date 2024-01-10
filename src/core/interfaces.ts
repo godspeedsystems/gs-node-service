@@ -368,7 +368,9 @@ export class GSFunction extends Function {
         false,
         500,
         err.message,
-        `Caught error from execution in task id: ${this.id}, error: ${err}`
+        {
+          message: "Internal server error"  
+        }
       );
     }
 
@@ -481,7 +483,9 @@ export class GSFunction extends Function {
         } else if(authzRes.success !== true) {
           //Ensure success = false for no ambiguity further
           authzRes.success =  false;
-          authzRes.code = authzRes.code || 403;
+          if (!authzRes.code || authzRes.code < 400 || authzRes.code > 599) {
+            authzRes.code = 403;
+          }
           if (!authzRes.data?.message) {
             setAtPath(authzRes, 'data.message', authzRes.message || 'Access Forbidden');
           }
@@ -574,7 +578,9 @@ export class GSFunction extends Function {
         false,
         500,
         err.message,
-        `Caught error from execution in task id ${this.id}`
+        {
+          message: "Internal server error"  
+        }
       );
     }
 

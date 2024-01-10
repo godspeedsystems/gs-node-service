@@ -417,7 +417,12 @@ class Godspeed {
           //Authorization task executed successfully and returned user is not authorized
            
           authzStatus.success = false;
-          authzStatus.code = authzStatus.code || 403;
+          // If status code is not set or is not in the range of 400-600 then set the code to 403
+          //error status codes in http should be between 400-599
+          if (!authzStatus.code || authzStatus.code < 400 || authzStatus.code > 599) {
+            authzStatus.code = 403;
+          }
+          
           childLogger.debug(`Authorization task failed at the event level with code ${authzStatus.code}`);
           
           if (!authzStatus.data?.message) {
