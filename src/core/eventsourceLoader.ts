@@ -3,6 +3,7 @@ import { logger } from "../logger";
 import { PlainObject } from "../types";
 import loadYaml from "./yamlLoader";
 import { EventSources, GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources";
+import expandVariables from "./expandVariables"; // Import the expandVariables function
 
 export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource | GSDataSourceAsEventSource }> {
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
@@ -15,8 +16,17 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
   for await (let esName of Object.keys(eventsourcesConfigs)) {
     // let's load the event source
     const eventSourceConfig = eventsourcesConfigs[esName];
+    logger.debug('evaluating event source %s', esName);
+    eventsourcesConfigs[esName] = expandVariables(eventsourcesConfigs[esName]);
+    logger.debug(
+      'evaluated eventsource %s %o',
+      esName,
+      eventsourcesConfigs[esName]
+    );
+
+    const fileName = eventsourcesConfigs[esName].type;
     try {
-      const Module = await import(path.join(eventsourcesFolderPath, 'types', eventSourceConfig.type));
+      const Module = await import(path.join(eventsourcesFolderPath, 'types', fileName));
       const isPureEventSource = 'initClient' in Module.default.prototype;
       // const isPureEventSource = !!Object.hasOwnProperty.call(Module.default.prototype, 'initClient');
       let eventSourceInatance: GSEventSource | GSDataSourceAsEventSource;
