@@ -426,7 +426,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
                 yamlWorkflows[f].workflow_name = f;
                 if (yamlWorkflows[f].on_error?.tasks) {
                     yamlWorkflows[f].on_error.tasks.workflow_name = f;
-                    yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, frameworkFunctions, null);
+                    yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, nativeFunctions, null);
                 }
                 yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, nativeFunctions, yamlWorkflows[f].on_error);
             }
