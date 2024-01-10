@@ -29,25 +29,25 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
       const Module = await import(path.join(eventsourcesFolderPath, 'types', fileName));
       const isPureEventSource = 'initClient' in Module.default.prototype;
       // const isPureEventSource = !!Object.hasOwnProperty.call(Module.default.prototype, 'initClient');
-      let eventSourceInatance: GSEventSource | GSDataSourceAsEventSource;
+      let eventSourceInstance: GSEventSource | GSDataSourceAsEventSource;
 
       let Constructor = Module.default;
 
       if (isPureEventSource) {
-        eventSourceInatance = new Constructor(eventsourcesConfigs[esName], datasources) as GSEventSource;
-        if ('init' in eventSourceInatance) {
-          await eventSourceInatance.init();
+        eventSourceInstance = new Constructor(eventsourcesConfigs[esName], datasources) as GSEventSource;
+        if ('init' in eventSourceInstance) {
+          await eventSourceInstance.init();
         }
       } else {
         let correspondingDatasource = datasources[esName]; // By design, datasource and event source need to share the same name.
         if (!correspondingDatasource) {
           throw new Error(`Corresponding data source for event source ${esName} is not defined. Please ensure a data source type exists with the same file name in /datasources directory`);
         } else {
-          eventSourceInatance = new Constructor(eventsourcesConfigs[esName], correspondingDatasource.client) as GSDataSourceAsEventSource;
+          eventSourceInstance = new Constructor(eventsourcesConfigs[esName], correspondingDatasource.client) as GSDataSourceAsEventSource;
         }
       }
 
-      eventSources[esName] = eventSourceInatance;
+      eventSources[esName] = eventSourceInstance;
     } catch (error) {
       logger.error(error);
     }
