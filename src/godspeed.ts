@@ -23,7 +23,7 @@ import promClient from '@godspeedsystems/metrics';
 import loadAndRegisterDefinitions from './core/definitionsLoader';
 import loadDatasources from './core/datasourceLoader';
 import loadEventsources from './core/eventsourceLoader';
-import loadFunctions, { LoadedFunctions as LoadedFunctionsStatus, NativeFunctions, WorkflowJSON, createGSFunction } from './core/functionLoader';
+import loadFunctions, { LoadedFunctions as LoadedFunctionsStatus, NativeFunctions } from './core/functionLoader';
 import loadEvents from './core/eventLoader';
 import loadMappings from './core/mappingLoader';
 
@@ -205,8 +205,12 @@ class Godspeed {
       })
       .catch((error) => {
         logger.error(error, error.message);
-        process.exit(1);
-      });
+        return new Promise((resolve) => {
+          setTimeout(resolve, 1000);
+        })
+        .then(() => process.exit(1))
+        
+      })
   }
 
   public initialize() {
