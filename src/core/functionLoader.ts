@@ -3,7 +3,7 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 import { PlainObject } from './common';
-import { GSContext, GSDynamicFunction, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSIFFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction } from './interfaces';
+import { GSContext, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GSIFFunction, GSParallelFunction, GSSeriesFunction, GSSwitchFunction } from './interfaces';
 import { checkDatasource, compileScript } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
@@ -27,7 +27,7 @@ type BaseJSON = {
     workflow_name?: string,
     on_error?: OnError
 }
-type WorkflowJSON = BaseJSON & {
+export type WorkflowJSON = BaseJSON & {
     tasks: Array<TaskJSON>
 }
 type OnError = {
@@ -49,7 +49,13 @@ type TaskJSON = BaseJSON & {
     isEachParallel?: boolean,
     authz?: TasksJSON | GSFunction,
     args: any
-}
+};
+
+// Developer written JS/TS or datasource functions
+export type NativeFunctions = {
+    [key: string]: Function | null}
+;
+
 /**
  * 
  * @param json a workflow or array of yaml tasks or a single yaml task
@@ -61,7 +67,7 @@ type TaskJSON = BaseJSON & {
 export function createGSFunction(
     json: WorkflowJSON | TasksJSON | TaskJSON,
     workflows: PlainObject,
-    nativeFunctions: PlainObject,
+    nativeFunctions: NativeFunctions,
     onError: OnError | null
 ): GSFunction | null {
     
@@ -294,8 +300,8 @@ export function createGSFunction(
     /*  
         This was not any of the core framework control functions.
         This must be a `TaskJSON` which is either 
-        1. A developer written function (native or yaml) or 
-        2. A datasource function
+        1. A developer written function (native JS/TS or yaml) or 
+        2. A datasource function (also native JS/TS function)
     */
     let subwf = false;
     let fn;
@@ -309,7 +315,7 @@ export function createGSFunction(
         logger.debug('workflowJson.fn %s', taskJson.fn);
 
         /*      
-            First check if it's a native function
+            First check if it's a native function (developer written or datasource)
             but, special handling for datasource function, because
             while using datasource fn, starts with datasource.{datasourceName} followed by . 
             followed by the function or nested functions to be invoked
@@ -324,9 +330,10 @@ export function createGSFunction(
             :
             taskJson.fn as string;
 
-        fn = nativeFunctions[fnName];
+        fn = nativeFunctions[fnName]; //Either a datasource or dev written JS/TS function 
 
-        if (!fn) { // If not a native function, it should be a GSFunction/Json
+        if (!fn) { 
+            // If not a native function, it should be a developer written Workflow as function
             const existingWorkflowData = workflows[fnName];
             if (!existingWorkflowData) {
                 throw new Error(`Function specified by name ${fnName} not found in src/functions. Please ensure a function by this path exists.`);
@@ -357,10 +364,14 @@ export function createGSFunction(
         taskJson.authz = createGSFunction(taskJson.authz as TasksJSON, workflows, nativeFunctions, onError) as GSFunction;
     }
 
-    return new GSFunction(taskJson, workflows, nativeFunctions, fn, taskJson.args, subwf, fnScript);
+    return new GSFunction(taskJson, workflows, nativeFunctions, fn as GSFunction , taskJson.args, subwf, fnScript);
 }
-
-export default async function loadFunctions(datasources: PlainObject, pathString: string): Promise<PlainObject> {
+export type LoadedFunctions = {
+    nativeFunctions: NativeFunctions,
+    functions: PlainObject, //All YAML workflows and native functions combined
+    success: boolean
+}
+export default async function loadFunctions(datasources: PlainObject, pathString: string): Promise<LoadedFunctions> {
 
     // framework defined js/ts functions
     let frameworkFunctions = await loadModules(path.resolve(__dirname, '../functions'));
@@ -370,7 +381,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
     // project defined js/ts functions
     let nativeMicroserviceFunctions = await loadModules(pathString);
 
-    let loadFnStatus: PlainObject;
+    let loadFnStatus: LoadedFunctions;
 
     logger.debug('JS functions %s', Object.keys(nativeMicroserviceFunctions));
    
@@ -386,8 +397,8 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             };
             return acc;
         }, {});
-
-    frameworkFunctions = { ...frameworkFunctions, ..._datasourceFunctions, ...nativeMicroserviceFunctions };
+    
+    const nativeFunctions = { ...frameworkFunctions, ..._datasourceFunctions, ...nativeMicroserviceFunctions };
 
     if(!process.env.GS_TRANSPILE){
         // project defined yaml worlflows
@@ -417,7 +428,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
                     yamlWorkflows[f].on_error.tasks.workflow_name = f;
                     yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, frameworkFunctions, null);
                 }
-                yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, frameworkFunctions, yamlWorkflows[f].on_error);
+                yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, nativeFunctions, yamlWorkflows[f].on_error);
             }
         }
     }else {
@@ -426,9 +437,8 @@ export default async function loadFunctions(datasources: PlainObject, pathString
         yamlWorkflows = {};
     }
     
-  
-
     loadFnStatus = { success: true, functions: { ...nativeMicroserviceFunctions, ...yamlWorkflows  } };
+
     logger.info('Loaded YAML workflows: %o', Object.keys(yamlWorkflows));
     logger.info('Loaded JS workflows %o', Object.keys(nativeMicroserviceFunctions));
     // global.functions = nativeFunctions;

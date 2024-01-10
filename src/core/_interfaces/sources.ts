@@ -1,6 +1,8 @@
 import { PlainObject } from "../../types";
 import { GSCloudEvent, GSContext, GSStatus } from "../interfaces";
 
+export type EventSources = { [key: string]: GSEventSource | GSDataSourceAsEventSource };
+
 export abstract class GSDataSource {
   config: PlainObject;
 
