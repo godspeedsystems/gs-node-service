@@ -1,5 +1,5 @@
 /* eslint-disable import/first */
-require('dotenv').config();
+import 'dotenv/config';
 
 try {
   if (process.env.OTEL_ENABLED == 'true') {
@@ -87,7 +87,7 @@ class Godspeed {
 
   public mappings: PlainObject = {};
 
-  public isProd: boolean = process.env.NODE_ENV === 'production';
+  public isProd: boolean = true; //process.env.NODE_ENV === 'production';
 
   public folderPaths: {
     events: string;
