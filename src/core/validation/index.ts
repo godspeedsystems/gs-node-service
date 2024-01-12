@@ -1,8 +1,8 @@
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { PlainObject } from '../common';
-import eventSchema from './event.schema.json';
-import workflowSchema from './workflow.schema.json';
+import eventSchema from './eventSchema';
+import workflowSchema from './workflowSchema';
 import { logger } from '../../logger';
 
 const ajvInstance = new Ajv({ allErrors: true, coerceTypes: true, strictTuples: false, strictTypes: false, strict: false });

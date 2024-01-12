@@ -107,9 +107,9 @@ export default async function loadEvents(
 };
   /**
     * Iterate through all event definitions and 
-    * load the authz, on_validation_error and any such workflows
+    * load the authz, on_request_validation_error, on_response_validation_error and any such workflows
   */
-const FUNCTIONS_TO_LOAD = ['authz', 'on_validation_error'];
+const FUNCTIONS_TO_LOAD = ['authz', 'on_request_validation_error', 'on_response_validation_error'];
 function loadEventWorkflows(events: PlainObject, eventSources: EventSources, allFunctions:{[key: string]: Function}, nativeFunctions: NativeFunctions) {
   Object.keys(events).forEach((key: string) => {
     const eventConfig = events[key];
@@ -120,22 +120,40 @@ function loadEventWorkflows(events: PlainObject, eventSources: EventSources, all
       process.exit(1);
     }
     FUNCTIONS_TO_LOAD.forEach((functionType) => {
-
-      let functionConfig: WorkflowJSON | null = eventSource.config[functionType]; //default value from event source
-      if(eventConfig[functionType] === false) { 
-          //remove authorization if event config explicity says false
-          //ex. authz: false or on_validation_error: false
-          //If authz is undefined null or 0 it will not override default config
-          //because of zero trust policy.
-          functionConfig = null;
-      } else if(eventConfig[functionType]) {
-          //for a non-falsy value, lets override default config
-          functionConfig = eventConfig[functionType];
+      if(eventConfig[functionType] === 'false') { 
+        delete eventConfig[functionType];
+        //remove function for this functionType if event config explicity says false
+        //ex. authz: false or on_request_validation_error: false
+        //If authz is undefined null or 0 it will not override default config
+        //because of zero trust policy.
+        // functionConfig = null;
+        return;
       }
-      if (functionConfig) {
-        eventConfig[functionType] 
-          = createGSFunction(functionConfig,allFunctions,nativeFunctions,null);
-        // console.log(Array.isArray(eventConfig[functionType]))
+      let functionConfig: WorkflowJSON | string | Function | null;
+      if(eventConfig[functionType]) {
+        //for a non-falsy value, lets use this instead of the default config from event source
+        functionConfig = eventConfig[functionType];
+      } else if(eventSource.config[functionType]) {
+        //default value from event source
+        functionConfig = eventSource.config[functionType]; 
+      } else {
+        return;
+      }
+      let _function; //The loaded function
+      if (typeof functionConfig === 'string') {
+        //Is expected to be a valid function/workflow path
+        //For ex. authz: "com.biz.common_authz"
+        _function = allFunctions[functionConfig as string];
+      } else if (typeof functionConfig === 'object' ) {
+        //Is expected to be a `WorkflowJSON`
+        _function 
+          = createGSFunction(functionConfig as WorkflowJSON,allFunctions,nativeFunctions,null);
+      }
+      if (_function) {
+        eventConfig[functionType] = _function;
+      } else {
+        logger.error(`Could not find any valid function definition for ${functionConfig} when loading ${functionType} for event ${key}`);
+        process.exit(1);
       }
     })
   })  
