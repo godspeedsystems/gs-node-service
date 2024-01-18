@@ -152,7 +152,7 @@ function loadEventWorkflows(events: PlainObject, eventSources: EventSources, all
       if (_function) {
         eventConfig[functionType] = _function;
       } else {
-        logger.error(`Could not find any valid function definition for ${functionConfig} when loading ${functionType} for event ${key}`);
+        logger.error(`Could not find any valid function definition for %o when loading ${functionType} for event ${key}`, functionConfig);
         process.exit(1);
       }
     })

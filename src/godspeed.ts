@@ -1,6 +1,6 @@
 /* eslint-disable import/first */
 import 'dotenv/config';
-
+import { childLogger, initializeChildLogger, logger } from './logger';
 try {
   if (process.env.OTEL_ENABLED == 'true') {
     require('@godspeedsystems/tracing').initialize();
@@ -51,7 +51,7 @@ import {
   validateRequestSchema,
   validateResponseSchema,
 } from './core/jsonSchemaValidation';
-import { childLogger, initializeChildLogger, logger } from './logger';
+
 import { generateSwaggerJSON } from './router/swagger';
 import { setAtPath } from './core/utils';
 import loadModules from './core/codeLoader';
@@ -221,10 +221,8 @@ class Godspeed {
         );
       })
       .catch((error) => {
-        logger.error(error, error.message);
-        process.exit(1);
-        
-      })
+        logger.error('Error in loading the project %o %s %o', error, error.message, error.stack);
+      });
   }
 
   public initialize() {
@@ -305,7 +303,7 @@ class Godspeed {
       this.folderPaths.eventsources,
       this.datasources
     );
-    logger.debug('event sources %o', eventsources);
+    logger.debug('event sources loaded %o', Object.keys(eventsources));
     logger.info('[END] event sources.');
     return eventsources;
   }
