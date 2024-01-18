@@ -50,5 +50,5 @@ const logger: Pino.Logger = Pino({
     censor: '*****'
   }
 });
-
+// process.on('exit', () => {console.log('hesdfasfasfasfasdfasdfasfasdfasdfasdf')});  //logger.flushSync()})
 export { logger };

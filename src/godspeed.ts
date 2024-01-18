@@ -1,13 +1,13 @@
 /* eslint-disable import/first */
 import 'dotenv/config';
-
+import { childLogger, initializeChildLogger, logger } from './logger';
 try {
   if (process.env.OTEL_ENABLED == 'true') {
     require('@godspeedsystems/tracing').initialize();
   }
 } catch (error) {
-  console.error("OTEL_ENABLED is set, unable to initialize opentelemetry tracing.");
-  console.error(error);
+  logger.error("OTEL_ENABLED is set, unable to initialize opentelemetry tracing.");
+  logger.error(error);
   process.exit(1);
 }
 
@@ -51,7 +51,7 @@ import {
   validateRequestSchema,
   validateResponseSchema,
 } from './core/jsonSchemaValidation';
-import { childLogger, initializeChildLogger, logger } from './logger';
+
 import { generateSwaggerJSON } from './router/swagger';
 import { setAtPath } from './core/utils';
 import loadModules from './core/codeLoader';
@@ -221,13 +221,8 @@ class Godspeed {
         );
       })
       .catch((error) => {
-        logger.error(error, error.message);
-        return new Promise((resolve) => {
-          setTimeout(resolve, 1000);
-        })
-        .then(() => process.exit(1))
-        
-      })
+        logger.error('Error in loading the project %o %s %o', error, error.message, error.stack);
+      });
   }
 
   public initialize() {
@@ -293,7 +288,7 @@ class Godspeed {
       this.folderPaths.datasources
     );
     let datasources = await loadDatasources(this.folderPaths.datasources);
-    logger.debug('data sources %o', datasources);
+    //logger.debug('data sources %o', datasources);
     logger.info('[END] Load data sources');
     return datasources;
   }
@@ -308,7 +303,7 @@ class Godspeed {
       this.folderPaths.eventsources,
       this.datasources
     );
-    logger.debug('event sources %o', eventsources);
+    logger.debug('event sources loaded %o', Object.keys(eventsources));
     logger.info('[END] event sources.');
     return eventsources;
   }
@@ -380,7 +375,7 @@ class Godspeed {
       // initilize child logger
       initializeChildLogger({});
       // TODO: lot's of logging related steps
-      childLogger.info('processing event ... %s %o', event.type);
+      childLogger.info('processing event ... %s', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config
       
 
@@ -393,12 +388,10 @@ class Godspeed {
       let eventSpec = eventConfig;
 
       if (validateStatus.success === false) {
-        childLogger.error('failed to validate request body.', validateStatus);
+        childLogger.error(`failed to validate request body. ${validateStatus}` );
 
-        
-
-        // if `on_validation_error` is defined in the event, let's execute that
-        if (eventSpec.on_validation_error) {
+        // if `on_request_validation_error` is defined in the event, let's execute that
+        if (eventSpec.on_request_validation_error) {
           const validationError = {
             success: false,
             code: validateStatus.code,
@@ -407,14 +400,12 @@ class Godspeed {
             data: validateStatus.data
           };
 
-          childLogger.error(validationError);
+          childLogger.error('Validation of event request failed %s', JSON.stringify(validationError));
 
           event.data = { event: event.data, validation_error: validationError };
 
           // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
-          eventHandlerWorkflow = <GSSeriesFunction>(
-            workflows[eventSpec.on_validation_error]
-          );
+          eventHandlerWorkflow = <GSSeriesFunction>(eventSpec.on_request_validation_error);
         } else {
           return validateStatus;
         }
@@ -436,8 +427,8 @@ class Godspeed {
         logger,
         childLogger
       );
-      //Now check authorization
-      if (eventConfig.authz) { 
+      //Now check authorization, provided request validation has succeeded
+      if (eventConfig.authz && validateStatus.success) { 
         //If authorization workflow fails, we return with its status right away.
         ctx.forAuth = true;
         const authzStatus: GSStatus = await eventConfig.authz(ctx);
@@ -469,27 +460,6 @@ class Godspeed {
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
         eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
         childLogger.info('eventHandlerStatus: %o', eventHandlerStatus);
-
-// <<<<<<< 843_add_json_types_in_functionLoader
-//         if (eventHandlerStatus.success) { //means this is GSStatus and success is true
-//           // event workflow executed successfully
-//           // lets validate the response schema
-//           let validateResponseStatus = validateResponseSchema(
-//             event.type,
-//             eventHandlerStatus
-//           );
-//           if (!validateResponseStatus.success) {
-//             childLogger.error('Response JSON schema validation failed.');
-//             return new GSStatus(false, 500, 'response validation error', {
-//               error: {
-//                 message: validateResponseStatus.message,
-//                 info: validateResponseStatus.data,
-//               },
-//             });
-//           }
-//         } else {
-
-// =======
         if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
           //Assume workflow has returned just the data and has executed sucessfully
           eventHandlerStatus = new GSStatus(true, 200, undefined, eventHandlerResponse);
@@ -500,14 +470,32 @@ class Godspeed {
           event.type,
           eventHandlerStatus
         );
-        if (!validateResponseStatus.success) {
-          childLogger.error('Response JSON schema validation failed');
-          return new GSStatus(false, 500, 'response validation error', validateResponseStatus.data);
-// >>>>>>> v2-dev
+        if (validateResponseStatus.success) {
+          return eventHandlerStatus;
+        } else {
+          childLogger.error('Response JSON schema validation failed %o', validateResponseStatus.data);
+          if (!eventSpec.on_response_validation_error) {
+            return new GSStatus(false, 500, 'response validation error', validateResponseStatus.data);
+          } else {
+            const validationError = {
+              success: false,
+              code: validateResponseStatus.code,
+              message: 'response validation failed.',
+              error: validateResponseStatus.message,
+              data: validateResponseStatus.data
+            };
+  
+            childLogger.error('Validation of event response failed %s', JSON.stringify(validationError));
+  
+            event.data = { event: event.data, validation_error: validationError };
+  
+            // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
+            return await (eventSpec.on_response_validation_error)(ctx);
+          }
         }
         
 
-        return eventHandlerStatus;
+        
       } catch (error) {
         childLogger.error(`Error occured in event handler execution for event ${eventConfig.key}. Error: ${error}`);
         return new GSStatus(

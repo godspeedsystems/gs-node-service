@@ -95,6 +95,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
           });
         }
       } else {
+        logger.error(`Event config validation failed during load time for ${topic} in ${eventObj}`)
         process.exit(1);
       }
     });

@@ -1,4 +1,20 @@
-{
+const taskSchema = require("./tasks.schema.json");
+const fnNameOrTasks = {
+    "anyOf": [
+        {
+            "type": "string"
+        },
+        {
+            "type": "array",
+            "items": [
+                {
+                    "$ref": "#/definitions/task"
+                }
+            ]
+        }
+    ]
+}
+module.exports = {
     "$id": "event_schema",
     "type": "object",
     "properties": {
@@ -33,9 +49,9 @@
         "authn": {
             "type": "boolean"
         },
-        "on_validation_error": {
-            "type": "string"
-        }
+        "authz": fnNameOrTasks,
+        "on_request_validation_error": fnNameOrTasks,
+        "on_response_validation_error": fnNameOrTasks
     },
     "additionalProperties": true,
     "definitions": {
@@ -77,7 +93,9 @@
             ],
             "minItems": 1,
             "maxItems": 10
-        }
+        },
+        "task": taskSchema
     },
     "errorMessage": "It's not a valid event definition. Refer above error for more detail."
 }
+
