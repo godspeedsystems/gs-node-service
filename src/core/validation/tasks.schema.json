@@ -1,26 +1,7 @@
 {
-    "$id": "workflow_schema",
+    "$id": "task_schema",
     "type": "object",
-    "properties": {
-        "id": {
-            "type": "string"
-        },
-        "summary": {
-            "type": "string"
-        },
-        "description": {
-            "type": "string"
-        },
-        "tasks": {
-            "type": "array",
-            "items": [
-                {
-                    "$ref": "#/definitions/task"
-                }
-            ]
-        }
-    },
-    "additionalProperties": true,
+    "$ref": "#/definitions/task",
     "definitions": {
         "task": {
             "type": "object",

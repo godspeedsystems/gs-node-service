@@ -934,7 +934,7 @@ export class GSCloudEvent {
   actor: GSActor;
 
   //JSON schema: This data will be validated in the function definition in YAML. In __args.schema
-  data: PlainObject; //{body, params, query, headers}, flattened and merged into a single object
+  data: PlainObject; //{user, body, params, query, headers}, flattened and merged into a single object
 
   metadata?: {
     telemetry?: object //all the otel info captured in the incoming event headers/metadata
@@ -967,33 +967,34 @@ export class GSCloudEvent {
   }
 }
 /**
- * __actor (alias to __event.actor), __vars, __config, __src, __modules, __env, __event, __res (starting from the first parent span), __args (of the running GS instruction)
+* Everything you need within a workflow, whether in native languages like JS/TS, or in yaml workflows and tasks.
  */
 export class GSContext { //span executions
   inputs: GSCloudEvent; //The very original event for which this workflow context was created
 
-  outputs: { [key: string]: GSStatus; }; //DAG result. This context has a trace history and responses of all instructions in the DAG are stored in this object
+  outputs: { [key: string]: GSStatus; }; //DAG result. This context has a trace history and responses of all instructions in the DAG, which are are stored in this object against task ids
 
   log_events: GSLogEvent[] = [];
 
-  config: PlainObject; //app config
+  config: PlainObject; //The config folder with env vars, default, and other config files. We use node-config module for Nodejs for the same.  
 
-  datasources: PlainObject; //app config
+  datasources: PlainObject; //All the datasource exported clients
 
-  mappings: any;
+  mappings: PlainObject; // The static mappings of your project under /mappings
 
-  functions: PlainObject;
+  functions: PlainObject; //All the functions you have written in /functions + all the Godspeed's YAML DSL functions
+ //like com.gs.each_parallel
 
-  plugins: PlainObject;
+  plugins: PlainObject; // The utility functions to be used in scripts. Not be confused with eventsource or datasource as plugin.
 
-  exitWithStatus?: GSStatus;
+  exitWithStatus?: GSStatus; // Useful when a YAML workflow is being executed. If this is set to non null value containing a GSStatus, the workflow will exit with this status. This will apply to only the immediate yaml workflow. But not its caller workflow. 
 
-  logger: pino.Logger;
+  logger: pino.Logger; // For logging using pino for Nodejs. This has multiple useful features incudign biding some key values with the logs that are produced.  
 
-  childLogger: pino.Logger;
+  childLogger: pino.Logger; //Child logger of logger with additional binding to print {workflow_name, task_id} with every log entry
 
 
-  forAuth?: boolean = false;
+  forAuth?: boolean = false; //Whether this native or yaml workflow is being run as parth of the authz tasks
 
   constructor(config: PlainObject, datasources: PlainObject, event: GSCloudEvent, mappings: any, functions: PlainObject, plugins: PlainObject, logger: pino.Logger, childLogger: pino.Logger) {//_function?: GSFunction
 

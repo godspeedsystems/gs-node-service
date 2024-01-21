@@ -20,7 +20,7 @@ function substitute(value: string): any {
       logger.debug('value after %s', value);
     }
   } catch (ex) {
-    //console.error(ex);
+    logger.error('Error in substituting script %o', ex);
   }
 
   return value;
