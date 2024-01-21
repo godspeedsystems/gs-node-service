@@ -20,7 +20,7 @@ for (const redactAttr of configRedact) {
     }
 }
 
-const logger: Pino.Logger = Pino({
+let logger: Pino.Logger = Pino({
   level: (config as any).log_level || 'debug',
   transport: {
     target: '../pino/pino-opentelemetry-transport',
@@ -43,5 +43,30 @@ pinoDebug(logger, {
     '*': 'trace' // everything else - trace
   }
 });
+
+
+
+function loggerFn(logger){
+  ['info','debug','error','fatal'].forEach((val) =>{
+    const method = logger[val];
+    logger[val] = function(str){
+      try{
+        method.bind(logger)(str);
+      }catch(e){
+        console.log(`Pino: error executing ${val} {${e.message}}`);
+        console.log(`Printing original error log arguments: ${str}`);
+      }
+    };
+  });
+  return logger;
+}
+
+logger = loggerFn(logger);
+
+var childFn = logger.child.bind(logger);
+
+logger.child = function (bindings,options){
+  return loggerFn(childFn(bindings,options));
+};
 
 export { logger };
