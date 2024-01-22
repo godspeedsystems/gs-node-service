@@ -505,14 +505,14 @@ export class GSFunction extends Function {
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (this.caching) {
         cachingInstruction = await evaluateScript(ctx, this.caching, taskValue);
-        const cachingKey: string = cachingInstruction?.datasource || (config as any).caching;
-        if (!cachingKey) {
+        const cachingDsName: string = cachingInstruction?.datasource || (config as any).caching;
+        if (!cachingDsName) {
           ctx.childLogger.fatal( 'Set a non null caching datasource in config/default or in the caching instruction itself. Exiting.');
           process.exit(1);
         }
-        cachingDs = ctx.datasources[cachingKey];
+        cachingDs = ctx.datasources[cachingDsName];
         if (!cachingDs) {
-          ctx.childLogger.fatal( 'Could not find a valid datasource by the name %s . Exiting', cachingKey);
+          ctx.childLogger.fatal( 'Could not find a valid datasource by the name %s . Exiting', cachingDsName);
           process.exit(1);
         }
         if (cachingInstruction?.invalidate) {
@@ -520,7 +520,7 @@ export class GSFunction extends Function {
           await cachingDs.del(cachingInstruction.invalidate);
         }
 
-        if (!cachingInstruction?.force) {
+        if (!cachingInstruction?.noRead && cachingInstruction?.key) {
           // check in cache and return
           status = await cachingDs.get(cachingInstruction?.key);
           ctx.childLogger.debug('Pre-fetched task result from cache %o', status);
@@ -600,7 +600,7 @@ export class GSFunction extends Function {
         ctx.exitWithStatus = status;
       }
     }
-    if (cachingInstruction && cachingInstruction.key) {
+    if (cachingInstruction && !cachingInstruction.noWrite && cachingInstruction.key) {
       if (status?.success || cachingInstruction.cache_on_failure) {
         ctx.childLogger.debug('Storing task result in cache for %s and value %o', cachingInstruction.key, status);
         //@ts-ignore
