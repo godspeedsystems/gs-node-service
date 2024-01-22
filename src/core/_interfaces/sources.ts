@@ -24,6 +24,25 @@ export abstract class GSDataSource {
   ): Promise<any>
 };
 
+type RedisOptions = {
+  EX? : number,
+  PX? : number,
+  EXAT?: number,
+  NX?: boolean,
+  XX?: boolean,
+  KEEPTTL?: boolean,
+  GET?: boolean
+}
+export abstract class GSCachingDataSource extends GSDataSource {
+
+  //Redis options are available [here](https://redis.io/commands/set/) Client may or may not support all actions. RedisOptions is a superset based on what Redis supports
+  public abstract set(key:string, val: any, options: RedisOptions): any; 
+
+  public abstract get(key: string): any; //Return the value stored against the key
+
+  public abstract del(key: string): any; //Delete the key
+}
+
 export abstract class GSDataSourceAsEventSource {
   config: PlainObject;
 
