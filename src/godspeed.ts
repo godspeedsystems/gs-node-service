@@ -40,6 +40,7 @@ import {
 
 import {
   GSDataSource,
+  GSCachingDataSource,
   GSEventSource,
   GSDataSourceAsEventSource,
   EventSources,
@@ -520,6 +521,7 @@ export {
   GSDataSourceAsEventSource, // kafk, it share the client with datasource
   GSEventSource, // express. it has own mechanisim for initClient
   GSDataSource,
+  GSCachingDataSource,
 };
 
 export default Godspeed;
