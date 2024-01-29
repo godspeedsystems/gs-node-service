@@ -188,8 +188,7 @@ class Godspeed {
       .then(async (definitions) => {
         this.definitions = definitions;
         this.mappings = await this._loadMappings();
-//@ts-ignore
-        global.mappings = this.mappings;
+
         let datasources = await this._loadDatasources();
         this.datasources = datasources;
 

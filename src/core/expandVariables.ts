@@ -7,8 +7,7 @@ import { PlainObject } from './common';
 import loadMappings from './mappingLoader';
 import { logger } from '../logger';
 
-//@ts-ignore
-const mappings = global.mappings;
+const mappings = loadMappings();
 
 function substitute(value: string): any {
   try {
@@ -17,8 +16,7 @@ function substitute(value: string): any {
 
       let script = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
       //TODO: pass other context variables
-      //@ts-ignore
-      value = Function('config', 'mappings', 'return ' + script)(config, global.mappings);
+      value = Function('config', 'mappings', 'return ' + script)(config, mappings);
       logger.debug('value after %s', value);
     }
   } catch (ex) {
