@@ -51,6 +51,7 @@ import {
 } from './core/jsonSchemaValidation';
 import { childLogger, initializeChildLogger, logger } from './logger';
 import { generateSwaggerJSON } from './router/swagger';
+import iterate_yaml_directories from './core/configLoader';
 
 export interface GodspeedParams {
   eventsFolderPath?: string;
@@ -207,6 +208,9 @@ class Godspeed {
 
   public async _loadMappings(): Promise<PlainObject> {
     logger.info('[START] Load mappings from %s', this.folderPaths.mappings);
+    config.app = iterate_yaml_directories(this.folderPaths.mappings);
+    //@ts-ignore
+    global.mappings = config.app?.mappings;
     let mappings = loadMappings(this.folderPaths.mappings);
     logger.debug('Mappings %o', mappings);
     logger.info('[END] Load mappings');
