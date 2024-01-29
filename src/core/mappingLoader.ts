@@ -6,10 +6,9 @@
 import path from 'path';
 import { PlainObject } from './common';
 import iterate_yaml_directories from './configLoader';
-import { compileScript } from './utils';
-import config from 'config';
 import { logger } from '../logger';
 import fs from 'fs';
+import expandVariables from './expandVariables';
 
 
 let mappings: PlainObject;
@@ -26,8 +25,7 @@ export default function loadMappings(mappingFolderPath?: string) {
     */
     let _mappings = iterate_yaml_directories(mappingFolderPath)[path.basename(mappingFolderPath)];
     logger.debug('Unevaluated mappings: %o', _mappings);
-    const mappingScript: Function = compileScript(_mappings);
-    const evaluatedMappings = mappingScript(config, {}, {}, _mappings, {});
+    const evaluatedMappings = expandVariables(_mappings);
     logger.debug('Evaluated mappings: %o', evaluatedMappings);
     mappings = evaluatedMappings;
     return mappings;
@@ -35,14 +33,3 @@ export default function loadMappings(mappingFolderPath?: string) {
     return mappings;
   }
 };
-
-
-
-// export default function loadMappings(mappingFolderPath: string) {
-//   let mappings = iterate_yaml_directories(mappingFolderPath);
-//   console.log('Loaded mappings: %o', mappings);
-//   const mappingScript: Function = compileScript(mappings);
-//   const evaluatedMappings = mappingScript(config, {}, {}, mappings, {});
-//   console.log('evaluatedMappings: %o', evaluatedMappings);
-//   return evaluatedMappings;
-// }
