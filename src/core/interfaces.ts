@@ -13,6 +13,7 @@ import evaluateScript from './scriptRuntime';
 import promClient from '@godspeedsystems/metrics';
 import config from 'config';
 import pino from 'pino';
+import { GSCachingDataSource } from './_interfaces/sources';
 
 const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
@@ -369,7 +370,7 @@ export class GSFunction extends Function {
         500,
         err.message,
         {
-          message: "Internal server error"  
+          message: "Internal server error"
         }
       );
     }
@@ -450,8 +451,9 @@ export class GSFunction extends Function {
   async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
 
     let status;
-    let caching: PlainObject | null = null;
-    let redisClient;
+    let cachingInstruction: PlainObject | null = null;
+    let cachingDs: GSCachingDataSource;
+
     try {
       ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
       let datastoreAuthzArgs;/*
@@ -463,13 +465,13 @@ export class GSFunction extends Function {
       if (this.yaml.authz) {
         ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
 
-        ctx.childLogger.debug( `Invoking authz workflow`);
+        ctx.childLogger.debug(`Invoking authz workflow`);
         //let args = await evaluateScript(ctx, this.yaml.authz.args, taskValue);
         ctx.forAuth = true;
         //const newCtx = ctx.cloneWithNewData(args);
         let authzRes: GSStatus = await this.yaml.authz(ctx);
         ctx.forAuth = false;
-        if (authzRes.code === 403) { 
+        if (authzRes.code === 403) {
           //Authorization task executed successfully and returned user is not authorized
           authzRes.success = false;
           if (!authzRes.data?.message) {
@@ -480,9 +482,9 @@ export class GSFunction extends Function {
 
           //This task has failed and task must not be allowed to execute further
           return authzRes;
-        } else if(authzRes.success !== true) {
+        } else if (authzRes.success !== true) {
           //Ensure success = false for no ambiguity further
-          authzRes.success =  false;
+          authzRes.success = false;
           if (!authzRes.code || authzRes.code < 400 || authzRes.code > 599) {
             authzRes.code = 403;
           }
@@ -501,23 +503,30 @@ export class GSFunction extends Function {
         datastoreAuthzArgs = authzRes.data;
       }
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
-
       if (this.caching) {
-        caching = await evaluateScript(ctx, this.caching, taskValue);
-
-        // @ts-ignore
-        redisClient = global.datasources[(config as any).caching].client;
-        if (caching?.invalidate) {
-          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'invalidating cache for %s', caching?.invalidate);
-          await redisClient.del(caching.invalidate);
+        cachingInstruction = await evaluateScript(ctx, this.caching, taskValue);
+        const cachingDsName: string = cachingInstruction?.datasource || (config as any).caching;
+        if (!cachingDsName) {
+          ctx.childLogger.fatal( 'Set a non null caching datasource in config/default or in the caching instruction itself. Exiting.');
+          process.exit(1);
+        }
+        cachingDs = ctx.datasources[cachingDsName];
+        if (!cachingDs) {
+          ctx.childLogger.fatal( 'Could not find a valid datasource by the name %s . Exiting', cachingDsName);
+          process.exit(1);
+        }
+        if (cachingInstruction?.invalidate) {
+          ctx.childLogger.debug('Invalidating cache for key %s', cachingInstruction?.invalidate);
+          await cachingDs.del(cachingInstruction.invalidate);
         }
 
-        if (!caching?.force) {
+        if (!cachingInstruction?.noRead && cachingInstruction?.key) {
           // check in cache and return
-          status = await redisClient.get(caching?.key);
+          status = await cachingDs.get(cachingInstruction?.key);
+          ctx.childLogger.debug('Pre-fetched task result from cache %o', status);
+
           if (status) {
-            ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'reading result from cache');
-            status = JSON.parse(status);
+            status = typeof status === 'string' && JSON.parse(status) || status;
             ctx.outputs[this.id] = status;
             return status;
           }
@@ -580,7 +589,7 @@ export class GSFunction extends Function {
         500,
         err.message,
         {
-          message: "Internal server error"  
+          message: "Internal server error"
         }
       );
     }
@@ -591,10 +600,11 @@ export class GSFunction extends Function {
         ctx.exitWithStatus = status;
       }
     }
-    if (caching && caching.key) {
-      if (status?.success || caching.cache_on_failure) {
-        ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Store result in cache');
-        await redisClient.set(caching.key, JSON.stringify(status), { EX: caching.expires });
+    if (cachingInstruction && !cachingInstruction.noWrite && cachingInstruction.key) {
+      if (status?.success || cachingInstruction.cache_on_failure) {
+        ctx.childLogger.debug('Storing task result in cache for %s and value %o', cachingInstruction.key, status);
+        //@ts-ignore
+        await cachingDs.set(cachingInstruction.key, JSON.stringify(status), cachingInstruction.options);//{ EX: cachingInstruction.expires });
       }
     }
 
@@ -612,12 +622,12 @@ export class GSSeriesFunction extends GSFunction {
       ret = await child(ctx, taskValue);
       if (ctx.exitWithStatus) {
         if (child.yaml.isEachParallel) {
-          ctx.childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'isEachParallel: %s, ret: %o', child.yaml.isEachParallel, ret);
           ctx.outputs[this.id] = ret;
           return ret;
         }
         if (child.yaml.isParallel) {
-          ctx.childLogger.debug({ 'workflow_name': this.workflow_name,'task_id': this.id }, 'isParallel: %s, ret: %o', child.yaml.isParallel, ret);
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'isParallel: %s, ret: %o', child.yaml.isParallel, ret);
           ctx.outputs[this.id] = ret;
           console.log("this is from the parallel condition")
         }
@@ -625,8 +635,8 @@ export class GSSeriesFunction extends GSFunction {
           ctx.outputs[this.id] = ret;
           return ret;
         }
-        
-       }
+
+      }
     }
     ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
     ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
@@ -983,7 +993,7 @@ export class GSContext { //span executions
   mappings: PlainObject; // The static mappings of your project under /mappings
 
   functions: PlainObject; //All the functions you have written in /functions + all the Godspeed's YAML DSL functions
- //like com.gs.each_parallel
+  //like com.gs.each_parallel
 
   plugins: PlainObject; // The utility functions to be used in scripts. Not be confused with eventsource or datasource as plugin.
 
@@ -1119,5 +1129,5 @@ export interface GSResponse {
     }[];
   };
 
-  
+
 }
