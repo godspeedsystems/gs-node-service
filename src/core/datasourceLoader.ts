@@ -35,7 +35,10 @@ export default async function (
     // let's load the loadFn and executeFn
     // there is an assumption that for each datasource, the type's .ts file should be inside /datasources/types folder
     const fileName = datasourcesConfigs[dsName].type;
-
+    if (!fileName) {
+      logger.warn(`Did not find any datasource 'type' key defined in ${dsName}.yaml. Ignoring this file.`);
+      continue;
+    }
     await import(path.join(pathString, 'types', `${fileName}`)).then(
       async (Module: GSDataSource) => {
         const dsYamlConfig: PlainObject = datasourcesConfigs[dsName];
