@@ -14,11 +14,11 @@ export default async function (datasource: PlainObject) {
   let client: any = {};
 
   for (let service in datasource.services) {
-    let module = await import('@aws-sdk/client-' + service.toLowerCase())
+    let module = await import('@aws-sdk/client-' + service.toLowerCase());
     client[service] = new module[service]({
       ...datasource.common,
       ...(datasource.services[service]?.config || {})
-    })
+    });
   }
 
   const ds = {

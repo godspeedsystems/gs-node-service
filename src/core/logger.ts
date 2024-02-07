@@ -1,3 +1,4 @@
+
 /*
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
@@ -20,7 +21,7 @@ for (const redactAttr of configRedact) {
     }
 }
 
-const logger: Pino.Logger = Pino({
+let logger: Pino.Logger = Pino({
   level: (config as any).log_level || 'debug',
   transport: {
     target: '../pino/pino-opentelemetry-transport',
@@ -43,5 +44,30 @@ pinoDebug(logger, {
     '*': 'trace' // everything else - trace
   }
 });
+
+
+function loggerFn(logger){
+  ['info','debug','error','fatal'].forEach((level) =>{
+    const method = logger[level];
+    logger[level] = function(){
+      try{
+        method.bind(logger)(...arguments);
+      }catch(e){
+        console.error(`Pino: error executing ${level} log: {${e.message}}`);
+        console.error(`Printing original log text:`);
+        console.error(...arguments);
+      }
+    };
+  });
+  return logger;
+}
+
+logger = loggerFn(logger);
+
+var childFn = logger.child.bind(logger);
+
+logger.child = function (bindings,options){
+  return loggerFn(childFn(bindings,options));
+};
 
 export { logger };

@@ -217,7 +217,7 @@ export function compileScript(args: any) {
           if (out[k] instanceof Function) {
             returnObj.push(out[k](config, inputs, outputs, mappings, task_value));
           } else {
-            returnObj.push(out[k])
+            returnObj.push(out[k]);
           }
         }
         return returnObj;

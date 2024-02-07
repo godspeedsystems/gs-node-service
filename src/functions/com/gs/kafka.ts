@@ -22,7 +22,7 @@ export default async function kafka(args:{[key:string]:any;}) {
 
     let producer = await kafka.producer();
 
-    childLogger.info('Sending messages to topic %s', args.config.topic);
+    // childLogger.info('Sending messages to topic %s', args.config.topic);
     childLogger.debug('Sending messages to topic %s %o', args.config.topic, data);
 
     return producer.send({

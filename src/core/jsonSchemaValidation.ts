@@ -28,7 +28,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
         Object.keys(body_content).forEach(function (k) {
           const content_schema = body_content[k].schema;
           if (content_schema) {
-            logger.info('adding body schema for %s', topic);
+            // logger.info('adding body schema for %s', topic);
             logger.debug('content_schema %o', content_schema);
             if (!ajvInstance.getSchema(topic)) {
               ajvInstance.addSchema(content_schema, topic);
@@ -67,7 +67,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
       }
 
       for (let schema in paramSchema) {
-        logger.info('adding param schema for %s', topic);
+        // logger.info('adding param schema for %s', topic);
         logger.debug('param schema: %o', paramSchema[schema]);
 
         const topic_param = topic + ':' + schema;
@@ -111,11 +111,11 @@ export function validateRequestSchema(
   // Validate event.data.body
   const hasSchema: any = eventSpec?.body || eventSpec?.data?.schema?.body;
   if (event.data.body && hasSchema) {
-    childLogger.info('event body and eventSpec exist');
-    childLogger.debug('event.data.body: %o', event.data.body);
+    // childLogger.info('event body and eventSpec exist');
+    // childLogger.debug('event.data.body: %o', event.data.body);
     const ajv_validate = ajvInstance.getSchema(topic);
     if (ajv_validate) {
-      childLogger.debug('ajv_validate for body');
+      // childLogger.debug('ajv_validate for body');
       if (!ajv_validate(event.data.body)) {
         childLogger.error('ajv_validate failed');
         status = {
@@ -126,7 +126,7 @@ export function validateRequestSchema(
         };
         return status;
       } else {
-        childLogger.info('ajv_validate success for body');
+        // childLogger.info('ajv_validate success for body');
         status = { success: true };
       }
     } else {
@@ -180,7 +180,7 @@ export function validateRequestSchema(
           };
           return status;
         } else {
-          childLogger.info('ajv_validate success for params');
+          // childLogger.info('ajv_validate success for params');
           status = { success: true };
         }
       }
@@ -211,7 +211,7 @@ export function validateResponseSchema(
         };
         return status;
       } else {
-        childLogger.info('ajv_validate success');
+        // childLogger.info('ajv_validate success');
         status = { success: true };
       }
     } else {

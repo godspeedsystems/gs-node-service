@@ -55,12 +55,12 @@ function subscribeToEvents(
       [route, method] = route.split('.http.');
       route = route.replace(/{(.*?)}/g, ':$1');
 
-      logger.info('registering http handler %s %s', route, method);
+      // logger.info('registering http handler %s %s', route, method);
 
       if (config.has('jwt')) {
         if ('authn' in events[originalRoute]) {
           required = events[originalRoute]?.authn;
-          logger.info('registering http handler %s %s', route, method);
+          logger.debug('registering http handler %s %s', route, method);
 
           if (config.has('jwt')) {
             if ('authn' in events[originalRoute]) {
@@ -306,6 +306,7 @@ async function main() {
     const commonLogAttributes = (config as any).log_attributes || [];
 
     for (const key in commonLogAttributes) {
+      /*eslint no-template-curly-in-string:*/
       const obj = Function('event','filter','return eval(`event.data.${filter}`)')(event,commonLogAttributes[key]);
       childLogAttributes[key] = obj;
     }
@@ -322,7 +323,7 @@ async function main() {
 
     childLogger.info('Processing event %s', event.type);
     childLogger.info('event inputs %o', event.data);
-    childLogger.debug('event spec: %o', events[event.type]);
+    // childLogger.debug('event spec: %o', events[event.type]);
     const responseStructure: GSResponse = {
       apiVersion: (config as any).api_version || '1.0',
     };
@@ -370,19 +371,19 @@ async function main() {
         );
       }
     } else {
-      childLogger.info(
-        'Request JSON Schema validated successfully %o',
-        valid_status
-      );
+      // childLogger.info(
+      //   'Request JSON Schema validated successfully %o',
+      //   valid_status
+      // );
 
       // A workflow is always a series execution of its tasks. I.e. a GSSeriesFunction
       eventHandlerWorkflow = <GSSeriesFunction>functions[events[event.type].fn];
     }
 
-    childLogger.info(
-      'calling processevent, type of handler is %s',
-      typeof eventHandlerWorkflow
-    );
+    // childLogger.info(
+    //   'calling processevent, type of handler is %s',
+    //   typeof eventHandlerWorkflow
+    // );
 
     const ctx = new GSContext(
       config,
@@ -396,7 +397,18 @@ async function main() {
     try {
       childLogger.setBindings({ workflow_name: '' });
       // Execute the workflow
+      const time = new Date().getTime();
+      childLogger.info(
+        'Workflow execution started: %s',
+        events[event.type].fn
+      );
       await eventHandlerWorkflow(ctx);
+
+      childLogger.info(
+        'Workflow execution ended for %s in %s ms',
+        events[event.type].fn,
+        new Date().getTime() - time
+      );
     } catch (err: any) {
       childLogger.error(
         { workflow_name: events[event.type].fn },
@@ -444,7 +456,7 @@ async function main() {
         valid_status = validateResponseSchema(event.type, eventHandlerStatus);
 
         if (valid_status.success) {
-          childLogger.info('Validate Response JSON Schema Success', valid_status);
+          // childLogger.info('Validate Response JSON Schema Success', valid_status);
         } else {
           childLogger.error('Failed to validate Response JSON Schema', valid_status);
           const response_data: PlainObject = {
@@ -477,11 +489,11 @@ async function main() {
       data = data.toString();
     }
 
-    if (code < 400) {
-      childLogger.info('return value %o %o %o', data, code, headers);
-    } else {
-      childLogger.error('return value %o %o %o', data, code, headers);
-    }
+    // if (code < 400) {
+    //   // childLogger.debug('return value %o %o %o', data, code, headers);
+    // } else {
+    //   // childLogger.error('return value %o %o %o', data, code, headers);
+    // }
 
     (event.metadata?.http?.express.res as express.Response)
       .status(code)

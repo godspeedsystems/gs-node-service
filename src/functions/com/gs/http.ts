@@ -38,20 +38,20 @@ export default async function(args:{[key:string]:any;}) {
         childLoggerBindings = childLogger.bindings();
         const ds = args.datasource;
         let res;
-        childLogger.info('calling http client with args %o', args);
-        childLogger.info('http client baseURL %s', ds.client?.defaults?.baseURL);
-        childLogger.info('http client headers %o', { ...ds.client?.defaults?.headers?.common, ...args?.config?.headers});
-        childLogger.info('http client params %o', { ...ds.client?.defaults?.params, ...args?.params});
+        // childLogger.info('calling http client with args %o', args);
+        // childLogger.info('http client baseURL %s', ds.client?.defaults?.baseURL);
+        // childLogger.info('http client headers %o', { ...ds.client?.defaults?.headers?.common, ...args?.config?.headers});
+        // childLogger.info('http client params %o', { ...ds.client?.defaults?.params, ...args?.params});
 
         if (ds.schema) {
-            childLogger.info('invoking with schema');
+            // childLogger.info('invoking with schema');
             res = await ds.client.paths[args.config.url][args.config.method](args.params, args.data, args.config);
         } else {
-            childLogger.info('invoking wihout schema');
+            // childLogger.info('invoking wihout schema');
             let form;
 
             if (args.files) {
-                childLogger.info('args.files: %o', args.files);
+                // childLogger.info('args.files: %o', args.files);
                 form = new FormData();
 
                 if (Array.isArray(args.files)) {
@@ -115,7 +115,7 @@ export default async function(args:{[key:string]:any;}) {
                 }
             }
 
-            childLogger.info('args.retry %s', JSON.stringify(args.retry));
+            // childLogger.info('args.retry %s', JSON.stringify(args.retry));
 
             if (args.retry) {
                 axiosRetry(ds.client, {
@@ -145,7 +145,7 @@ export default async function(args:{[key:string]:any;}) {
             }
 
             if (form) {
-                childLogger.info('form data: %o', form);
+                // childLogger.info('form data: %o', form);
             }
 
             res = await ds.client({

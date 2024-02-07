@@ -75,6 +75,6 @@ export default iterate_yaml_directories;
 if (require.main === module) {
     var relative_config_root = process.argv.slice(2)[0];
     var nested_yaml_result = iterate_yaml_directories(relative_config_root);
-    logger.info('yaml object %o',nested_yaml_result); 
-    logger.info('object as string %s',JSON.stringify(nested_yaml_result, null, 2));
+    logger.debug('yaml object %o',nested_yaml_result); 
+    logger.debug('object as string %s',JSON.stringify(nested_yaml_result, null, 2));
 }

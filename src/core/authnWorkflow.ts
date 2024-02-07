@@ -8,7 +8,7 @@ async function refreshToken(ds: PlainObject, ctx: any,  failedRequest?: any) {
 
     if (response.success) {
         let result = response.data;
-        childLogger.info('response from authn %o', result);
+        childLogger.debug('response from authn %o', result);
         
         if (result.headers) {
             for (let header in result.headers) {
