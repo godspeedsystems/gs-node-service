@@ -69,7 +69,7 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
 
 export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
   for (let task of workflowJson.tasks) {
-    if (task.tasks) { 
+    if (task.tasks) {
       //sub-workflow
       const status: GSStatus = checkDatasource(task, datasources);
       if (!status.success) {
@@ -151,13 +151,12 @@ export function prepareScript(str: string): Function {
   global.zlib = zlib;
 
 
-  //@ts-ignore
-  let lang = config.lang || 'coffee';
+
 
   let langs = (/<(.*?)%/).exec(str);
 
   //@ts-ignore
-  lang = langs[1] || config.lang || 'coffee';
+  const lang = langs[1] || config.lang || 'js';
 
   str = str.trim();
   if (str.match(/^<(.*?)%/) && str.match(/%>$/)) {
