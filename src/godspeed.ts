@@ -57,6 +57,7 @@ import { generateSwaggerJSON } from './router/swagger';
 import { setAtPath } from './core/utils';
 import loadModules from './core/codeLoader';
 import { importAll } from './core/scriptRuntime';
+import yamlLoader from './core/yamlLoader';
 
 export interface GodspeedParams {
   eventsFolderPath: string;
@@ -323,7 +324,7 @@ class Godspeed {
         httpEvents[eventKey] = { ...this.events[eventKey] };
       }
 
-      const processEventHandler = await this.processEvent(this);
+      const processEventHandler = await this.processEvent(this, route);
 
       await eventSource.subscribeToEvent(
         route,
@@ -347,8 +348,7 @@ class Godspeed {
       httpEventSource.client.get('/metrics', async (req, res) => {
         let prismaMetrics: string = '';
         for (let ds in this.datasources) {
-          // @ts-ignore
-          if (this.datasources[ds].config.type === 'prisma') {
+          if (this.datasources[ds].client?._previewFeatures.includes("metrics")) {
             // @ts-ignore
             prismaMetrics += await this.datasources[ds].client.$metrics.prometheus({
               globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
@@ -363,7 +363,8 @@ class Godspeed {
   }
 
   private async processEvent(
-    local: Godspeed
+    local: Godspeed,
+    route: string
   ): Promise<
     (event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>
   > {
@@ -377,7 +378,7 @@ class Godspeed {
       // initilize child logger
       initializeChildLogger({});
       // TODO: lot's of logging related steps
-      childLogger.info('processing event ... %s', event.type);
+      childLogger.debug('processing event ... %s', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config
       
 
@@ -453,7 +454,7 @@ class Godspeed {
           return authzStatus;
         }
         //Autorization is passed. Proceeding.
-        childLogger.debug('Authorization passed at the event level');
+        // childLogger.debug('Authorization passed at the event level');
       }
       let eventHandlerStatus: GSStatus;
 
@@ -461,7 +462,11 @@ class Godspeed {
         const eventHandlerResponse = await eventHandlerWorkflow(ctx);
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
         eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
-        childLogger.info('eventHandlerStatus: %o', eventHandlerStatus);
+        if (!eventHandlerStatus.success) {
+          childLogger.error('Event handler for %s returned \n with status %o \n for inputs \n params %o \n query %o \n body %o \n headers %o', route, eventHandlerStatus, ctx.inputs.data.params, ctx.inputs.data.query, ctx.inputs.data.body, ctx.inputs.data.headers);
+        } else {
+          childLogger.debug('Event handler for %s returned with status %o', route, eventHandlerStatus);
+        }
         if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
           //Assume workflow has returned just the data and has executed sucessfully
           eventHandlerStatus = new GSStatus(true, 200, undefined, eventHandlerResponse);
@@ -475,8 +480,8 @@ class Godspeed {
         if (validateResponseStatus.success) {
           return eventHandlerStatus;
         } else {
-          childLogger.error('Response JSON schema validation failed %o', validateResponseStatus.data);
           if (!eventSpec.on_response_validation_error) {
+            childLogger.error('Validation of event response failed %o', validateResponseStatus.data);
             return new GSStatus(false, 500, 'response validation error', validateResponseStatus.data);
           } else {
             const validationError = {
@@ -523,6 +528,7 @@ export {
   GSEventSource, // express. it has own mechanisim for initClient
   GSDataSource,
   GSCachingDataSource,
+  yamlLoader
 };
 
 export default Godspeed;

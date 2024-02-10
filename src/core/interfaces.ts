@@ -256,14 +256,14 @@ export class GSFunction extends Function {
     let status: GSStatus;
     let args = this.args;
     try {
-      ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing handler %s %o', this.id, this.args);
+      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Executing task %s with args %o', this.id, this.args);
       if (Array.isArray(this.args)) {
         args = [...this.args];
       } else if (isPlainObject(this.args)) {
         args = { ...this.args };
       }
 
-      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Retry logic is %o`, this.retry);
+      // ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Retry logic is %o`, this.retry);
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (String(this.yaml.fn).startsWith('datasource.')) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
@@ -293,17 +293,18 @@ export class GSFunction extends Function {
 
         // copy datasource headers to args.config.headers [This is useful to define the headers at datasource level
         // so that datasource headers are passed to all the workflows using this datasource]
-        let headers = datasource.config.headers;
-        if (headers) {
-          args.headers = args.headers || {};
-          let tempObj: any = {};
-          Object.keys({ ...headers, ...args.headers }).map(key => {
-            tempObj[key] = args.headers[key] || headers[key];
-          });
-          Object.assign(args.headers, tempObj);
-          Object.keys(args.headers).forEach(key => args.headers[key] === undefined && delete args.headers[key]);
-          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `settings datasource headers: %o`, args.headers);
-        }
+        //TODO check if this is fine
+        // let headers = datasource.config.headers;
+        // if (headers) {
+        //   args.headers = args.headers || {};
+        //   let tempObj: any = {};
+        //   Object.keys({ ...headers, ...args.headers }).map(key => {
+        //     tempObj[key] = args.headers[key] || headers[key];
+        //   });
+        //   Object.assign(args.headers, tempObj);
+        //   Object.keys(args.headers).forEach(key => args.headers[key] === undefined && delete args.headers[key]);
+        //   ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `settings datasource headers with args.headers: %o`, args.headers);
+        // }
 
         // TODO: this will be moved to datasource plugin
         // if (ds.authn && !datasource.authn_response) {
@@ -336,8 +337,6 @@ export class GSFunction extends Function {
         res = await this.fn!(ctx, args);
       }
 
-      ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Result of _executeFn ${this.id} %o`, res);
-
       if (res instanceof GSStatus) {
         status = res;
       } else {
@@ -346,13 +345,13 @@ export class GSFunction extends Function {
           //All framework functions are expected to set success as boolean variable. Can not be null.
           let { success, code, data, message, headers, exitWithStatus } = res;
           status = new GSStatus(success, code, message, data, headers);
-
           //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
           if (exitWithStatus) {
             ctx.exitWithStatus = status;
           }
         } else {
           //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Result of task execution ${this.id} %o`, res);
           status = new GSStatus(
             true,
             200, //Default code be 200 for now
@@ -363,6 +362,8 @@ export class GSFunction extends Function {
           );
         }
       }
+      ctx.childLogger[!status.success ? 'error' : 'debug']({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `Result of task execution ${this.id} %o`, res);
+
     } catch (err: any) {
       ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error from execution in task id: %s, error: %s', this.id, err);
       status = new GSStatus(
@@ -526,6 +527,7 @@ export class GSFunction extends Function {
           ctx.childLogger.debug('Pre-fetched task result from cache %o', status);
 
           if (status) {
+            ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'reading result from cache');            
             status = typeof status === 'string' && JSON.parse(status) || status;
             ctx.outputs[this.id] = status;
             return status;
@@ -541,40 +543,56 @@ export class GSFunction extends Function {
           throw ctx.exitWithStatus;
         }
       }
-      ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
-
-      if (datastoreAuthzArgs && this.yaml.fn?.startsWith("datasource.")) {
-        //args.data = _.merge(args.data, datastoreAuthzArgs);
-        //setup authzPerms for now. delete that key in the _execugteFn, after moving the same to `args.meta` key
-        args.authzPerms = datastoreAuthzArgs;
-        ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'merged args with authz args.data: %o', args);
-      }
-
-      ctx.childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
+      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
       if (this.fnScript) {
         ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
         let s: string = await evaluateScript(ctx, this.fnScript, taskValue);
         ctx.childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
+        //First look in native functions
         this.fn = this.nativeFunctions?.[s];
-
+        //Look in YAML workflow
         if (!this.fn) {
           this.fn = this.workflows?.[s];
-          this.isSubWorkflow = true;
+          if (this.fn) {
+            this.isSubWorkflow = true;
+          }
         }
-
-        ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `invoking dynamic fn: ${s}`);
+        //Next, check if this is a datasource call
+        if (!this.fn && s.startsWith("datasource.")) {
+          const fnName = s.split('.').splice(0, 2).join('.');
+          this.fn = this.nativeFunctions?.[fnName];
+          if (this.fn) {
+            this.yaml.fn = s;
+          }
+        }
+        //If still is not found, the script evaluate to invalid function name
+        if (!this.fn) {
+          ctx.childLogger.error(`Did not find any function by the name ${s}`);
+          status = new GSStatus(false, 500, undefined, 'Internal Server Error');
+        } else {
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `invoking dynamic fn: ${s}`);
+        }
       }
+      if (datastoreAuthzArgs && this.yaml.fn?.startsWith("datasource.")) {
+        //args.data = _.merge(args.data, datastoreAuthzArgs);
+        //setup authzPerms for now. delete that key in the _execugteFn, after moving the same to `args.meta` key
+        args.authzPerms = datastoreAuthzArgs;
+        ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'merged args with authz args.data: %o', args);
+      }
+
+      ctx.childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
+
 
       if (this.fn instanceof GSFunction) {
         if (this.isSubWorkflow) {
-          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'isSubWorkflow, creating new ctx');
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'isSubWorkflow, if subworkflow is creating new ctx, replacing inputs data with args data');
 
           ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
           const newCtx = ctx.cloneWithNewData(args);
           ctx.childLogger.setBindings({ 'workflow_name': '', 'task_id': '' });
           status = await this.fn(newCtx, taskValue);
         } else {
-          ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'No isSubWorkflow, continuing in the same ctx');
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'No isSubWorkflow, continuing in the same ctx');
           status = await this.fn(ctx, taskValue);
         }
       }
@@ -615,7 +633,7 @@ export class GSFunction extends Function {
 export class GSSeriesFunction extends GSFunction {
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
+    ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, `GSSeriesFunction. Executing tasks with ids: ${this.args.map((task: any) => task.id)}`);
     let ret;
 
     for (const child of this.args!) {
@@ -629,7 +647,6 @@ export class GSSeriesFunction extends GSFunction {
         if (child.yaml.isParallel) {
           ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'isParallel: %s, ret: %o', child.yaml.isParallel, ret);
           ctx.outputs[this.id] = ret;
-          console.log("this is from the parallel condition")
         }
         else {
           ctx.outputs[this.id] = ret;
@@ -639,7 +656,7 @@ export class GSSeriesFunction extends GSFunction {
       }
     }
     ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
-    ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
+    // ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'this.id: %s, output: %o', this.id, ret.data);
     ctx.outputs[this.id] = ret;
     return ret;
   }
@@ -710,7 +727,6 @@ export class GSSwitchFunction extends GSFunction {
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'GSSwitchFunction');
     ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'inside switch executor: %o', this.args);
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, cases] = this.args!;
@@ -757,7 +773,6 @@ export class GSIFFunction extends GSFunction {
   }
 
   override async _call(ctx: GSContext, taskValue: any): Promise<GSStatus> {
-    ctx.childLogger.info({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'GSIFFunction');
     ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'inside GSIFFunction executor: %o', this.args);
     // tasks incase of series, parallel and condition, cases should be converted to args
     let [value, task] = this.args!;
@@ -1018,7 +1033,7 @@ export class GSContext { //span executions
     this.logger = logger;
     this.childLogger = childLogger;
 
-    childLogger.debug('inputs for context %o', event.data);
+    // childLogger.debug('inputs for context %o', event.data);
   }
 
   public cloneWithNewData(data: PlainObject): GSContext {
