@@ -15,6 +15,7 @@ export default async function (
   let yamlDatasources = await loadYaml(pathString, false);
 
   const prismaDatasources = await loadPrismaDsFileNames(pathString);
+
   const datasourcesConfigs = { ...yamlDatasources, ...prismaDatasources };
 
   if (datasourcesConfigs && !Object.keys(datasourcesConfigs).length) {
