@@ -304,8 +304,7 @@ class Godspeed {
 
     let eventsources = await loadEventsources(
       this.folderPaths.eventsources,
-      this.datasources,
-      this.withoutEventSource
+      this.datasources
     );
     logger.debug('event sources loaded %o', Object.keys(eventsources));
     logger.info('[END] event sources.');
