@@ -45,7 +45,10 @@ export default async function (
       async (Module: GSDataSource) => {
         const dsYamlConfig: PlainObject = datasourcesConfigs[dsName];
         // @ts-ignore
-        const Constructor = Module.default;
+        const Constructor = Module.DataSource || Module.default;
+        if (!Constructor) {
+          logger.fatal('Expecting datasource %s module file to export GSDataSource under the DataSource or default key', dsName);
+        }
         try {
           const dsInstance = new Constructor({ ...dsYamlConfig, name: dsName });
           await dsInstance.init(); // This should initialize and set the client in dsInstance
