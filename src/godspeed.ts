@@ -15,7 +15,7 @@ var config = require('config');
 
 import { join } from 'path';
 import { cwd } from 'process';
-import _, { without } from 'lodash';
+import _ from 'lodash';
 import swaggerUI from 'swagger-ui-express';
 import promClient from '@godspeedsystems/metrics';
 
@@ -34,8 +34,7 @@ import {
   GSContext,
   GSSeriesFunction,
   GSStatus,
-  GSResponse,
-  GSFunction
+  GSResponse
 } from './core/interfaces';
 
 import {
