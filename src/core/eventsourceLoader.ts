@@ -5,11 +5,15 @@ import loadYaml from "./yamlLoader";
 import { EventSources, GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources";
 import expandVariables from "./expandVariables"; // Import the expandVariables function
 
-export default async function (eventsourcesFolderPath: string, datasources: PlainObject): Promise<{ [key: string]: GSEventSource | GSDataSourceAsEventSource }> {
+export default async function (eventsourcesFolderPath: string, datasources: PlainObject, optional: boolean = false): Promise<{ [key: string]: GSEventSource | GSDataSourceAsEventSource }> {
   const eventsourcesConfigs = await loadYaml(eventsourcesFolderPath, false);
   if (eventsourcesConfigs && !Object.keys(eventsourcesConfigs).length) {
-    throw new Error(`There are no event sources defined in eventsource dir: ${eventsourcesFolderPath}`);
-  }
+    if (!optional) {
+      throw new Error(`There are no event sources defined in eventsource dir: ${eventsourcesFolderPath}`);
+    } else {
+      return {} as EventSources;
+    }
+  } 
 
   const eventSources: EventSources = {};
 
