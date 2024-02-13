@@ -367,7 +367,7 @@ export class GSFunction extends Function {
         res = await this.fn!(args, {childLogger, promClient, tracer});
       }
 
-      // childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `Result of _executeFn ${this.id} %o`, res);
+      childLogger.info({ 'workflow_name': this.workflow_name,'task_id': this.id }, `Result of _executeFn ${this.id} %o`, res);
 
       if (res instanceof GSStatus) {
         status = res;

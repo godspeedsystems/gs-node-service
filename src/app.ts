@@ -489,11 +489,11 @@ async function main() {
       data = data.toString();
     }
 
-    // if (code < 400) {
-    //   // childLogger.debug('return value %o %o %o', data, code, headers);
-    // } else {
-    //   // childLogger.error('return value %o %o %o', data, code, headers);
-    // }
+    if (code < 400) {
+      childLogger.debug('return value %o %o %o', data, code, headers);
+    } else {
+      childLogger.error('return value %o %o %o', data, code, headers);
+    }
 
     (event.metadata?.http?.express.res as express.Response)
       .status(code)

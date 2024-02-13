@@ -112,7 +112,7 @@ export function validateRequestSchema(
   const hasSchema: any = eventSpec?.body || eventSpec?.data?.schema?.body;
   if (event.data.body && hasSchema) {
     // childLogger.info('event body and eventSpec exist');
-    // childLogger.debug('event.data.body: %o', event.data.body);
+    childLogger.debug('event.data.body: %o', event.data.body);
     const ajv_validate = ajvInstance.getSchema(topic);
     if (ajv_validate) {
       // childLogger.debug('ajv_validate for body');
