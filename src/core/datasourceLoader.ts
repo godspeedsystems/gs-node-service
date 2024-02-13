@@ -28,6 +28,7 @@ import {
 } from './validation';
 import config from 'config';
 import salesforce from '../salesforce';
+import sftpClient from 'ssh2-sftp-client';
 
 const axiosTime = require('axios-time');
 
@@ -89,7 +90,9 @@ export default async function loadDatasources(pathString: string) {
       } else {
         process.exit(1);
       }
-    } else if (datasources[ds].type === 'elasticgraph') {
+    }else if (datasources[ds].type === 'sftp') {
+      loadedDatasources[ds] = await loadSftpClient(datasources[ds]);
+    }else if (datasources[ds].type === 'elasticgraph') {
       if (isValidElasticgraphDatasource(datasources[ds])) {
         loadedDatasources[ds] = await loadElasticgraphClient(datasources[ds]);
       } else {
@@ -256,6 +259,20 @@ async function loadKafkaClient(datasource: PlainObject): Promise<PlainObject> {
     client: new KafkaMessageBus(datasource),
   };
   return ds;
+}
+
+async function loadSftpClient(datasource: PlainObject): Promise<PlainObject> {
+  
+  
+  const client = new sftpClient();
+  
+  const ds = {
+    ...datasource,
+    client
+  };
+
+  return ds;
+  
 }
 
 function cipher(decrypted: any) {
