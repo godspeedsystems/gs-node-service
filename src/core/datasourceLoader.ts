@@ -60,7 +60,7 @@ export default async function (
           datasources[dsName] = dsInstance;
 
         } catch (error: any) {
-          logger.fatal('Error in loading datasource %s \n with config %o \n error %s %o', dsName, dsYamlConfig, error.message, error);
+          logger.fatal('Error in loading datasource %s \n with config %o \n error %s %o', dsName, dsYamlConfig, error.message, error.stack);
           process.exit(1);
         }
 
