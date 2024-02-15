@@ -7,7 +7,7 @@ import { GSContext, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GS
 import { checkDatasource, compileScript } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
-import { logger } from '../logger';
+import { initializeChildLogger, logger } from '../logger';
 //@ts-ignore
 import path from 'path';
 
@@ -72,6 +72,9 @@ export function createGSFunction(
     onError: OnError | null,
     location: PlainObject
 ): GSFunction | null {
+    const childLogger = logger.child(location);
+    // initializeChildLogger(location);
+    // logger.setBindings(null);
 
 
     if (Array.isArray(json)) { //These are workflow tasks and this is TasksJSON
@@ -79,7 +82,7 @@ export function createGSFunction(
     } else if (!json.fn) {
         json.fn = 'com.gs.sequential';
     }
-    logger.debug('Creating GSFunction id: %s name: %s', json.id, json.workflow_name);
+    childLogger.debug('Starting to parse and load GSFunction id: %s name: %s', json.id, json.workflow_name);
 
     //First lets handle core framework control flow functions
     //If this workflow is none of that then we will handle that after this switch block.
@@ -135,20 +138,20 @@ export function createGSFunction(
             for (let c in switchWorkflowJSON.cases) {
                 switchWorkflowJSON.cases[c].workflow_name = switchWorkflowJSON.workflow_name;
                 //@ts-ignore
-                const taskLocation = { ...location, ...{ case_workflow_name: switchWorkflowJSON.workflow_name, case: c, case_task_id: switchWorkflowJSON.id, case_task_id: switchWorkflowJSON.cases[c].id } };
+                const taskLocation = { ...location, ...{ case_workflow_name: switchWorkflowJSON.workflow_name, case: c, case_task_id: switchWorkflowJSON.cases[c].id } };
                 cases[c] = createGSFunction(switchWorkflowJSON.cases[c], workflows, nativeFunctions, onError, taskLocation);
             }
 
             if (switchWorkflowJSON.defaults) {
                 switchWorkflowJSON.defaults.workflow_name = switchWorkflowJSON.workflow_name;
                 //@ts-ignore
-                const taskLocation = { ...location, ...{ default_workflow_name: switchWorkflowJSON.defaults.workflow_name, default_task_id: switchWorkflowJSON.id, case_task_id: switchWorkflowJSON.defaults.id } };
+                const taskLocation = { ...location, ...{case_default_task_id: switchWorkflowJSON.defaults.id } };
                 cases.default = createGSFunction(switchWorkflowJSON.defaults, workflows, nativeFunctions, onError, taskLocation);
             }
 
             args.push(cases);
 
-            logger.debug('loading switch workflow cases %o', switchWorkflowJSON.cases);
+            // logger.debug('loading switch workflow cases %o', switchWorkflowJSON.cases);
 
             return new GSSwitchFunction(json, workflows, nativeFunctions, undefined, args, false, location);
         }
@@ -222,8 +225,8 @@ export function createGSFunction(
             let elifFunction = new GSIFFunction(json, workflows, nativeFunctions, undefined, args, false, location);
 
             if (!lastIfFn) {
-                logger.error(`If is missing before elif ${json.id}.`);
-                throw new Error(`If is missing before elif ${json.id}.`);
+                childLogger.error(`If is missing before elif ${json.id}.`);
+                process.exit(1);
             } else {
                 lastIfFn.else_fn = elifFunction;
             }
@@ -245,8 +248,8 @@ export function createGSFunction(
             let elseFunction = new GSSeriesFunction(json, workflows, nativeFunctions, undefined, tasks, false, undefined, location);
 
             if (!lastIfFn) {
-                logger.error(`If task is missing before else task ${json.id}.`);
-                throw new Error(`If task is missing before else task ${json.id}.`);
+                childLogger.error(`If task is missing before else task ${json.id}.`);
+                process.exit(1);
             } else {
                 lastIfFn.else_fn = elseFunction;
             }
@@ -280,7 +283,7 @@ export function createGSFunction(
                 json.on_error.tasks = createGSFunction(json.on_error.tasks as TasksJSON, workflows, nativeFunctions, null, taskLocation);
             }
 
-            logger.debug('loading each parallel workflow %o', (json as WorkflowJSON).tasks);
+            childLogger.debug('loading each parallel workflow %o', (json as WorkflowJSON).tasks);
 
             return new GSEachParallelFunction(json, workflows, nativeFunctions, undefined, args, false, location);
         }
@@ -308,7 +311,7 @@ export function createGSFunction(
                 json.on_error.tasks = createGSFunction(json.on_error.tasks as TasksJSON, workflows, nativeFunctions, null, taskLocation);
             }
 
-            logger.debug('loading each sequential workflow %o', (json as WorkflowJSON).tasks);
+            childLogger.debug('loading each sequential workflow %o', (json as WorkflowJSON).tasks);
 
             return new GSEachSeriesFunction(json, workflows, nativeFunctions, undefined, args, false, location);
         }
@@ -331,7 +334,7 @@ export function createGSFunction(
         fnScript = compileScript(taskJson.fn, taskLocation);
     } else {
         // Load the fn for this GSFunction
-        logger.debug('Loading  %s, which is either the datasource or a JS/TS/YAML workflow', taskJson.fn);
+        childLogger.debug('Loading fn %s, which is either the datasource or a JS/TS/YAML workflow', taskJson.fn);
 
         /*      
             First check if it's a native function (developer written or datasource)
@@ -355,7 +358,8 @@ export function createGSFunction(
             // If not a native function, it should be a developer written Workflow as function
             const existingWorkflowData = workflows[fnName];
             if (!existingWorkflowData) {
-                throw new Error(`Function specified by name ${fnName} not found in src/functions. Please ensure a function by this path exists.`);
+                childLogger.fatal(`Function specified by name ${fnName} not found in src/functions. Please ensure a function by this path exists.`);
+                process.exit(1);
             }
 
             subwf = true;
@@ -373,7 +377,7 @@ export function createGSFunction(
     if (taskJson?.on_error?.tasks) {
         taskJson.on_error.tasks.workflow_name = taskJson.workflow_name;
         //@ts-ignore
-        const taskLocation = { ...location, ...{ workflow_name: taskJson.on_error.tasks.workflow_name, task_id: taskJson.on_error.tasks.id } };
+        const taskLocation = { ...location, ...{ on_error_task_id: taskJson.on_error.tasks.id } };
         taskJson.on_error.tasks = createGSFunction(taskJson.on_error.tasks as TasksJSON, workflows, nativeFunctions, null, taskLocation);
     } else if (taskJson?.on_error) {
         // do nothing
@@ -407,11 +411,11 @@ export default async function loadFunctions(datasources: PlainObject, pathString
     let nativeMicroserviceFunctions = await loadModules(pathString);
 
     let loadFnStatus: LoadedFunctions;
-
-    logger.debug('JS/TS functions in src/functions %s', Object.keys(nativeMicroserviceFunctions));
-    logger.debug('Yaml Workflows  in src/functions %s', Object.keys(yamlWorkflows));
+    const childLogger = logger.child({section: 'loading_functions'});
+    childLogger.debug('JS/TS functions in src/functions %s', Object.keys(nativeMicroserviceFunctions));
+    childLogger.debug('Yaml Workflows  in src/functions %s', Object.keys(yamlWorkflows));
     // logger.debug('Framework defined  functions %s', Object.keys(frameworkFunctions));
-    logger.debug('Datasources found in src/datasources %o', Object.keys(datasources));
+    childLogger.debug('Datasources found in src/datasources %o', Object.keys(datasources));
 
     let _datasourceFunctions = Object
         .keys(datasources)
@@ -426,25 +430,29 @@ export default async function loadFunctions(datasources: PlainObject, pathString
     const nativeFunctions = { ...frameworkFunctions, ..._datasourceFunctions, ...nativeMicroserviceFunctions };
 
     for (let f in yamlWorkflows) {
+        if (!yamlWorkflows[f]) {
+            childLogger.fatal({fn: f}, `Found empty yaml workflow ${f}. Exiting.`);
+            process.exit(1);
+        }
         if (!yamlWorkflows[f].tasks) {
-            logger.fatal(`Error in loading tasks of function ${f}.`);
+            childLogger.fatal({fn: f}, `Did not find tasks in yaml workflow ${f}. Exiting.`);
             process.exit(1);
         }
         const checkDS = checkDatasource(yamlWorkflows[f], datasources);
         if (!checkDS.success) {
-            logger.fatal(`Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
+            childLogger.fatal({fn: f}, `Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
             process.exit(1);
         }
     }
 
-    logger.debug('Creating workflows: %s', Object.keys(yamlWorkflows));
+    childLogger.debug('Creating workflows: %s', Object.keys(yamlWorkflows));
 
     for (let f in yamlWorkflows) {
         if (!(yamlWorkflows[f] instanceof GSFunction)) {
             yamlWorkflows[f].workflow_name = f;
             if (yamlWorkflows[f].on_error?.tasks) {
                 yamlWorkflows[f].on_error.tasks.workflow_name = f;
-                logger.debug("Start to load on error tasks for YAML workflow %s", f);
+                childLogger.debug({fn: f}, "Start to load on error tasks for YAML workflow %s", f);
                 try {
                     const taskLocation = { workflow_name: yamlWorkflows[f].on_error.tasks.workflow_name, task_id: yamlWorkflows[f].on_error.tasks.id , section: 'on_error.tasks'};
                     yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, nativeFunctions, null, taskLocation);

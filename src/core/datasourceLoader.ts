@@ -17,9 +17,10 @@ export default async function (
   const datasourcesConfigs = { ...yamlDatasources, ...prismaDatasources };
 
   if (datasourcesConfigs && !Object.keys(datasourcesConfigs).length) {
-    throw new Error(
+    logger.fatal(
       `There are no datasources defined in datasource dir: ${pathString}`
     );
+    process.exit(1);
   }
   const datasources: { [key: string]: GSDataSource } = {};
 

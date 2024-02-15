@@ -35,6 +35,14 @@ if (process.env.OTEL_ENABLED == 'true' && process.env.NODE_ENV != 'dev') {
 
 const logger: Pino.Logger = Pino({
   level: (config as any).log_level || 'info',
+  timestamp: Pino.stdTimeFunctions.isoTime,
+  formatters: {
+    bindings: (bindings) => {
+      delete bindings.pid;
+      delete bindings.hostname;
+      return bindings;
+    }
+  },
   transport: {
     target: logTarget,
     options: {

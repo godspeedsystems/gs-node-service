@@ -25,7 +25,7 @@ export default function loadModules(
           process.exit(1);
 
         } else {
-          logger.debug('processing files: %s', res);
+          // logger.debug('processing files: %s', res);
 
           Promise.all(
             res.map((file: string) => {

@@ -184,7 +184,7 @@ export function prepareScript(str: string, location: PlainObject): Function {
     try {
       str = CoffeeScript.compile(str, { bare: true });
     } catch(err:any) {
-      logger.fatal("Error in compiling coffee script %s at location %o. Error message %s\n error %o %o", str, location, err.message,  err, new Error().stack);
+      logger.fatal(location, "Error in compiling coffee script %s. Error message %s\n error %o %o", str, err.message,  err, new Error().stack);
       process.exit(1);
     }
   }
@@ -193,7 +193,7 @@ export function prepareScript(str: string, location: PlainObject): Function {
   try {
     prepareScriptFunction = Function('config', 'inputs', 'outputs', 'mappings', 'task_value', str);
   } catch (err: any) {
-    logger.fatal('Caught exception in javascript compilation, script: %s compiled script %s at location %o. Error message %s\n error %o %o', initialStr, str, location, err.message, err, err.stack);
+    logger.fatal(location, 'Caught exception in javascript compilation, script: %s compiled script %s. Error message %s\n error %o %o', initialStr, str, err.message, err, err.stack);
     process.exit(1);
   }
 
