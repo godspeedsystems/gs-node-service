@@ -26,7 +26,8 @@ export default function loadMappings(mappingFolderPath?: string) {
     */
     let _mappings = iterate_yaml_directories(mappingFolderPath)[path.basename(mappingFolderPath)];
     logger.debug('Unevaluated mappings: %o', _mappings);
-    const mappingScript: Function = compileScript(_mappings);
+    const taskLocation = { mappingPath: mappingFolderPath };
+    const mappingScript: Function = compileScript(_mappings, taskLocation);
     const evaluatedMappings = mappingScript(config, {}, {}, _mappings, {});
     logger.debug('Evaluated mappings: %o', evaluatedMappings);
     mappings = evaluatedMappings;

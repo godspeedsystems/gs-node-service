@@ -227,7 +227,7 @@ class Godspeed {
 
       })
       .catch((error) => {
-        logger.error('Error in loading the project %o %s %o', error, error.message, error.stack);
+        logger.error('pm_logger %o %s %o', error, error.message, error.stack);
       });
   }
 
@@ -262,18 +262,28 @@ class Godspeed {
 
   private async _loadFunctions(): Promise<LoadedFunctionsStatus> {
     logger.info('[START] Load functions from %s', this.folderPaths.workflows);
-    const loadFnStatus: LoadedFunctionsStatus = await loadFunctions(
-      this.datasources,
-      this.folderPaths.workflows
-    );
-    logger.debug('Functions %o', Object.keys(loadFnStatus.functions));
+    try {
+      const loadFnStatus: LoadedFunctionsStatus = await loadFunctions(
+        this.datasources,
+        this.folderPaths.workflows
+      );
+      if (loadFnStatus.success) {
+        logger.info('[END] Load functions');
+        return loadFnStatus;
+      } else {
+        logger.fatal('Error in loading project functions');
+        process.exit(1);
 
-    if (loadFnStatus.success) {
-      logger.info('[END] Load functions');
-      return loadFnStatus;
-    } else {
-      throw new Error(`Failed to load functions.`);
+      }
+    } catch (err: any) {
+
+      logger.fatal('Error in loading project functions %s %o', err.message, err);
+      process.exit(1);
+
     }
+    // logger.debug('Functions %o', Object.keys(loadFnStatus.functions));
+
+
   }
 
   private async _loadPlugins(): Promise<PlainObject> {

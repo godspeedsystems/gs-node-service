@@ -146,8 +146,9 @@ function loadEventWorkflows(events: PlainObject, eventSources: EventSources, all
         _function = allFunctions[functionConfig as string];
       } else if (typeof functionConfig === 'object' ) {
         //Is expected to be a `WorkflowJSON`
+        const taskLocation = { eventSourceType: eventConfig.type, eventKey: key, fn: functionType };
         _function 
-          = createGSFunction(functionConfig as WorkflowJSON,allFunctions,nativeFunctions,null);
+          = createGSFunction(functionConfig as WorkflowJSON,allFunctions,nativeFunctions,null,taskLocation);
       }
       if (_function) {
         eventConfig[functionType] = _function;

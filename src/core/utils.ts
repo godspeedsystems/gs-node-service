@@ -104,7 +104,7 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
   return new GSStatus(true, undefined);
 }
 
-export function prepareScript(str: string): Function {
+export function prepareScript(str: string, location: PlainObject): Function {
   //@ts-ignore
   global.fs = fs;
   //@ts-ignore
@@ -170,8 +170,8 @@ export function prepareScript(str: string): Function {
     str = "'" + str.replace(/<(.*?)%/g, "' + ").replace(/%>/g, " + '") + "'";
   }
 
-  logger.debug('lang: %s', lang);
-  logger.debug('script: %s', str);
+  // logger.debug('lang: %s', lang);
+  // logger.debug('script: %s', str);
 
   str = str.trim();
   const initialStr = str;
@@ -181,22 +181,26 @@ export function prepareScript(str: string): Function {
   }
 
   if (lang === 'coffee') {
-    str = CoffeeScript.compile(str, { bare: true });
+    try {
+      str = CoffeeScript.compile(str, { bare: true });
+    } catch(err:any) {
+      logger.fatal("Error in compiling coffee script %s at location %o. Error message %s\n error %o", str, location, err.message,  err);
+      process.exit(1);
+    }
   }
 
   let prepareScriptFunction: any;
   try {
     prepareScriptFunction = Function('config', 'inputs', 'outputs', 'mappings', 'task_value', str);
   } catch (err: any) {
-    logger.error('Caught exception in script compilation, script: %s', initialStr);
-    logger.error('exception: %o', err.stack);
+    logger.fatal('Caught exception in javascript compilation, script: %s compiled script %s at location %o. Error message %s\n error %o %o', initialStr, str, location, err.message, err, err.stack);
     process.exit(1);
   }
 
   return prepareScriptFunction;
 }
 
-export function compileScript(args: any) {
+export function compileScript(args: any, location: PlainObject) {
   if (!args) {
     return () => args;
   }
@@ -205,7 +209,8 @@ export function compileScript(args: any) {
     if (isPlainObject(args)) {
       let out: PlainObject = {};
       for (let k in args) {
-        out[k] = compileScript(args[k]);
+        location.argsName = k;
+        out[k] = compileScript(args[k], location);
       }
       return function (config: any, inputs: any, outputs: any, mappings: any, task_value: any) {
         let returnObj: any = {};
@@ -219,7 +224,8 @@ export function compileScript(args: any) {
     } else if (Array.isArray(args)) {
       let out: [any] = <any>[];
       for (let k in <[any]>args) {
-        out[k] = compileScript(args[k]);
+        location.index = k;
+        out[k] = compileScript(args[k], location);
       }
       return function (config: any, inputs: any, outputs: any, mappings: any, task_value: any) {
         let returnObj: any = [];
@@ -244,7 +250,7 @@ export function compileScript(args: any) {
     }
 
     if (args.match(/<(.*?)%/) && args.includes('%>')) {
-      return prepareScript(args);
+      return prepareScript(args, location);
     }
   }
 

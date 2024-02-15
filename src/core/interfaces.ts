@@ -65,7 +65,7 @@ export class GSFunction extends Function {
     const str = JSON.stringify(this.args);
 
     if ((str.match(/<(.*?)%/) && str.includes('%>')) || str.match(/(^|\/):([^/]+)/)) {
-      this.args_script = compileScript(this.args);
+      this.args_script = compileScript(this.args, location);
     }
 
 
@@ -73,7 +73,8 @@ export class GSFunction extends Function {
 
     if (this.onError && this.onError.response) {
       if (!(this.onError.response instanceof Function)) {
-        this.onError!.response = compileScript(this.onError.response);
+
+        this.onError!.response = compileScript(this.onError.response, {... location, section: "on_error"});
       }
     }
 
@@ -103,14 +104,14 @@ export class GSFunction extends Function {
         if (!(this.logs.before.attributes instanceof Function)) {
           this.logs.before.attributes.task_id = this.id;
           this.logs.before.attributes.workflow_name = this.workflow_name;
-          this.logs.before.attributes = compileScript(this.logs.before.attributes);
+          this.logs.before.attributes = compileScript(this.logs.before.attributes, { ...location, section: "logs.before.attributes" } );
         }
       }
       if (this.logs?.after) {
         if (!(this.logs.after.attributes instanceof Function)) {
           this.logs.after.attributes.task_id = this.id;
           this.logs.after.attributes.workflow_name = this.workflow_name;
-          this.logs.after.attributes = compileScript(this.logs.after.attributes);
+          this.logs.after.attributes = compileScript(this.logs.after.attributes, { ...location, section: "logs.after.attributes" });
         }
       }
     }
@@ -162,7 +163,7 @@ export class GSFunction extends Function {
 
         for (let key of Object.keys(metric)) {
           if (!['type', 'name', 'obj', 'timer', 'help'].includes(key)) {
-            metric[key] = compileScript(metric[key]);
+            metric[key] = compileScript(metric[key], { ...location, section: "metric" });
           }
         }
       }
@@ -170,7 +171,7 @@ export class GSFunction extends Function {
 
     //caching
     if (this.yaml.caching) {
-      this.caching = compileScript(this.yaml.caching);
+      this.caching = compileScript(this.yaml.caching, { ...location, section: "caching" });
     }
   }
 
@@ -422,7 +423,7 @@ export class GSFunction extends Function {
           const logAttributes: PlainObject = this.onError.log_attributes;
 
           for (let key in logAttributes) {
-            const script = compileScript(logAttributes[key]);
+            const script = compileScript(logAttributes[key], { ...location, section: "on_error.log_attributes" });
             error[key] = await evaluateScript(ctx, script, taskValue);
           }
           ctx.childLogger.setBindings({ error });
@@ -718,11 +719,11 @@ export class GSParallelFunction extends GSFunction {
 export class GSSwitchFunction extends GSFunction {
   condition_script?: Function;
 
-  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, location:PlainObject = {}) {
     super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
     const [condition, cases] = this.args!;
     if (typeof (condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
-      this.condition_script = compileScript(condition);
+      this.condition_script = compileScript(condition, location);
     }
   }
 
@@ -761,11 +762,11 @@ export class GSIFFunction extends GSFunction {
 
   else_fn?: GSFunction;
 
-  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, location: PlainObject = {}) {
     super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
     const [condition, task, else_fn] = this.args!;
     if (typeof (condition) == 'string' && condition.match(/<(.*?)%/) && condition.includes('%>')) {
-      this.condition_script = compileScript(condition);
+      this.condition_script = compileScript(condition, location);
     }
 
     this.task = task;
@@ -800,11 +801,11 @@ export class GSIFFunction extends GSFunction {
 export class GSEachParallelFunction extends GSFunction {
   value_script?: Function;
 
-  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, location: PlainObject = {}) {
     super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow,);
     const [value, cases] = this.args!;
     if (typeof (value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
-      this.value_script = compileScript(value);
+      this.value_script = compileScript(value, location);
     }
   }
 
@@ -859,11 +860,11 @@ export class GSEachParallelFunction extends GSFunction {
 export class GSEachSeriesFunction extends GSFunction {
   value_script?: Function;
 
-  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, location:PlainObject = {}) {
     super(yaml, workflows, nativeFunctions, _fn, args, isSubWorkflow);
     const [value, cases] = this.args!;
     if (typeof (value) == 'string' && value.match(/<(.*?)%/) && value.includes('%>')) {
-      this.value_script = compileScript(value);
+      this.value_script = compileScript(value, location);
     }
   }
 

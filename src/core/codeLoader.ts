@@ -21,73 +21,91 @@ export default function loadModules(
       function (err: Error | null, res: string[]) {
         logger.debug('processing files: %s', res);
         if (err) {
-          reject(err);
+          // reject(err);
+          logger.fatal('Error in loading files at path %s', pathString);
+          process.exit(1);
+
         } else {
           Promise.all(
             res.map((file: string) => {
               return import(
                 path.relative(__dirname, file).replace(/\.(js)/, '')
-              ).then((module) => {
-                if (file.match(/.*?\/plugins\//)) {
-                  const id = file
-                    .replace(/.*?\/(plugins)\//, '')
-                    .replace(/\//g, '_')
-                    .replace(/\.(js)/i, '')
-                    .replace(/\_index$/, '');
+              )
+                .catch((err) => {
+                  logger.fatal('Error in importing module %s %o', path.relative(__dirname, file), err);
+                  process.exit(1);
 
-                  // Load plugins at global level to provide backward compatibilty
-                  //api = { ...api, ...module };
+                })
+                .then((module) => {
+                  if (file.match(/.*?\/plugins\//)) {
+                    const id = file
+                      .replace(/.*?\/(plugins)\//, '')
+                      .replace(/\//g, '_')
+                      .replace(/\.(js)/i, '')
+                      .replace(/\_index$/, '');
 
-                  // Load plugins with namespace using underscore notation
-                  if (id === 'index') {
-                    delete module.default;
-                    api = {
-                      ...api,
-                      ...module,
-                    };
-                  } else {
-                    for (let f in module) {
-                      if (f === 'default' && typeof module[f] === 'function') {
-                        api[id] = module[f];
-                      } else  if(f !== 'default'){
-                        api[id + '_' + f] = module[f];
-                      }
-                    }
-                  }
-                } else {
-                  const id = file
-                    .replace(/.*?\/functions\//, '')
-                    .replace(/\//g, '.')
-                    .replace(/\.(js)/i, '')
-                    .replace(/\.index$/, '');
+                    // Load plugins at global level to provide backward compatibilty
+                    api = { ...api, ...module };
 
-                  if (global) {
-                    api = {
-                      ...api,
-                      ...module,
-                    };
-                  } else {
-                    if (id == 'index') {
+                    // Load plugins with namespace using underscore notation
+                    if (id === 'index') {
+                      delete module.default;
                       api = {
                         ...api,
                         ...module,
                       };
                     } else {
                       for (let f in module) {
-                        if (f == 'default') {
+                        if (f === 'default' && typeof module[f] === 'function') {
                           api[id] = module[f];
-                        } else {
-                          api[id + '.' + f] = module[f];
+                        } else if (f !== 'default') {
+                          api[id + '_' + f] = module[f];
+                        }
+                      }
+                    }
+                  } else {
+                    const id = file
+                      .replace(/.*?\/functions\//, '')
+                      .replace(/\//g, '.')
+                      .replace(/\.(js)/i, '')
+                      .replace(/\.index$/, '');
+
+                    if (global) {
+                      api = {
+                        ...api,
+                        ...module,
+                      };
+                    } else {
+                      if (id == 'index') {
+                        api = {
+                          ...api,
+                          ...module,
+                        };
+                      } else {
+                        for (let f in module) {
+                          if (f == 'default') {
+                            api[id] = module[f];
+                          } else {
+                            api[id + '.' + f] = module[f];
+                          }
                         }
                       }
                     }
                   }
-                }
-              });
+                })
+                .catch((err) => {
+                  logger.fatal('Error in loading plugin or function in the namespace %o', err);
+                  process.exit(1);
+
+                })
             })
           ).then(() => {
             resolve(api);
-          });
+          }).catch((err) => {
+              logger.fatal('Error in loading module %s %o',pathString, err);
+              process.exit(1);
+
+            })
         }
       }
     );
