@@ -184,7 +184,7 @@ export function prepareScript(str: string, location: PlainObject): Function {
     try {
       str = CoffeeScript.compile(str, { bare: true });
     } catch(err:any) {
-      logger.fatal("Error in compiling coffee script %s at location %o. Error message %s\n error %o", str, location, err.message,  err);
+      logger.fatal("Error in compiling coffee script %s at location %o. Error message %s\n error %o %o", str, location, err.message,  err, new Error().stack);
       process.exit(1);
     }
   }

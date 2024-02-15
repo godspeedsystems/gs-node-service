@@ -6,7 +6,6 @@ import { PlainObject } from '../types';
 import expandVariables from './expandVariables';
 import loadYaml from './yamlLoader';
 import { GSDataSource } from './_interfaces/sources';
-import { context } from '@opentelemetry/api';
 
 // we need to scan only the first level of datasources folder
 export default async function (
@@ -15,7 +14,6 @@ export default async function (
   let yamlDatasources = await loadYaml(pathString, false);
 
   const prismaDatasources = await loadPrismaDsFileNames(pathString);
-
   const datasourcesConfigs = { ...yamlDatasources, ...prismaDatasources };
 
   if (datasourcesConfigs && !Object.keys(datasourcesConfigs).length) {
@@ -78,20 +76,27 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
     path.join(pathString, '**', '*.?(prisma)').replace(/\\/g, '/')
   );
   files.forEach((file: string) => {
+    if (!file.match(/datasources\/[^\/^\.]+\.prisma/)) {
+      return;
+    }
     const id = file
       .replace(new RegExp(`.*?\/${basePath}\/`), '')
       .replace(/\//g, '.')
       .replace(/\.(prisma)/i, '')
       .replace(/\.index$/, '');
-    prismaSchemas = {
-      ...prismaSchemas,
-      ...{
-        [id]: {
-          type: 'prisma',
-          name: id,
-        },
-      },
+    prismaSchemas[id] = {
+      type: 'prisma',
+      name: id,
     };
+    // prismaSchemas = {
+    //   ...prismaSchemas,
+    //   ...{
+    //     [id]: {
+    //       type: 'prisma',
+    //       name: id,
+    //     },
+    //   },
+    // };
   });
 
   return prismaSchemas;

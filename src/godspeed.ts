@@ -234,7 +234,7 @@ class Godspeed {
   public async _loadMappings(): Promise<PlainObject> {
     logger.info('[START] Load mappings from %s', this.folderPaths.mappings);
     let mappings = loadMappings(this.folderPaths.mappings);
-    logger.debug('Mappings %o', mappings);
+    // logger.debug('Mappings %o', mappings);
     logger.info('[END] Load mappings');
     return mappings;
   };
@@ -242,7 +242,7 @@ class Godspeed {
   private async _loadEvents(): Promise<PlainObject> {
     logger.info('[START] Load events from %s', this.folderPaths.events);
     let events = await loadEvents(this.workflows, this.nativeFunctions, this.folderPaths.events, this.eventsources);
-    logger.debug('Events %o', events);
+    // logger.debug('Events %o', events);
     logger.info('[END] Loaded events %o', events);
     return events;
   }
@@ -255,7 +255,7 @@ class Godspeed {
     const definitions = await loadAndRegisterDefinitions(
       this.folderPaths.definitions
     );
-    logger.debug('Definitions %o', definitions);
+    // logger.debug('Definitions %o', definitions);
     logger.info('[END] Load definitions');
     return definitions;
   }
