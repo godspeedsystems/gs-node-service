@@ -19,19 +19,19 @@ export default function loadModules(
     glob(
       path.join(pathString, '**', '*.?(js)').replace(/\\/g, '/'),
       function (err: Error | null, res: string[]) {
-        logger.debug('processing files: %s', res);
         if (err) {
           // reject(err);
           logger.fatal('Error in loading files at path %s', pathString);
           process.exit(1);
 
         } else {
+          logger.debug('processing files: %s', res);
+
           Promise.all(
             res.map((file: string) => {
               return import(
                 path.relative(__dirname, file).replace(/\.(js)/, '')
-              )
-                .catch((err) => {
+              ).catch((err) => {
                   logger.fatal('Error in importing module %s %o', path.relative(__dirname, file), err);
                   process.exit(1);
 
@@ -97,7 +97,7 @@ export default function loadModules(
                   logger.fatal('Error in loading plugin or function in the namespace %o', err);
                   process.exit(1);
 
-                })
+                });
             })
           ).then(() => {
             resolve(api);
@@ -105,7 +105,7 @@ export default function loadModules(
               logger.fatal('Error in loading module %s %o',pathString, err);
               process.exit(1);
 
-            })
+            });
         }
       }
     );

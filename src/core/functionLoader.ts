@@ -446,7 +446,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
                 yamlWorkflows[f].on_error.tasks.workflow_name = f;
                 logger.debug("Start to load on error tasks for YAML workflow %s", f);
                 try {
-                    const taskLocation = { ...location, ...{ workflow_name: yamlWorkflows[f].on_error.tasks.workflow_name, task_id: yamlWorkflows[f].on_error.tasks.id } };
+                    const taskLocation = { workflow_name: yamlWorkflows[f].on_error.tasks.workflow_name, task_id: yamlWorkflows[f].on_error.tasks.id , section: 'on_error.tasks'};
                     yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, nativeFunctions, null, taskLocation);
                 } catch (err) {
                     logger.fatal("Error in loading on error tasks for YAML workflow %s %o", f, err);
@@ -457,7 +457,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             }
             logger.debug("Starting to load YAML workflow %s", f);
             try {
-                const taskLocation = { ...location, ...{ workflow_name: yamlWorkflows[f].tasks.workflow_name, task_id: yamlWorkflows[f].tasks.id } };
+                const taskLocation = { workflow_name: yamlWorkflows[f].tasks.workflow_name, task_id: yamlWorkflows[f].tasks.id, section: 'on_error.tasks'};
                 yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, nativeFunctions, yamlWorkflows[f].on_error, taskLocation);
 
             } catch (err:any) {

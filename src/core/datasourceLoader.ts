@@ -26,7 +26,7 @@ export default async function (
   const datasources: { [key: string]: GSDataSource } = {};
 
   for await (let dsName of Object.keys(datasourcesConfigs)) {
-    logger.debug('evaluating datasource %s', dsName);
+    logger.info('evaluating datasource config %s', dsName);
     datasourcesConfigs[dsName] = expandVariables(datasourcesConfigs[dsName]);
     logger.debug(
       'evaluated datasource %s %o',

@@ -90,13 +90,13 @@ export default async function loadEvents(
     process.exit(1);
   }
 
-  logger.debug('events %o', events);
+  logger.debug('event configs %o', events);
   const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events));
 
   const checkFn = checkFunctionExists(events, allFunctions);
 
   if (!checkFn.success) {
-    logger.error(`Error in loading functions for events. Error message: %s. Exiting. ${checkFn.message}`);
+    logger.fatal(`Error in loading functions for events. Error message: %s. Exiting. ${checkFn.message}`);
     process.exit(1);
   }
   if (evalEvents) {
@@ -156,7 +156,7 @@ function loadEventWorkflows(events: PlainObject, eventSources: EventSources, all
         logger.error(`Could not find any valid function definition for %o when loading ${functionType} for event ${key}`, functionConfig);
         process.exit(1);
       }
-    })
-  })  
+    });
+  });
 }
 

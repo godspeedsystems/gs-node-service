@@ -50,7 +50,7 @@ export class GSFunction extends Function {
 
   caching?: Function;
 
-  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function) {
+  constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function, location: PlainObject= {}) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
     this.yaml = yaml;
     this.id = yaml.id || yaml.workflow_name;
@@ -423,7 +423,7 @@ export class GSFunction extends Function {
           const logAttributes: PlainObject = this.onError.log_attributes;
 
           for (let key in logAttributes) {
-            const script = compileScript(logAttributes[key], { ...location, section: "on_error.log_attributes" });
+            const script = compileScript(logAttributes[key], { section: "on_error.log_attributes" });
             error[key] = await evaluateScript(ctx, script, taskValue);
           }
           ctx.childLogger.setBindings({ error });
