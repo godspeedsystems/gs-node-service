@@ -47,6 +47,7 @@ const logger: Pino.Logger = Pino({
     target: logTarget,
     options: {
       destination: 1,
+      sync: true,
       Resource: {
         'service.name': process.env.OTEL_SERVICE_NAME || 'unknown_service:node',
         env: process.env.NODE_ENV
