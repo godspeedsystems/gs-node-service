@@ -77,7 +77,7 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
     path.join(pathString, '**', '*.?(prisma)').replace(/\\/g, '/')
   );
   files.forEach((file: string) => {
-    if (!file.match(/datasources\/[^\/^\.]+\.prisma/)) {
+    if (file.includes('prisma-clients')) {
       return;
     }
     const id = file
