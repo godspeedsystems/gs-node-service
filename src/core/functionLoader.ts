@@ -76,7 +76,7 @@ export function createGSFunction(
     // initializeChildLogger(location);
     // logger.setBindings(null);
 
-
+    
     if (Array.isArray(json)) { //These are workflow tasks and this is TasksJSON
         json = { tasks: json as TasksJSON, fn: 'com.gs.sequential', workflow_name: json?.workflow_name };
     } else if (!json.fn) {
@@ -95,7 +95,7 @@ export function createGSFunction(
                     .tasks
                     .map((taskJson: TaskJSON) => {
                         taskJson.workflow_name = json.workflow_name;
-                        const taskLocation = { ...location, ...{ workflow_name: json.workflow_name, task_id: taskJson.id  }};
+                        const taskLocation = {parent: location, workflow_name: json.workflow_name, task_id: taskJson.id};
                         return createGSFunction(taskJson, workflows, nativeFunctions, onError, taskLocation);
                     });
 
@@ -121,7 +121,7 @@ export function createGSFunction(
                     .tasks
                     .map((taskJson: TaskJSON) => {
                         taskJson.workflow_name = json.workflow_name;
-                        const taskLocation = { ...location, ...{ workflow_name: json.workflow_name, task_id: taskJson.id } };
+                        const taskLocation = { parent: location,  workflow_name: json.workflow_name, task_id: taskJson.id };
                         return createGSFunction(taskJson, workflows, nativeFunctions, onError, taskLocation);
                     });
 
@@ -138,14 +138,14 @@ export function createGSFunction(
             for (let c in switchWorkflowJSON.cases) {
                 switchWorkflowJSON.cases[c].workflow_name = switchWorkflowJSON.workflow_name;
                 //@ts-ignore
-                const taskLocation = { ...location, ...{ case_workflow_name: switchWorkflowJSON.workflow_name, case: c, case_task_id: switchWorkflowJSON.cases[c].id } };
+                const taskLocation = { parent: location, case_workflow_name: switchWorkflowJSON.workflow_name, case: c, case_task_id: switchWorkflowJSON.cases[c].id };
                 cases[c] = createGSFunction(switchWorkflowJSON.cases[c], workflows, nativeFunctions, onError, taskLocation);
             }
 
             if (switchWorkflowJSON.defaults) {
                 switchWorkflowJSON.defaults.workflow_name = switchWorkflowJSON.workflow_name;
                 //@ts-ignore
-                const taskLocation = { ...location, ...{case_default_task_id: switchWorkflowJSON.defaults.id } };
+                const taskLocation = { parent: location, case_default_task_id: switchWorkflowJSON.defaults.id };
                 cases.default = createGSFunction(switchWorkflowJSON.defaults, workflows, nativeFunctions, onError, taskLocation);
             }
 
@@ -164,7 +164,7 @@ export function createGSFunction(
                 .tasks
                 .map((taskJson: TaskJSON) => {
                     taskJson.workflow_name = ifWorkflowJSON.workflow_name;
-                    const taskLocation = { ...location, ...{ if_task_workflow_name: taskJson.workflow_name, if_task_task_id: taskJson.id } };
+                    const taskLocation = { parent: location, if_task_workflow_name: taskJson.workflow_name, if_task_task_id: taskJson.id } ;
                     return createGSFunction(taskJson, workflows, nativeFunctions, onError, taskLocation);
                 });
 
@@ -202,7 +202,7 @@ export function createGSFunction(
                 .tasks
                 .map((taskJson: TaskJSON) => {
                     taskJson.workflow_name = elifWorkflowJSON.workflow_name;
-                    const taskLocation = { ...location, ...{ workflow_name: taskJson.workflow_name, task_id: taskJson.id } };
+                    const taskLocation = { parent: location,  workflow_name: taskJson.workflow_name, task_id: taskJson.id };
                     return createGSFunction(taskJson, workflows, nativeFunctions, onError, taskLocation);
                 });
 
@@ -240,7 +240,7 @@ export function createGSFunction(
                 .tasks
                 .map((taskJson: TaskJSON) => {
                     taskJson.workflow_name = json.workflow_name;
-                    const taskLocation = { ...location, ...{ else_task_workflow_name: taskJson.workflow_name, else_task_task_id: taskJson.id } };
+                    const taskLocation = { parent: location,  else_task_workflow_name: taskJson.workflow_name, else_task_task_id: taskJson.id };
                     return createGSFunction(taskJson, workflows, nativeFunctions, onError, taskLocation);
                 });
 
@@ -266,7 +266,7 @@ export function createGSFunction(
                     .map((taskJson: TaskJSON) => {
                         taskJson.workflow_name = json.workflow_name;
                         taskJson.isEachParallel = true;
-                        const taskLocation = { ...location, ...{ each_parallel_workflow_name: taskJson.workflow_name, each_parallel_task_id: taskJson.id } };
+                        const taskLocation = { parent: location,  each_parallel_workflow_name: taskJson.workflow_name, each_parallel_task_id: taskJson.id };
                         return createGSFunction(taskJson, workflows, nativeFunctions, onError, taskLocation);
                     });
 
@@ -279,7 +279,7 @@ export function createGSFunction(
             if (json?.on_error?.tasks) {
                 json.on_error.tasks.workflow_name = json.workflow_name;
                 //@ts-ignore
-                const taskLocation = { ...location, ...{ workflow_name: json.on_error.tasks.workflow_name, task_id: json.on_error.tasks.id } };
+                const taskLocation = { parent: location,  workflow_name: json.workflow_name, task_id: json.on_error.tasks.id , section: 'on_error'};
                 json.on_error.tasks = createGSFunction(json.on_error.tasks as TasksJSON, workflows, nativeFunctions, null, taskLocation);
             }
 
@@ -296,7 +296,7 @@ export function createGSFunction(
                     .tasks
                     .map((taskJson: TaskJSON) => {
                         taskJson.workflow_name = json.workflow_name;
-                        const taskLocation = { ...location, ...{ each_sequential_workflow_name: taskJson.workflow_name, each_sequential_task_id: taskJson.id } };
+                        const taskLocation = { parent: location,  each_sequential_workflow_name: taskJson.workflow_name, each_sequential_task_id: taskJson.id };
                         return createGSFunction(taskJson, workflows, nativeFunctions, onError, taskLocation);
                     });
 
@@ -307,7 +307,7 @@ export function createGSFunction(
             if (json?.on_error?.tasks) {
                 json.on_error.tasks.workflow_name = json.workflow_name;
                 //@ts-ignore
-                const taskLocation = { ...location, ...{ on_error_workflow_name: json.on_error.tasks.workflow_name, on_error_task_id: json.on_error.tasks.id } };
+                const taskLocation = { parent: location, on_error_workflow_name: json.on_error.tasks.workflow_name, on_error_task_id: json.on_error.tasks.id , section: 'on_error'};
                 json.on_error.tasks = createGSFunction(json.on_error.tasks as TasksJSON, workflows, nativeFunctions, null, taskLocation);
             }
 
@@ -394,6 +394,20 @@ export function createGSFunction(
 
     return new GSFunction(taskJson, workflows, nativeFunctions, fn as GSFunction, taskJson.args, subwf, fnScript, location);
 }
+
+// function setLocation(original: PlainObject, newLocation: PlainObject): PlainObject {
+//     // const taskLocation = { ...{parent: location}, ...{ workflow_name: json.workflow_name, task_id: taskJson.id  }};
+//     newLocation.parent = original;
+//     if (!original.workflow_name) {
+//         // newLocation.parent ||= {};
+//         newLocation.parent.workflow_name = newLocation.workflow_name;
+//         delete newLocation.workflow_name;
+//     } else 
+//     if (original.workflow_name === newLocation.workflow_name) {
+//         delete newLocation.workflow_name;
+//     }
+//     return newLocation;
+// }
 export type LoadedFunctions = {
     nativeFunctions: NativeFunctions,
     functions: PlainObject, //All YAML workflows and native functions combined
@@ -454,7 +468,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
                 yamlWorkflows[f].on_error.tasks.workflow_name = f;
                 childLogger.debug({fn: f}, "Start to load on error tasks for YAML workflow %s", f);
                 try {
-                    const taskLocation = { workflow_name: yamlWorkflows[f].on_error.tasks.workflow_name, task_id: yamlWorkflows[f].on_error.tasks.id , section: 'on_error.tasks'};
+                    const taskLocation = { workflow_name: f, task_id: yamlWorkflows[f].on_error.tasks.id , section: 'on_error.tasks'};
                     yamlWorkflows[f].on_error.tasks = createGSFunction(yamlWorkflows[f].on_error.tasks, yamlWorkflows, nativeFunctions, null, taskLocation);
                 } catch (err) {
                     logger.fatal("Error in loading on error tasks for YAML workflow %s %o", f, err);
@@ -465,7 +479,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             }
             logger.debug("Starting to load YAML workflow %s", f);
             try {
-                const taskLocation = { workflow_name: yamlWorkflows[f].tasks.workflow_name, task_id: yamlWorkflows[f].tasks.id, section: 'on_error.tasks'};
+                const taskLocation = { workflow_name: f, task_id: yamlWorkflows[f].id};
                 yamlWorkflows[f] = createGSFunction(yamlWorkflows[f], yamlWorkflows, nativeFunctions, yamlWorkflows[f].on_error, taskLocation);
 
             } catch (err:any) {
