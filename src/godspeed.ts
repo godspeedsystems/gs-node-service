@@ -43,6 +43,7 @@ import {
   GSEventSource,
   GSDataSourceAsEventSource,
   EventSources,
+  RedisOptions
 } from './core/_interfaces/sources';
 import { PlainObject } from './types';
 
@@ -553,7 +554,8 @@ export {
   GSCachingDataSource,
   yamlLoader,
   logger,
-  childLogger
+  childLogger,
+  RedisOptions
 };
 
 export default Godspeed;
