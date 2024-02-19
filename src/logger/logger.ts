@@ -4,8 +4,10 @@
 */
 import Pino from 'pino';
 import config from 'config';
+import { getAtPath } from '../core/utils';
+const conf = config as any;
 
-const configRedact = (config as any).redact || [];
+const configRedact = conf.redact || conf.log?.redact || [];
 let redactAttrs: Array<string> = [];
 for (const redactAttr of configRedact) {
   if (redactAttr.match(/^\*\*/)) {
@@ -32,14 +34,22 @@ if (process.env.OTEL_ENABLED == 'true' && process.env.NODE_ENV != 'dev') {
 } else {
   logTarget = "pino-pretty";
 }
-
+let timestampSetting;
+if (conf.log?.timestamp) {
+  timestampSetting = getAtPath(Pino, conf.log.timestamp);
+}
 const logger: Pino.Logger = Pino({
-  level: (config as any).log_level || 'info',
-  timestamp: Pino.stdTimeFunctions.isoTime,
+  level: conf.log?.level || conf.log_level || 'info',
+  //@ts-ignore
+  timestamp: timestampSetting,
   formatters: {
     bindings: (bindings) => {
-      delete bindings.pid;
-      delete bindings.hostname;
+      if (!conf.log?.bindings?.pid) {
+        delete bindings.pid;
+      }
+      if (!conf.log?.bindings?.hostname) {
+        delete bindings.hostname;
+      }
       return bindings;
     }
   },
@@ -47,7 +57,7 @@ const logger: Pino.Logger = Pino({
     target: logTarget,
     options: {
       destination: 1,
-      sync: true,
+      sync: conf.log?.sync,
       Resource: {
         'service.name': process.env.OTEL_SERVICE_NAME || 'unknown_service:node',
         env: process.env.NODE_ENV

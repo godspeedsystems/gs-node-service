@@ -7,7 +7,7 @@ import { GSContext, GSEachParallelFunction, GSEachSeriesFunction, GSFunction, GS
 import { checkDatasource, compileScript } from './utils';
 import loadYaml from './yamlLoader';
 import loadModules from './codeLoader';
-import { initializeChildLogger, logger } from '../logger';
+import {  logger } from '../logger';
 //@ts-ignore
 import path from 'path';
 
