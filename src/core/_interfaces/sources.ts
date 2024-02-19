@@ -24,7 +24,7 @@ export abstract class GSDataSource {
   ): Promise<any>
 };
 
-type RedisOptions = {
+export type RedisOptions = {
   EX? : number,
   PX? : number,
   EXAT?: number,
