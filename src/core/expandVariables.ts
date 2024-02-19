@@ -19,7 +19,7 @@ function substitute(value: string): any {
       //TODO: pass other context variables
       //@ts-ignore
       value = Function('config', 'mappings', 'return ' + script)(config, global.mappings);
-      logger.debug('value before %s value after %s', before, value);
+      // logger.debug('value before %s value after %s', before, value);
     }
   } catch (ex) {
     logger.error('Error in substituting script %o', ex);

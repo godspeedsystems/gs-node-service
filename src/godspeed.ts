@@ -251,7 +251,7 @@ class Godspeed {
     logger.info('[START] Load events from %s', this.folderPaths.events);
     let events = await loadEvents(this.workflows, this.nativeFunctions, this.folderPaths.events, this.eventsources);
     // logger.debug('Events %o', events);
-    logger.debug('[END] Loaded events %o', events);
+    // logger.debug('[END] Loaded events %o', Object.keys(events));
     logger.debug('[END] Loaded all events');
 
     return events;
