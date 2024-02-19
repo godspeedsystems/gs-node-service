@@ -492,7 +492,11 @@ export default async function loadFunctions(datasources: PlainObject, pathString
     }
 
     loadFnStatus = { success: true, nativeFunctions, functions: { ...yamlWorkflows, ...nativeMicroserviceFunctions } };
-    logger.info('Loaded YAML workflows: %o', Object.keys(yamlWorkflows));
+    logger.debug('Loaded YAML workflows: %o', Object.keys(yamlWorkflows));
+    logger.info('Loaded all YAML workflows');
+
     logger.info('Loaded JS workflows %o', Object.keys(nativeMicroserviceFunctions));
+    logger.info('Loaded JS/TS workflows');
+
     return loadFnStatus;
 }

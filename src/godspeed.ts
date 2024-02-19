@@ -195,16 +195,24 @@ class Godspeed {
         global.mappings = this.mappings;
         let datasources = await this._loadDatasources();
         this.datasources = datasources;
+        //@ts-ignore
+        global.datasources = datasources;
 
         this.plugins = await this._loadPlugins();
-
+        //@ts-ignore
+        global.plugins = this.plugins;
         let fnLoadResponse: LoadedFunctionsStatus = await this._loadFunctions();
         this.workflows = fnLoadResponse.functions;
+        //@ts-ignore
+        global.workflows = this.workflows;
+        //@ts-ignore
+        global.functions = this.workflows;
         this.nativeFunctions = fnLoadResponse.nativeFunctions;
         if (!this.withoutEventSource) {
           let eventsources = await this._loadEventsources();
           this.eventsources = eventsources;
-
+          //@ts-ignore
+          global.eventsources = eventsources;
           let events = await this._loadEvents();
           this.events = events;
 
@@ -243,7 +251,9 @@ class Godspeed {
     logger.info('[START] Load events from %s', this.folderPaths.events);
     let events = await loadEvents(this.workflows, this.nativeFunctions, this.folderPaths.events, this.eventsources);
     // logger.debug('Events %o', events);
-    logger.info('[END] Loaded events %o', events);
+    logger.debug('[END] Loaded events %o', events);
+    logger.debug('[END] Loaded all events');
+
     return events;
   }
 

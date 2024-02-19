@@ -10,7 +10,7 @@ import ajvInstance, { isValidEvent } from './validation';
 
 export function loadJsonSchemaForEvents(eventObj: PlainObject) {
   logger.debug('Loading JSON Schema for events %s', Object.keys(eventObj));
-  logger.debug('eventObj: %o', eventObj);
+  // logger.debug('eventObj: %o', eventObj);
 
   return new Promise((resolve, reject) => {
     Object.keys(eventObj).forEach(function (topic) {
