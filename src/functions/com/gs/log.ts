@@ -8,5 +8,6 @@ import { GSContext } from '../../../core/interfaces';
 
 export default function (ctx: GSContext, args: { level: Pino.Level, data: any }) {
     const { childLogger } = ctx;
+    const level = args.level || ctx.config.log_level || 'info';
     childLogger[args.level]({ "module": "com.gs.log" }, args.data);
 }

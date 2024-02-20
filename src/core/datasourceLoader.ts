@@ -6,7 +6,6 @@ import { PlainObject } from '../types';
 import expandVariables from './expandVariables';
 import loadYaml from './yamlLoader';
 import { GSDataSource } from './_interfaces/sources';
-import { context } from '@opentelemetry/api';
 
 // we need to scan only the first level of datasources folder
 export default async function (
@@ -15,18 +14,18 @@ export default async function (
   let yamlDatasources = await loadYaml(pathString, false);
 
   const prismaDatasources = await loadPrismaDsFileNames(pathString);
-
   const datasourcesConfigs = { ...yamlDatasources, ...prismaDatasources };
 
   if (datasourcesConfigs && !Object.keys(datasourcesConfigs).length) {
-    throw new Error(
+    logger.fatal(
       `There are no datasources defined in datasource dir: ${pathString}`
     );
+    process.exit(1);
   }
   const datasources: { [key: string]: GSDataSource } = {};
 
   for await (let dsName of Object.keys(datasourcesConfigs)) {
-    logger.debug('evaluating datasource %s', dsName);
+    logger.info('evaluating datasource config %s', dsName);
     datasourcesConfigs[dsName] = expandVariables(datasourcesConfigs[dsName]);
     logger.debug(
       'evaluated datasource %s %o',
@@ -86,15 +85,19 @@ async function loadPrismaDsFileNames(pathString: string): Promise<PlainObject> {
       .replace(/\//g, '.')
       .replace(/\.(prisma)/i, '')
       .replace(/\.index$/, '');
-    prismaSchemas = {
-      ...prismaSchemas,
-      ...{
-        [id]: {
-          type: 'prisma',
-          name: id,
-        },
-      },
+    prismaSchemas[id] = {
+      type: 'prisma',
+      name: id,
     };
+    // prismaSchemas = {
+    //   ...prismaSchemas,
+    //   ...{
+    //     [id]: {
+    //       type: 'prisma',
+    //       name: id,
+    //     },
+    //   },
+    // };
   });
 
   return prismaSchemas;
