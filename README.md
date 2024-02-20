@@ -2,9 +2,9 @@
     <a href="https://github.com/godspeedsystems/">
         <img width="200" height="200" src="https://github.com/godspeedsystems/godspeed-cli/blob/main/logo.png">
     </a>
-    <h1 align="center">Godspeed CLI</h1>
+    <h1 align="center">Godspeed Node.js Service</h1>
 <p align="center">
-  The official Command Line Interface of Godspeed Framework
+  4th Generation Declarative Microservice Framework
 </p>
 <br>
 
@@ -18,10 +18,6 @@
   </p>
   <br />
 </div>
-
-## Godspeed Node.js Service
-
-> 4th Generation Declarative Microservice Framework
 
 Godspeed is the ultimate **4th generation microservices framework** built over Nodejs with “batteries included", "shift left", and "configuration over code" approach, allowing even entry-level developers to build robust microservices. This repository contains the source code for the Godspeed Node.js service. To know more about us you can checkout us here [Godspeed.Systems](https://godspeed.systems)
 
