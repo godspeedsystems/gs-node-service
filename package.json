@@ -1,6 +1,6 @@
 {
   "name": "@godspeedsystems/core",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "> 4th Generation Declarative Microservice Framework",
   "main": "dist/godspeed.js",
   "publishConfig": {
