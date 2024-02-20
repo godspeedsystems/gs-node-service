@@ -10,7 +10,7 @@ import ajvInstance, { isValidEvent } from './validation';
 
 export function loadJsonSchemaForEvents(eventObj: PlainObject) {
   logger.debug('Loading JSON Schema for events %s', Object.keys(eventObj));
-  logger.debug('eventObj: %o', eventObj);
+  // logger.debug('eventObj: %o', eventObj);
 
   return new Promise((resolve, reject) => {
     Object.keys(eventObj).forEach(function (topic) {
@@ -29,7 +29,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
             const content_schema = body_content[k].schema;
             if (content_schema) {
               logger.debug('adding body schema for %s', topic);
-              logger.debug('content_schema %o', content_schema);
+              // logger.debug('content_schema %o', content_schema);
               if (!ajvInstance.getSchema(topic)) {
                 ajvInstance.addSchema(content_schema, topic);
               }
@@ -67,12 +67,17 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
         }
 
         for (let schema in paramSchema) {
-          logger.info('adding param schema for %s', topic);
-          logger.debug('param schema: %o', paramSchema[schema]);
+          logger.debug('adding param schema for %s', topic);
+          // logger.debug('param schema: %o', paramSchema[schema]);
 
           const topic_param = topic + ':' + schema;
           if (!ajvInstance.getSchema(topic_param)) {
-            ajvInstance.addSchema(paramSchema[schema], topic_param);
+            try {
+              ajvInstance.addSchema(paramSchema[schema], topic_param);
+            } catch(err) {
+              logger.fatal('error in adding schema %o', err);
+              process.exit(1);
+            }
           }
         }
 
@@ -86,7 +91,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
             if (response_s) {
               const response_schema = response_s;
               const _topic = topic.replace(/{(.*?)}/g, ':$1'); //removing curly braces in topic (event key)
-              const endpoint = _topic.split('.').pop() //extracting endpoint from eventkey
+              const endpoint = _topic.split('.').pop(); //extracting endpoint from eventkey
               const topic_response = endpoint + ':responses:' + k;
               if (!ajvInstance.getSchema(topic_response)) {
                 ajvInstance.addSchema(response_schema, topic_response);
@@ -95,7 +100,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
           });
         }
       } else {
-        logger.error(`Event config validation failed during load time for ${topic} in ${eventObj}`)
+        logger.error(`Event config validation failed during load time for ${topic} in ${eventObj}`);
         process.exit(1);
       }
     });

@@ -10,6 +10,7 @@ import { readFileSync } from 'fs';
 
 import { PlainObject } from './common';
 import { logger } from '../logger';
+import { P } from 'pino';
 
 export default function loadYaml(
   pathString: string,
@@ -17,11 +18,23 @@ export default function loadYaml(
 ): PlainObject {
   let basePath = path.basename(pathString);
   let api: PlainObject = {};
-  const files = glob.sync(
-    path.join(pathString, '**', '*.?(yaml|yml)').replace(/\\/g, '/')
-  );
+  const yamlFilesLocation = path.join(pathString, '**', '*.?(yaml|yml)').replace(/\\/g, '/');
+  let files;
+  try {
+    files = glob.sync(yamlFilesLocation);
+  } catch (err) {
+    logger.fatal('Error in reading YAML files from dir %s %o', yamlFilesLocation, err);
+    process.exit(1);
+  }
+  
   files.map((file: string) => {
-    module = yaml.parse(readFileSync(file, { encoding: 'utf-8' }));
+    try {
+      module = yaml.parse(readFileSync(file, { encoding: 'utf-8' }));
+    } catch (err) {
+      logger.fatal('Error in parsing YAML file %s %o', file, err);
+      process.exit(1);
+    }
+
     const id = file
       .replace(new RegExp(`.*?\/${basePath}\/`), '')
       .replace(/\//g, '.')

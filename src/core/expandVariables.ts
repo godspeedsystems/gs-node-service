@@ -13,13 +13,13 @@ const mappings = global.mappings;
 function substitute(value: string): any {
   try {
     if ((value as string).match(/<(.*?)%/)) {
-      logger.debug('value before %s', value);
+      const before = value;
 
       let script = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
       //TODO: pass other context variables
       //@ts-ignore
       value = Function('config', 'mappings', 'return ' + script)(config, global.mappings);
-      logger.debug('value after %s', value);
+      // logger.debug('value before %s value after %s', before, value);
     }
   } catch (ex) {
     logger.error('Error in substituting script %o', ex);

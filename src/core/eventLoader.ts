@@ -27,7 +27,7 @@ const rewiteRefsToAbsolutePath = (
   return Object.keys(deepCopyOfEvents).reduce(
     (accumulator: PlainObject, eventKey: string) => {
       let eventObject = deepCopyOfEvents[eventKey];
-      logger.debug('eventObject %o', eventObject);
+      // logger.debug('eventObject %o', eventObject);
 
       const bodyContent =
         eventObject?.body?.content || eventObject?.data?.body?.content;
@@ -48,7 +48,7 @@ const rewiteRefsToAbsolutePath = (
 
       const responses =
         eventObject?.responses || eventObject?.data?.schema?.responses;
-      logger.debug('responses %o', responses);
+      // logger.debug('responses %o', responses);
       if (responses) {
         Object.keys(responses).forEach((responseCode) => {
           let responseContent = responses[responseCode].content;
@@ -90,13 +90,13 @@ export default async function loadEvents(
     process.exit(1);
   }
 
-  logger.debug('events %o', events);
+  // logger.debug('event configs %o', events);
   const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events));
 
   const checkFn = checkFunctionExists(events, allFunctions);
 
   if (!checkFn.success) {
-    logger.error(`Error in loading functions for events. Error message: %s. Exiting. ${checkFn.message}`);
+    logger.fatal(`Error in loading functions for events. Error message: %s. Exiting. ${checkFn.message}`);
     process.exit(1);
   }
   if (evalEvents) {
@@ -146,8 +146,9 @@ function loadEventWorkflows(events: PlainObject, eventSources: EventSources, all
         _function = allFunctions[functionConfig as string];
       } else if (typeof functionConfig === 'object' ) {
         //Is expected to be a `WorkflowJSON`
+        const taskLocation = { eventSourceType: eventConfig.type, eventKey: key, fn: functionType };
         _function 
-          = createGSFunction(functionConfig as WorkflowJSON,allFunctions,nativeFunctions,null);
+          = createGSFunction(functionConfig as WorkflowJSON,allFunctions,nativeFunctions,null,taskLocation);
       }
       if (_function) {
         eventConfig[functionType] = _function;
@@ -155,7 +156,7 @@ function loadEventWorkflows(events: PlainObject, eventSources: EventSources, all
         logger.error(`Could not find any valid function definition for %o when loading ${functionType} for event ${key}`, functionConfig);
         process.exit(1);
       }
-    })
-  })  
+    });
+  });
 }
 
