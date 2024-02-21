@@ -506,14 +506,15 @@ class Godspeed {
         const eventHandlerResponse = await eventHandlerWorkflow(ctx);
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
         eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
+        
+        if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
+          //Assume workflow has returned just the data and has executed sucessfully
+          eventHandlerStatus = new GSStatus(true, 200, undefined, eventHandlerResponse);
+        }
         if (!eventHandlerStatus.success) {
           childLogger.error('Event handler for %s returned \n with status %o \n for inputs \n params %o \n query %o \n body %o \n headers %o', route, eventHandlerStatus, ctx.inputs.data.params, ctx.inputs.data.query, ctx.inputs.data.body, ctx.inputs.data.headers);
         } else {
           childLogger.debug('Event handler for %s returned with status %o', route, eventHandlerStatus);
-        }
-        if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
-          //Assume workflow has returned just the data and has executed sucessfully
-          eventHandlerStatus = new GSStatus(true, 200, undefined, eventHandlerResponse);
         }
         // event workflow executed successfully
         // lets validate the response schema
