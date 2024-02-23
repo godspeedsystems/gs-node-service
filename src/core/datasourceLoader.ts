@@ -26,7 +26,8 @@ export default async function (
 
   for await (let dsName of Object.keys(datasourcesConfigs)) {
     logger.info('evaluating datasource config %s', dsName);
-    datasourcesConfigs[dsName] = expandVariables(datasourcesConfigs[dsName]);
+    const location = { datasource_name: dsName };
+    datasourcesConfigs[dsName] = expandVariables(datasourcesConfigs[dsName], location);
     logger.debug(
       'evaluated datasource %s %o',
       dsName,

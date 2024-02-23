@@ -10,25 +10,27 @@ import { logger } from '../logger';
 //@ts-ignore
 const mappings = global.mappings;
 
-function substitute(value: string): any {
+function substitute(value: string, location: PlainObject): any {
+  const initialStr = value;
   try {
-    if ((value as string).match(/<(.*?)%/)) {
-      const before = value;
+    value = value.trim();    
+    if (value.match(/<(.*?)%/) && value.match(/%>$/)) {
 
-      let script = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
+      let script = value.replace(/^<(.*?)%/, '').replace(/%>$/, '');
       //TODO: pass other context variables
       //@ts-ignore
       value = Function('config', 'mappings', 'return ' + script)(config, global.mappings);
       // logger.debug('value before %s value after %s', before, value);
     }
-  } catch (ex) {
-    logger.error('Error in substituting script %o', ex);
-  }
+  } catch (ex: any) {
+    logger.fatal(location, 'Caught exception in script compilation, script: %s compiled script %s. Error message %s\n error %o %o', initialStr, value, ex.message, ex, ex.stack);
+    process.exit(1);
+}
 
   return value;
 }
 
-export default function compileScript(args: any) {
+export default function compileScript(args: any, location: PlainObject) {
   if (!args) {
     return args;
   }
@@ -36,18 +38,18 @@ export default function compileScript(args: any) {
     if (!Array.isArray(args)) {
       let out: PlainObject = {};
       for (let k in args) {
-        out[k] = compileScript(args[k]);
+        out[k] = compileScript(args[k], location);
       }
       return out;
     } else {
       let out: [any] = <any>[];
       for (let k in <[any]>args) {
-        out[k] = compileScript(args[k]);
+        out[k] = compileScript(args[k], location);
       }
       return out;
     }
   } else if (typeof (args) == 'string') {
-    return substitute(args);
+    return substitute(args, location);
   }
 
   return args;
