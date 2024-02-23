@@ -443,11 +443,6 @@ export default async function loadFunctions(datasources: PlainObject, pathString
 
     const nativeFunctions = { ...frameworkFunctions, ..._datasourceFunctions, ...nativeMicroserviceFunctions };
 
-    // for (let f in yamlWorkflows) {
-        
-        
-    // }
-
     childLogger.debug('Creating workflows: %s', Object.keys(yamlWorkflows));
 
     for (let f in yamlWorkflows) {
