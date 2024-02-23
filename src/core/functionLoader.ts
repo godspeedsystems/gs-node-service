@@ -443,6 +443,13 @@ export default async function loadFunctions(datasources: PlainObject, pathString
 
     const nativeFunctions = { ...frameworkFunctions, ..._datasourceFunctions, ...nativeMicroserviceFunctions };
 
+    // for (let f in yamlWorkflows) {
+        
+        
+    // }
+
+    childLogger.debug('Creating workflows: %s', Object.keys(yamlWorkflows));
+
     for (let f in yamlWorkflows) {
         if (!yamlWorkflows[f]) {
             childLogger.fatal({fn: f}, `Found empty yaml workflow ${f}. Exiting.`);
@@ -452,16 +459,6 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             childLogger.fatal({fn: f}, `Did not find tasks in yaml workflow ${f}. Exiting.`);
             process.exit(1);
         }
-        const checkDS = checkDatasource(yamlWorkflows[f], datasources);
-        if (!checkDS.success) {
-            childLogger.fatal({fn: f}, `Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
-            process.exit(1);
-        }
-    }
-
-    childLogger.debug('Creating workflows: %s', Object.keys(yamlWorkflows));
-
-    for (let f in yamlWorkflows) {
         if (!(yamlWorkflows[f] instanceof GSFunction)) {
             yamlWorkflows[f].workflow_name = f;
             if (yamlWorkflows[f].on_error?.tasks) {
@@ -488,6 +485,11 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             }
             logger.debug("Loaded YAML workflow %s", f);
 
+        }
+        const checkDS = checkDatasource(yamlWorkflows[f], datasources);
+        if (!checkDS.success) {
+            childLogger.fatal({fn: f}, `Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
+            process.exit(1);
         }
     }
 
