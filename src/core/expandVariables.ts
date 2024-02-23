@@ -13,20 +13,19 @@ const mappings = global.mappings;
 function substitute(value: string, location: PlainObject): any {
   const initialStr = value;
   try {
-    value = value.trim();    
-    if (value.match(/<(.*?)%/) && value.match(/%>$/)) {
-
-      let script = value.replace(/^<(.*?)%/, '').replace(/%>$/, '');
+    if ((value as string).match(/<(.*?)%/)) {
+      let script = (value as string).replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
       //TODO: pass other context variables
-      //@ts-ignore
-      value = Function('config', 'mappings', 'return ' + script)(config, global.mappings);
-      // logger.debug('value before %s value after %s', before, value);
+
+      if (! (script.match(/<(.*?)%/) && script.match(/%>/))) {
+        //@ts-ignore
+        value = Function('config', 'mappings', 'return ' + script)(config, global.mappings);
+      }
     }
   } catch (ex: any) {
     logger.fatal(location, 'Caught exception in script compilation, script: %s compiled script %s. Error message %s\n error %o %o', initialStr, value, ex.message, ex, ex.stack);
     process.exit(1);
-}
-
+  }
   return value;
 }
 
