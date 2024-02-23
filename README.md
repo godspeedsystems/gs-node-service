@@ -13,7 +13,7 @@
 [![contributions welcome](https://badgen.net/static/follow/youtube/red)](https://www.youtube.com/@godspeed.systems/videos)
 [![Discord](https://img.shields.io/badge/chat-discord-brightgreen.svg?logo=discord&style=flat)](https://discord.com/invite/MKjv3KdD7X)
 [![Website](https://img.shields.io/website?url=https%3A%2F%2Fgodspeed.systems%2F)](https://godspeed.systems/)
-[![Website](https://badgen.net/static/follow/linkedin/blue)](href="https://www.linkedin.com/company/godspeed-systems)
+[![Website](https://badgen.net/static/follow/linkedin/blue)](https://www.linkedin.com/company/godspeed-systems/)
 
   </p>
   <br />
@@ -33,6 +33,10 @@ Godspeed is the ultimate **4th generation microservices framework** built over N
 - Remote container based development-last
 - Built-in authentication and fine-grained authorization
 - OpenTelemetry for observability
+
+## 📖 Documentation <a name="Documentation"></a>
+
+You can find the complete documentation of Godspeed [here](https://godspeed.systems/docs/microservices-framework/getting-started/overview).
 
 ## Show Your Love ❤️ & Support 🙏
 
