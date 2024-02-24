@@ -458,7 +458,7 @@ export class GSFunction extends Function {
     let cachingDs: GSCachingDataSource;
 
     try {
-      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
+      // ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, '_call invoked with task value %s %o', this.id, taskValue);
       let datastoreAuthzArgs;/*
       This is when datasource needs to modify its SQL query or something
       else to ensure that the current user gets or mutates only the data
@@ -545,7 +545,7 @@ export class GSFunction extends Function {
           throw ctx.exitWithStatus;
         }
       }
-      ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
+      // ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'args after evaluation: %s %o', this.id, args);
       if (this.fnScript) {
         ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
         let s: string = await evaluateScript(ctx, this.fnScript, taskValue);

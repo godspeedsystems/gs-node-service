@@ -459,7 +459,7 @@ class Godspeed {
           return validateStatus;
         }
       } else {
-        childLogger.info(
+        childLogger.debug(
           'Request JSON Schema validated successfully %o',
           validateStatus
         );
