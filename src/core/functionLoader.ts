@@ -450,7 +450,11 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             childLogger.fatal({fn: f}, `Found empty yaml workflow ${f}. Exiting.`);
             process.exit(1);
         }
-        if (!yamlWorkflows[f].tasks) {
+        //Since a yaml workflow loading recursively loads called workflows by calling createGSFunction on them,
+        //which in turn sets yaml key in them, when a workflow's turn in this for loop comes,
+        //it may already have been loaded before. 
+        //When a workflow is loaded, it has yaml key set in it
+        if (!yamlWorkflows[f].yaml?.tasks && !yamlWorkflows[f].tasks) {
             childLogger.fatal({fn: f}, `Did not find tasks in yaml workflow ${f}. Exiting.`);
             process.exit(1);
         }
