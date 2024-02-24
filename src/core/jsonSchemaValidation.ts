@@ -224,7 +224,7 @@ export function validateResponseSchema(
           originalResponseCode: gsStatus.code 
       });
       } else {
-        childLogger.info('ajv_validate success');
+        // childLogger.debug('ajv_validate success');
         status = { success: true };
       }
     } else {
