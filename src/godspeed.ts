@@ -34,7 +34,8 @@ import {
   GSContext,
   GSSeriesFunction,
   GSStatus,
-  GSResponse
+  GSResponse,
+  GSFunction
 } from './core/interfaces';
 
 import {
@@ -435,7 +436,6 @@ class Godspeed {
       let eventSpec = eventConfig;
 
       if (validateStatus.success === false) {
-        childLogger.error(`failed to validate request body. ${validateStatus}`);
 
         // if `on_request_validation_error` is defined in the event, let's execute that
         if (eventSpec.on_request_validation_error) {
@@ -447,13 +447,15 @@ class Godspeed {
             data: validateStatus.data
           };
 
-          childLogger.error('Validation of event request failed %s', JSON.stringify(validationError));
+          childLogger.error('Validation of event request failed %s. Will run validation error handler', JSON.stringify(validationError));
 
           event.data = { event: event.data, validation_error: validationError };
 
           // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
-          eventHandlerWorkflow = <GSSeriesFunction>(eventSpec.on_request_validation_error);
+          eventHandlerWorkflow = <GSFunction>(eventSpec.on_request_validation_error);
         } else {
+          childLogger.error('Validation of event request failed %s. Returning.', JSON.stringify(validateStatus));
+
           return validateStatus;
         }
       } else {
