@@ -1,11 +1,11 @@
 import { PlainObject } from "../types";
-
+import fs from 'fs';
 export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObject, eventSourceConfig: PlainObject) => {
 
   const finalSpecs: { [key: string]: any } = { openapi: "3.0.0", paths: {} };
 
-  const { port, docs: { info, servers }, jwt } = eventSourceConfig;
-
+  const { port, docs: { info, servers } } = eventSourceConfig;
+  const jwt = eventSourceConfig.authn?.jwt || eventSourceConfig.jwt;
   const eventObjStr = JSON.stringify(events);
   const modifiedStr = eventObjStr.replace(/https:\/\/godspeed\.systems\/definitions\.json/g, '');
   const eventObj = JSON.parse(modifiedStr);
@@ -15,7 +15,7 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
     apiEndPoint = apiEndPoint.replace(/:([^\/]+)/g, '{$1}'); //We take :path_param. OAS3 takes {path_param}
     const method = event.split('.')[1];
     const eventSchema = eventObj[event];
-
+    const eventAuthn = jwt && eventSchema.authn !== false;
     //Initialize the schema for this method, for given event
     let methodSpec: PlainObject = {
       summary: eventSchema.summary,
@@ -23,7 +23,7 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
       requestBody: eventSchema.body,
       parameters: eventSchema.params,
       responses: eventSchema.responses,
-      ...(eventSchema.authn && {
+      ...(eventAuthn && {
         security: [{
           bearerAuth: []
         },]
@@ -62,5 +62,9 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
       },
     };
   }
+  const swaggerDir = process.cwd() + '/docs/';
+  fs.mkdirSync(swaggerDir, { recursive: true });
+  fs.writeFileSync(swaggerDir + 'http-swagger.json', JSON.stringify(finalSpecs), 'utf-8');
+
   return finalSpecs;
 };
