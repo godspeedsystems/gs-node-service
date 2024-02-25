@@ -485,7 +485,8 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             logger.debug("Loaded YAML workflow %s", f);
 
         }
-        const checkDS = checkDatasource(yamlWorkflows[f], datasources);
+        const workflowYaml = yamlWorkflows[f].yaml ?? yamlWorkflows[f]
+        const checkDS = checkDatasource(workflowYaml, datasources);
         if (!checkDS.success) {
             childLogger.fatal({fn: f}, `Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
             process.exit(1);

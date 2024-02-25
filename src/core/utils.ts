@@ -8,6 +8,7 @@ import { dirname } from 'path';
 
 import CoffeeScript from 'coffeescript';
 import config from "config";
+import expandVariable from './expandVariables'
 
 import * as fs from 'fs';
 import * as assert from 'assert';
@@ -91,7 +92,17 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
           While loading the workflows, we only check for the available datasource name, in loaded datasource
           and rest is handled by the actual datasource implementation.
         */
-        const dsName = task.fn.split('.')[1];
+          let dsName;
+          if (task.fn?.match(/<(.*?)%/) && task.fn?.includes('%>')) {
+           
+            const extractDynamicDatasource = task.fn.match(/<%[^%>]+%>/);
+            if (extractDynamicDatasource) {
+              const script = expandVariable(extractDynamicDatasource[0]);
+              dsName = script;
+            }
+          } else {
+            dsName = task.fn.split('.')[1];
+          }
 
         if (!(dsName in datasources)) {
           logger.error('datasource %s is not present in datasources', dsName);
