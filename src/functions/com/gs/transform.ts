@@ -19,7 +19,7 @@ export default function (ctx: GSContext, args: PlainObject | boolean) {
     return {
       success: false,
       code: 403
-    }
+    };
   }
   return {success: args.success || false, code: args.code || (!args.success && 403) || 200, message: args.message, data: args.data};
   // //Here, args are expected to be in GSStatus format

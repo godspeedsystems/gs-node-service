@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as process from 'process';
 import * as yaml from 'js-yaml';
 import { logger } from '../logger';
-
+import path from 'path';
 function iterate_yaml_directories(current_yaml_root: any) {
   var recursive_object_state: any = {};
 
@@ -17,8 +17,8 @@ function iterate_yaml_directories(current_yaml_root: any) {
   });
 
   //To determine the yaml property for which the current iteration is for
-  const paths_split_array = current_yaml_root.split('/');
-  const current_property = paths_split_array[paths_split_array.length - 1];
+  const current_property = path.basename(current_yaml_root);
+
 
   if (!recursive_object_state.hasOwnProperty(current_property))
     recursive_object_state[current_property] = {};

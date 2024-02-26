@@ -52,7 +52,7 @@ const rewiteRefsToAbsolutePath = (
       if (responses) {
         Object.keys(responses).forEach((responseCode) => {
           let responseContent = responses[responseCode].content;
-          logger.debug('responseContent %o', responseContent);
+          // logger.debug('responseContent %o', responseContent);
           if (responseContent) {
             Object.keys(responseContent).forEach((responseContentType) => {
               let responseContentTypeSchema =
@@ -146,7 +146,7 @@ function loadEventWorkflows(events: PlainObject, eventSources: EventSources, all
         //For ex. authz: "com.biz.common_authz"
         _function = allFunctions[functionConfig as string];
       } else if (typeof functionConfig === 'object' ) {
-        //Is expected to be a `WorkflowJSON`
+        //Is expected to be a `WorkflowJSON` declared within a yaml eventsource/event config
         const taskLocation = { eventSourceType: eventConfig.type, eventKey: key, fn: functionType };
         _function 
           = createGSFunction(functionConfig as WorkflowJSON,allFunctions,nativeFunctions,null,taskLocation);
