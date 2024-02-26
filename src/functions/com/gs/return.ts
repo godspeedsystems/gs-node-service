@@ -1,4 +1,4 @@
-import { GSContext, logger } from "../../../godspeed";
+import { GSContext } from "../../../godspeed";
 import { PlainObject } from "../../../types";
 
 /*
@@ -6,7 +6,6 @@ import { PlainObject } from "../../../types";
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 export default function (ctx: GSContext, args: PlainObject) {
-  logger.info("*** args: %o", args);
   let success = args.success;
   let code = args.code;
   const v1Compatible = args.returnV1Compatible;
