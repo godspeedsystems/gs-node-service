@@ -23,7 +23,7 @@ function substitute(value: string, location: PlainObject): any {
       }
     }
   } catch (ex: any) {
-    logger.info(location, 'Caught exception in script compilation, script: %s compiled script %s. Error message %s\n error %o %o', initialStr, value, ex.message, ex, ex.stack);
+    logger.warn(location, 'Caught exception in script compilation, script: %s compiled script %s. Error message %s\n error %o %o', initialStr, value, ex.message, ex, ex.stack);
   }
   return value;
 }
