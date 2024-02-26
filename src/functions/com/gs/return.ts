@@ -17,7 +17,7 @@ export default function (ctx: GSContext, args: PlainObject) {
     success = success !== undefined && success !== null ? success : false;
     code = code || (!success && 403) || 200;
   } else {
-    success = v1Compatible ? true : success;
+    success = v1Compatible ? true : (success !== undefined && success !== null ? success : true);
     code = v1Compatible ? 200 : code || 200;
   }
 
