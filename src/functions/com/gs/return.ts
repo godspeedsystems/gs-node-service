@@ -1,5 +1,4 @@
-import { P } from "pino";
-import { GSContext, GSStatus } from "../../../godspeed";
+import { GSContext } from "../../../godspeed";
 import { PlainObject } from "../../../types";
 
 /*
@@ -13,12 +12,12 @@ export default function (ctx: GSContext, args: PlainObject) {
   delete args.code;
 
   if (ctx.forAuth) {
-    success = success || false;
+    success = success !== undefined && success !== null ? success : false;;
     code = code || (!success && 403) || 200;
   } else {
-    success = true;
+    success = success !== undefined && success !== null ? success : true;
     code = code || 200;
   }
-  
+
   return {success: success, code: code, data: args, exitWithStatus: true };
 }
