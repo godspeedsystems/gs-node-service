@@ -1,4 +1,4 @@
-import { GSContext } from "../../../godspeed";
+import { GSContext, logger } from "../../../godspeed";
 import { PlainObject } from "../../../types";
 
 /*
@@ -6,18 +6,21 @@ import { PlainObject } from "../../../types";
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 export default function (ctx: GSContext, args: PlainObject) {
+  logger.info("*** args: %o", args);
   let success = args.success;
   let code = args.code;
+  const v1Compatible = args.returnV1Compatible;
   delete args.success;
   delete args.code;
+  delete args.returnV1Compatible;
 
   if (ctx.forAuth) {
-    success = success !== undefined && success !== null ? success : false;;
+    success = success !== undefined && success !== null ? success : false;
     code = code || (!success && 403) || 200;
   } else {
-    success = success !== undefined && success !== null ? success : true;
-    code = code || 200;
+    success = v1Compatible ? true : success;
+    code = v1Compatible ? 200 : code || 200;
   }
 
-  return {success: success, code: code, data: args, exitWithStatus: true };
+  return {success: success, code: code, data: v1Compatible ? args : args.data, exitWithStatus: true };
 }
