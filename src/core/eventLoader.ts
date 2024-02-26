@@ -91,7 +91,8 @@ export default async function loadEvents(
   }
 
   // logger.debug('event configs %o', events);
-  const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events));
+  const location = { location: "Events loading" };
+  const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events), location);
 
   const checkFn = checkFunctionExists(events, allFunctions);
 

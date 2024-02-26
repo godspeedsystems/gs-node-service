@@ -26,14 +26,10 @@ export default async function (
 
   for await (let dsName of Object.keys(datasourcesConfigs)) {
     logger.info('Evaluating the inline yaml scripts in datasource config %s', dsName);
-    datasourcesConfigs[dsName] = expandVariables(datasourcesConfigs[dsName]);
+    const location = { datasource_name: dsName };
+    datasourcesConfigs[dsName] = expandVariables(datasourcesConfigs[dsName], location);
     logger.info('Evaluated the inline yaml scripts for datasource config %s', dsName);
-    
-    logger.debug(
-      'Done evaluating scripts for datasource config %s \n Evaluated script %o',
-      dsName,
-      datasourcesConfigs[dsName]
-    );
+    logger.debug('Evaluated script %o', datasourcesConfigs[dsName]);
 
     // let's load the loadFn and executeFn
     // there is an assumption that for each datasource, the type's .ts file should be inside /datasources/types folder
