@@ -13,19 +13,21 @@ export default function (ctx: GSContext, args: PlainObject) {
   // delete args.code;
 
   if (ctx.forAuth) {
-    success = args.hasOwnProperty('success')  ? args.success: false;
+    success = args.hasOwnProperty('success') ? args.success : false;
     code = args.code || (!args.success && 403) || 200;
     data = args.hasOwnProperty('data') ? args.data : args;
+    return { success, code, data, exitWithStatus: true };
+
+  }
+  const v1Compatible = ctx.config.returnV1Compatible;
+
+  if (v1Compatible) {
+    return { success: true, code: 200, data: args, exitWithStatus: true };
   } else {
-    const v1Compatible = ctx.config.returnV1Compatible;
-    success = v1Compatible ? true : (args.hasOwnProperty('success') ? args.success : true);
-    code = v1Compatible ? 200 : code || 200;
-    if (v1Compatible) {
-      data = args;
-    } else {
-      data = args.hasOwnProperty('data') ? args.data : args;
-    }
+    success = args.hasOwnProperty('success') ? args.success : true;
+    code = args.code || 200;
+    data = args.hasOwnProperty('data') ? args.data : args;
+    return { success, code, data, exitWithStatus: true };
   }
 
-  return {success, code, data, exitWithStatus: true };
 }
