@@ -6,20 +6,26 @@ import { PlainObject } from "../../../types";
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 export default function (ctx: GSContext, args: PlainObject) {
-  let success = args.success;
-  let code = args.code;
-  const v1Compatible = args.returnV1Compatible;
-  delete args.success;
-  delete args.code;
-  delete args.returnV1Compatible;
+  let success;
+  let code;
+  let data;
+  // delete args.success;
+  // delete args.code;
 
   if (ctx.forAuth) {
-    success = success !== undefined && success !== null ? success : false;
-    code = code || (!success && 403) || 200;
+    success = args.hasOwnProperty('success')  ? args.success: false;
+    code = args.code || (!args.success && 403) || 200;
+    data = args.hasOwnProperty('data') ? args.data : args;
   } else {
-    success = v1Compatible ? true : (success !== undefined && success !== null ? success : true);
+    const v1Compatible = ctx.config.returnV1Compatible;
+    success = v1Compatible ? true : (args.hasOwnProperty('success') ? args.success : true);
     code = v1Compatible ? 200 : code || 200;
+    if (v1Compatible) {
+      data = args;
+    } else {
+      data = args.hasOwnProperty('data') ? args.data : args;
+    }
   }
 
-  return {success: success, code: code, data: v1Compatible ? args : args.data, exitWithStatus: true };
+  return {success, code, data, exitWithStatus: true };
 }
