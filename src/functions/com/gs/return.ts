@@ -16,8 +16,6 @@ export default function (ctx: GSContext, args: PlainObject) {
     success = args.hasOwnProperty('success') ? args.success : false;
     code = args.code || (!args.success && 403) || 200;
     data = args.hasOwnProperty('data') ? args.data : args;
-    return { success, code, data, exitWithStatus: true };
-
   }
   const v1Compatible = ctx.config.returnV1Compatible;
 
@@ -27,7 +25,9 @@ export default function (ctx: GSContext, args: PlainObject) {
     success = args.hasOwnProperty('success') ? args.success : true;
     code = args.code || 200;
     data = args.hasOwnProperty('data') ? args.data : args;
-    return { success, code, data, exitWithStatus: true };
   }
 
+  delete args.success;
+  delete args.code;
+  return { success, code, data, exitWithStatus: true };
 }
