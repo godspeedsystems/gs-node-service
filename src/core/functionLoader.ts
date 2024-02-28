@@ -485,12 +485,13 @@ export default async function loadFunctions(datasources: PlainObject, pathString
             logger.debug("Loaded YAML workflow %s", f);
 
         }
-        const workflowYaml = yamlWorkflows[f].yaml ?? yamlWorkflows[f]
-        const checkDS = checkDatasource(workflowYaml, datasources);
-        if (!checkDS.success) {
-            childLogger.fatal({fn: f}, `Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
-            process.exit(1);
-        }
+        // Need discussion whether to evaluate the fn script on load time and skipping evaluation on runtime in some cases we may evaluate the script on runtime
+        // const workflowYaml = yamlWorkflows[f].yaml ?? yamlWorkflows[f]
+        // const checkDS = checkDatasource(workflowYaml, datasources,{ workflow_name: f, task_id: yamlWorkflows[f].id});
+        // if (!checkDS.success) {
+        //     childLogger.fatal({fn: f}, `Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
+        //     process.exit(1);
+        // }
     }
 
     loadFnStatus = { success: true, nativeFunctions, functions: { ...yamlWorkflows, ...nativeMicroserviceFunctions } };
