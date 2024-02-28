@@ -8,6 +8,7 @@ import { dirname } from 'path';
 
 import CoffeeScript from 'coffeescript';
 import config from "config";
+import expandVariable from './expandVariables'
 
 import * as fs from 'fs';
 import * as assert from 'assert';
@@ -67,11 +68,11 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
   obj[lastKey] = value;
 }
 
-export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
+export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject,location: PlainObject): GSStatus {
   for (let task of workflowJson.tasks) {
     if (task.tasks) {
       //sub-workflow
-      const status: GSStatus = checkDatasource(task, datasources);
+      const status: GSStatus = checkDatasource(task, datasources, location);
       if (!status.success) {
         return status;
       }
@@ -91,7 +92,17 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
           While loading the workflows, we only check for the available datasource name, in loaded datasource
           and rest is handled by the actual datasource implementation.
         */
-        const dsName = task.fn.split('.')[1];
+          let dsName;
+          if (task.fn?.match(/<(.*?)%/) && task.fn?.includes('%>')) {
+           
+            const extractDynamicDatasource = task.fn.match(/<%[^%>]+%>/);
+            if (extractDynamicDatasource) {
+              const script = expandVariable(extractDynamicDatasource[0],location);
+              dsName = script;
+            }
+          } else {
+            dsName = task.fn.split('.')[1];
+          }
 
         if (!(dsName in datasources)) {
           logger.error('datasource %s is not present in datasources', dsName);

@@ -283,13 +283,13 @@ class Godspeed {
         logger.info('[END] Load functions');
         return loadFnStatus;
       } else {
-        logger.fatal('Error in loading project functions');
+        logger.fatal('Error in loading project functions %o', loadFnStatus);
         process.exit(1);
 
       }
     } catch (err: any) {
 
-      logger.fatal('Error in loading project functions %s %o', err.message, err);
+      logger.fatal('Error in loading project functions %s %o', err.message, err.stack);
       process.exit(1);
 
     }
