@@ -67,7 +67,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
         }
 
         for (let schema in paramSchema) {
-          logger.debug('adding param schema for %s', topic);
+          // logger.debug('adding param schema for %s', topic);
           // logger.debug('param schema: %o', paramSchema[schema]);
 
           const topic_param = topic + ':' + schema;
@@ -224,7 +224,7 @@ export function validateResponseSchema(
           originalResponseCode: gsStatus.code 
       });
       } else {
-        childLogger.info('ajv_validate success');
+        // childLogger.debug('ajv_validate success');
         status = { success: true };
       }
     } else {

@@ -426,8 +426,8 @@ export default async function loadFunctions(datasources: PlainObject, pathString
 
     let loadFnStatus: LoadedFunctions;
     const childLogger = logger.child({section: 'loading_functions'});
-    childLogger.debug('JS/TS functions in src/functions %s', Object.keys(nativeMicroserviceFunctions));
-    childLogger.debug('Yaml Workflows  in src/functions %s', Object.keys(yamlWorkflows));
+    childLogger.debug('JS/TS functions found in src/functions %s', Object.keys(nativeMicroserviceFunctions));
+    childLogger.debug('Yaml Workflows found in src/functions %s', Object.keys(yamlWorkflows));
     // logger.debug('Framework defined  functions %s', Object.keys(frameworkFunctions));
     childLogger.debug('Datasources found in src/datasources %o', Object.keys(datasources));
 
@@ -492,6 +492,7 @@ export default async function loadFunctions(datasources: PlainObject, pathString
         //     childLogger.fatal({fn: f}, `Error in loading datasource for function ${f} . Error message: ${checkDS.message}. Exiting.`);
         //     process.exit(1);
         // }
+
     }
 
     loadFnStatus = { success: true, nativeFunctions, functions: { ...yamlWorkflows, ...nativeMicroserviceFunctions } };
