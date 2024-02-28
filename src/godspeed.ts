@@ -507,7 +507,7 @@ class Godspeed {
       try {
         const eventHandlerResponse = await eventHandlerWorkflow(ctx);
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
-        eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
+        eventHandlerStatus = eventHandlerResponse;//ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
         
         if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
           //Assume workflow has returned just the data and has executed sucessfully
