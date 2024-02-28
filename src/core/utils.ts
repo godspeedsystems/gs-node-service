@@ -68,11 +68,11 @@ export function setAtPath(o: PlainObject, path: string, value: any) {
   obj[lastKey] = value;
 }
 
-export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject): GSStatus {
+export function checkDatasource(workflowJson: PlainObject, datasources: PlainObject,location: PlainObject): GSStatus {
   for (let task of workflowJson.tasks) {
     if (task.tasks) {
       //sub-workflow
-      const status: GSStatus = checkDatasource(task, datasources);
+      const status: GSStatus = checkDatasource(task, datasources, location);
       if (!status.success) {
         return status;
       }
@@ -97,7 +97,7 @@ export function checkDatasource(workflowJson: PlainObject, datasources: PlainObj
            
             const extractDynamicDatasource = task.fn.match(/<%[^%>]+%>/);
             if (extractDynamicDatasource) {
-              const script = expandVariable(extractDynamicDatasource[0]);
+              const script = expandVariable(extractDynamicDatasource[0],location);
               dsName = script;
             }
           } else {
