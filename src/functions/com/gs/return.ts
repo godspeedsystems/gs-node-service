@@ -1,33 +1,36 @@
 import { GSContext } from "../../../godspeed";
 import { PlainObject } from "../../../types";
+import transform from './transform';
 
 /*
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 export default function (ctx: GSContext, args: PlainObject) {
-  let success;
-  let code;
-  let data;
-  // delete args.success;
-  // delete args.code;
-
   if (ctx.forAuth) {
-    success = args.hasOwnProperty('success') ? args.success : false;
-    code = args.code || (!args.success && 403) || 200;
-    data = args.hasOwnProperty('data') ? args.data : args;
+    const success = args.hasOwnProperty('success') ? args.success : false;
+    const code = args.code || (!args.success && 403) || 200;
+    const data = args.hasOwnProperty('data') ? args.data : args;
+    return { success, code, data, exitWithStatus: true };
   }
-  const v1Compatible = ctx.config.returnV1Compatible;
+  const v1Compatible = ctx.config.defaults?.returnV1Compatible;
 
   if (v1Compatible) {
     return { success: true, code: 200, data: args, exitWithStatus: true };
   } else {
-    success = args.hasOwnProperty('success') ? args.success : true;
-    code = args.code || 200;
-    data = args.hasOwnProperty('data') ? args.data : args;
+    const transformRes = transform(ctx, args);
+    if (typeof (transformRes) == 'object') {
+      return {
+        ...transformRes,
+        exitWithStatus: true
+      };
+    } else {
+      return {
+        success: true,
+        code: 200,
+        data: transformRes,
+        exitWithStatus: true
+      };  
+    }
   }
-
-  delete args.success;
-  delete args.code;
-  return { success, code, data, exitWithStatus: true };
 }

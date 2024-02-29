@@ -341,14 +341,23 @@ export class GSFunction extends Function {
       if (res instanceof GSStatus) {
         status = res;
       } else {
-        if (typeof (res) == 'object' && (res.success !== undefined || res.code !== undefined)) {
+        if (typeof (res) == 'object') {       
           //Some framework functions like HTTP return an object in following format. Check if that is the case.
           //All framework functions are expected to set success as boolean variable. Can not be null.
-          let { success, code, data, message, headers, exitWithStatus } = res;
-          status = new GSStatus(success, code, message, data, headers);
-          //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
-          if (exitWithStatus) {
-            ctx.exitWithStatus = status;
+          if (res.success !== undefined || res.code !== undefined) {
+            let { success, code, data, message, headers, exitWithStatus } = res;
+            status = new GSStatus(success, code, message, data, headers);  
+            //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
+            if (exitWithStatus) {
+              ctx.exitWithStatus = status;
+            }
+          } else {
+            const {exitWithStatus, ...restObj} = res;  
+            status = new GSStatus(true, 200, undefined, restObj);  
+            //Check if exitWithStatus is set in the res object. If it is set then return by setting ctx.exitWithStatus else continue.
+            if (exitWithStatus) {
+              ctx.exitWithStatus = status;
+            }
           }
         } else {
           //This function gives a non GSStatus compliant return, then create a new GSStatus and set in the output for this function
