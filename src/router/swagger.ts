@@ -20,6 +20,10 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
     let methodSpec: PlainObject = {
       summary: eventSchema.summary,
       description: eventSchema.description,
+      tags: [
+        eventSchema.tags
+      ],
+      operationId: eventSchema.operationId || eventSchema.id || eventSchema.summary.replace(' ', '_'),
       requestBody: eventSchema.body,
       parameters: eventSchema.params,
       responses: eventSchema.responses,
