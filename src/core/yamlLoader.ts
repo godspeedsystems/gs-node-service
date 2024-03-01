@@ -10,7 +10,6 @@ import { readFileSync } from 'fs';
 
 import { PlainObject } from './common';
 import { logger } from '../logger';
-import { P } from 'pino';
 
 export default function loadYaml(
   pathString: string,

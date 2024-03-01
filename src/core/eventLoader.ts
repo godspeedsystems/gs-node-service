@@ -103,9 +103,29 @@ export default async function loadEvents(
   if (evalEvents) {
     await loadJsonSchemaForEvents(evalEvents);
   }
+
+  splitEventsByEventSources(evalEvents);
+
   loadEventWorkflows(evalEvents, eventSources, allFunctions, nativeFunctions);
   return evalEvents;
 };
+
+function splitEventsByEventSources(events: PlainObject) {
+  Object.keys(events).forEach((key: string) => {
+    const eventSourceName = key.split('.')[0];
+    if (!eventSourceName.includes('&')) {
+      return;
+    }
+    const eventSources = eventSourceName.split('&');
+    const commonKeyPart = key.replace(eventSourceName, ''); 
+    for (let eventSource of eventSources) {
+      eventSource = eventSource.trim();
+      const newKey = eventSource + commonKeyPart;
+      events[newKey] = JSON.parse(JSON.stringify(events[key]));
+    }
+    delete events[key];
+  });
+}
   /**
     * Iterate through all event definitions and 
     * load the authz, on_request_validation_error, on_response_validation_error and any such workflows
