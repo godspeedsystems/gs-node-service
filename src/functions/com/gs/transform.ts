@@ -1,4 +1,4 @@
-import { GSContext, GSStatus } from "../../../core/interfaces";
+import { GSContext } from "../../../core/interfaces";
 import { PlainObject } from "../../../types";
 
 /*
@@ -6,9 +6,17 @@ import { PlainObject } from "../../../types";
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 
-export default function (ctx: GSContext, args: PlainObject | boolean) {
+export default function (ctx: GSContext, args: any) {
   if (!ctx.forAuth) {
-    return args;
+    if (typeof(args) != "object") {
+      return {
+        success: true,
+        code:200,
+        data: args
+      };
+    } else {
+      return args;
+    }
   }
   //In case for authorization flow
   if (args === true) {
@@ -22,19 +30,4 @@ export default function (ctx: GSContext, args: PlainObject | boolean) {
     };
   }
   return {success: args.success || false, code: args.code || (!args.success && 403) || 200, message: args.message, data: args.data};
-  // //Here, args are expected to be in GSStatus format
-  // //There may also be data key in args, for datasource plugins
-  // //In that case, 
-  // //Remove code and success if present from the args, and 
-  // let success = args.success;
-  // let code;
-  // delete args.success;
-  // success = success || false;
-  // if (!args.code && !success) {
-  //   code = args.code || 403;
-  // }
-  // delete args.code;
-// return {success: success, code: code, data: args };
-  
-  
 }
