@@ -1,10 +1,25 @@
 import { PlainObject } from "../types";
-import fs from 'fs';
-export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObject, eventSourceConfig: PlainObject) => {
+
+// Define the type of eventSourceConfig
+type EventSourceConfig = {
+  port: number;
+  jwt?: PlainObject //For v1 compatibility
+  authn?: {
+    jwt?: PlainObject //V2 has all authentication configs in authn
+  }
+  docs?: {
+      info: any; // Adjust the type as needed
+      servers: any[]; // Adjust the type as needed
+  };
+};
+
+export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObject, eventSourceConfig: EventSourceConfig) => {
 
   const finalSpecs: { [key: string]: any } = { openapi: "3.0.0", paths: {} };
 
-  const { port, docs: { info, servers } } = eventSourceConfig;
+  const { port, docs} = eventSourceConfig;
+  const info = docs?.info;
+  const servers = docs?.servers;
   const jwt = eventSourceConfig.authn?.jwt || eventSourceConfig.jwt;
   const eventObjStr = JSON.stringify(events);
   const modifiedStr = eventObjStr.replace(/https:\/\/godspeed\.systems\/definitions\.json/g, '');
@@ -49,22 +64,51 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
   }
 
   finalSpecs.info = info;
-  finalSpecs.definitions = definitions;
-
+  //finalSpecs.definitions = definitions;
+  finalSpecs.components = {
+    schemas: definitions
+  };
+  replaceStringInJSON(finalSpecs, "#/definitions/", "#/components/schemas/");
   if (jwt) {
-    finalSpecs.components = {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-        },
-      },
+    finalSpecs.components.securitySchemes = {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      }
     };
   }
-  const swaggerDir = process.cwd() + '/docs/';
-  fs.mkdirSync(swaggerDir, { recursive: true });
-  fs.writeFileSync(swaggerDir + 'http-swagger.json', JSON.stringify(finalSpecs), 'utf-8');
+
 
   return finalSpecs;
 };
+
+function replaceStringInJSON(jsonObj: PlainObject, stringToMatch: string, replacementString: string) {
+  if (jsonObj === null) {
+    return;
+  }
+
+  // If jsonObj is an array, iterate through its elements
+  if (Array.isArray(jsonObj)) {
+    for (let i = 0; i < jsonObj.length; i++) {
+      jsonObj[i] = replaceStringInJSON(jsonObj[i], stringToMatch, replacementString);
+    }
+  } else if (typeof jsonObj === 'object') {
+    // Iterate through the object keys
+    for (let key in jsonObj) {
+      if (jsonObj.hasOwnProperty(key)) {
+        // Recursively call the function for nested objects or arrays
+        jsonObj[key] = replaceStringInJSON(jsonObj[key], stringToMatch, replacementString);
+      }
+    }
+  } else if(typeof jsonObj === 'string' ) {
+    // If jsonObj is a leaf string value and contains the string to match, replace it
+    if ((jsonObj as string).includes(stringToMatch)) {
+      return (jsonObj as string).replace(new RegExp(stringToMatch, 'g'), replacementString);
+    }
+  }
+
+
+
+  return jsonObj;
+}

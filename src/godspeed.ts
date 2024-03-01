@@ -1,5 +1,6 @@
 /* eslint-disable import/first */
 import 'dotenv/config';
+import fs from 'fs';
 import { childLogger, initializeChildLogger, logger } from './logger';
 try {
   if (process.env.OTEL_ENABLED == 'true') {
@@ -359,9 +360,11 @@ class Godspeed {
 
     const httpEventSource = this.eventsources['http']; // eslint-disable-line
     if (httpEventSource?.config?.docs) {
-      const _httpEvents = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
+      //@ts-ignore
+      const httpEventsSwagger = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
       // @ts-ignore
-      httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
+      httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(httpEventsSwagger));
+      this.saveHttpEventsSwaggerJson(httpEventsSwagger);
     }
 
     if (process.env.OTEL_ENABLED == 'true') {
@@ -381,6 +384,13 @@ class Godspeed {
         res.end(appMetrics + prismaMetrics);
       });
     }
+  }
+
+  private saveHttpEventsSwaggerJson(swaggerJson: PlainObject) {
+    const swaggerDir = process.cwd() + '/docs/';
+    fs.mkdirSync(swaggerDir, { recursive: true });
+    const swaggerFileName = (swaggerJson.info?.title || 'http');
+    fs.writeFileSync(swaggerDir + swaggerFileName + '-swagger.json', JSON.stringify(swaggerJson), 'utf-8');
   }
 
   public async executeWorkflow(name: string, args: PlainObject): Promise<GSStatus> {
@@ -508,7 +518,7 @@ class Godspeed {
         const eventHandlerResponse = await eventHandlerWorkflow(ctx);
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
         eventHandlerStatus = eventHandlerResponse;//ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
-        
+
         if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
           //Assume workflow has returned just the data and has executed sucessfully
           eventHandlerStatus = new GSStatus(true, 200, undefined, eventHandlerResponse);
@@ -578,7 +588,8 @@ export {
   yamlLoader,
   logger,
   childLogger,
-  RedisOptions
+  RedisOptions,
+  generateSwaggerJSON
 };
 
 export default Godspeed;

@@ -1,7 +1,7 @@
 {
   "name": "@godspeedsystems/core",
-  "version": "2.4.2",
-  "description": "> 4th Generation Declarative Microservice Framework",
+  "version": "2.4.3",
+  "description": "4th Generation Declarative Microservice Framework",
   "main": "dist/godspeed.js",
   "publishConfig": {
     "access": "public"
@@ -13,8 +13,8 @@
     "build": "NODE_ENV=production swc src -d dist && rsync -a --exclude '*.ts' ./src/ ./dist/ && tsc --emitDeclarationOnly",
     "prepublishOnly": "npm run clean && npm run build"
   },
-  "author": "Godspeed Systems Pte",
-  "license": "ISC",
+  "author": "Godspeed Systems",
+  "license": "Godspeed V1",
   "dependencies": {
     "@godspeedsystems/metrics": "^0.0.3",
     "@opentelemetry/api": "^1.6.0",
