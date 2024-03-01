@@ -25,8 +25,9 @@ export default function loadYaml(
     logger.fatal('Error in reading YAML files from dir %s %o', yamlFilesLocation, err);
     process.exit(1);
   }
-  
+
   files.map((file: string) => {
+    let module: PlainObject;
     try {
       module = yaml.parse(readFileSync(file, { encoding: 'utf-8' }));
     } catch (err) {
@@ -34,23 +35,30 @@ export default function loadYaml(
       process.exit(1);
     }
 
-    const id = file
+    const eventFileId = file
       .replace(new RegExp(`.*?\/${basePath}\/`), '')
       .replace(/\//g, '.')
       .replace(/\.(yaml|yml)/i, '')
       .replace(/\.index$/, '');
+    
+    if (basePath === 'events') {
+      for (let eventKey of Object.keys(module)) {
+        module[eventKey].tags = module[eventKey].tags || [eventFileId];
+      }
+    }
     if (global) {
       api = {
         ...api,
         ...module,
       };
     } else {
-      if (id == 'index') {
+      if (eventFileId == 'index') {
         api = module;
       } else {
-        api[id] = module;
+        api[eventFileId] = module;
       }
     }
+
   });
 
   return api;
