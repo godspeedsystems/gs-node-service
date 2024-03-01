@@ -13,7 +13,7 @@ export default function (ctx: GSContext, args: PlainObject) {
     const data = args.hasOwnProperty('data') ? args.data : args;
     return { success, code, data, exitWithStatus: true };
   }
-  const v1Compatible = ctx.config.defaults?.returnV1Compatible;
+  const v1Compatible = ctx.mappings.default?.defaults?.returnV1Compatible;
 
   if (v1Compatible) {
     return { success: true, code: 200, data: args, exitWithStatus: true };
