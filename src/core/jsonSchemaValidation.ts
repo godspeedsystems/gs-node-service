@@ -8,37 +8,40 @@ import { PlainObject } from './common';
 import { logger, childLogger } from '../logger';
 import ajvInstance, { isValidEvent } from './validation';
 
-export function loadJsonSchemaForEvents(eventObj: PlainObject) {
-  logger.debug('Loading JSON Schema for events %s', Object.keys(eventObj));
+export function loadJsonSchemaForEvents(allEventsConfigs: PlainObject) {
+  logger.debug('Loading JSON Schema for events %s', Object.keys(allEventsConfigs));
   // logger.debug('eventObj: %o', eventObj);
 
   return new Promise((resolve, reject) => {
-    Object.keys(eventObj).forEach(function (topic) {
+    Object.keys(allEventsConfigs).forEach(function (route) {
       // Add body schema in ajv for each content_type per topic
       /* TODO: Right now, we are assuming that there is going to be one content_type only i.e. application/json
                   This needs to be enhanced in fututre when multiple content_type will be supported
           */
-      const eventObjTopic = eventObj[topic];
-      if (isValidEvent(eventObjTopic, topic)) {
+      const eventConfig = allEventsConfigs[route];
+      if (isValidEvent(eventConfig, route)) {
+        //Set the key in the event config. This will be needed later for ajv validation of incoming requests
+        // the ajv validators for each event are stored against these keys (routes)
+        eventConfig.key = route;
         //Object.keys(eventObjTopic).forEach(function(topic) {
         const body_content =
-          eventObjTopic?.body?.content || //just like OpenAPI Spec but with body instead of requestBody
-          eventObjTopic?.data?.schema?.body?.content; //Legacy
+          eventConfig?.body?.content || //just like OpenAPI Spec but with body instead of requestBody
+          eventConfig?.data?.schema?.body?.content; //Legacy
         if (body_content) {
           Object.keys(body_content).forEach(function (k) {
             const content_schema = body_content[k].schema;
             if (content_schema) {
-              logger.debug('adding body schema for %s', topic);
+              logger.debug('adding body schema for %s', route);
               // logger.debug('content_schema %o', content_schema);
-              if (!ajvInstance.getSchema(topic)) {
-                ajvInstance.addSchema(content_schema, topic);
+              if (!ajvInstance.getSchema(route)) {
+                ajvInstance.addSchema(content_schema, route);
               }
             }
           });
         }
 
         // Add params schema in ajv for each param per topic
-        const params = eventObjTopic?.parameters || eventObjTopic?.params || eventObjTopic?.data?.schema?.params;
+        const params = eventConfig?.parameters || eventConfig?.params || eventConfig?.data?.schema?.params;
         let paramSchema: PlainObject = {};
 
         if (params) {
@@ -70,7 +73,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
           // logger.debug('adding param schema for %s', topic);
           // logger.debug('param schema: %o', paramSchema[schema]);
 
-          const topic_param = topic + ':' + schema;
+          const topic_param = route + ':' + schema;
           if (!ajvInstance.getSchema(topic_param)) {
             try {
               ajvInstance.addSchema(paramSchema[schema], topic_param);
@@ -82,15 +85,15 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
         }
 
         // Add responses schema in ajv for each response per topic
-        const responses = eventObjTopic?.responses;
-        if (responses) {
-          Object.keys(responses).forEach(function (k) {
+        const responsesSchema = eventConfig?.responses;
+        if (responsesSchema) {
+          Object.keys(responsesSchema).forEach(function (k) {
             const response_s =
-              responses[k]?.content?.['application/json']?.schema || //Exactly as OpenApi spec
-              responses[k]?.schema?.data?.content?.['application/json']?.schema; //Legacy implementation
+              responsesSchema[k]?.content?.['application/json']?.schema || //Exactly as OpenApi spec
+              responsesSchema[k]?.schema?.data?.content?.['application/json']?.schema; //Legacy implementation
             if (response_s) {
               const response_schema = response_s;
-              const _topic = topic.replace(/{(.*?)}/g, ':$1'); //removing curly braces in topic (event key)
+              const _topic = route.replace(/{(.*?)}/g, ':$1'); //removing curly braces in topic (event key)
               const endpoint = _topic.split('.').pop(); //extracting endpoint from eventkey
               const topic_response = endpoint + ':responses:' + k;
               if (!ajvInstance.getSchema(topic_response)) {
@@ -100,7 +103,7 @@ export function loadJsonSchemaForEvents(eventObj: PlainObject) {
           });
         }
       } else {
-        logger.error(`Event config validation failed during load time for ${topic} in ${eventObj}`);
+        logger.error(`Event config validation failed during load time for ${route} in ${allEventsConfigs}`);
         process.exit(1);
       }
     });
@@ -121,16 +124,19 @@ export function validateRequestSchema(
   if (event.data.body && hasSchema) {
     // childLogger.info('event body and eventSpec exist');
     // childLogger.debug('event.data.body: %o', event.data.body);
+    // if (!eventSpec.key) {
+
+    // }
     const ajv_validate = ajvInstance.getSchema(eventSpec.key);
     if (ajv_validate) {
       // childLogger.debug('ajv_validate for body');
       if (!ajv_validate(event.data.body)) {
-        childLogger.error('event.data.body validation failed %o', ajv_validate.errors![0]);
+        childLogger.error('event.data.body validation failed %o \n Request body %o', ajv_validate.errors, event.data.body);
         status = {
           success: false,
           code: 400,
           message: ajv_validate.errors![0].message,
-          data: {message: "The API cannot be executed due to a failure in request body schema validation.", error: ajv_validate.errors![0]}
+          data: {message: "The API cannot be executed due to a failure in request body schema validation.", error: ajv_validate.errors, eventBody: event.data.body}
         };
         return status;
       } else {
