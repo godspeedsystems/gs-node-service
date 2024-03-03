@@ -2,16 +2,6 @@
 import 'dotenv/config';
 import fs from 'fs';
 import { childLogger, initializeChildLogger, logger } from './logger';
-try {
-  if (process.env.OTEL_ENABLED == 'true') {
-    require('@godspeedsystems/tracing').initialize();
-  }
-} catch (error) {
-  logger.error("OTEL_ENABLED is set, unable to initialize opentelemetry tracing.");
-  logger.error(error);
-  process.exit(1);
-}
-
 var config = require('config');
 
 import { join } from 'path';
