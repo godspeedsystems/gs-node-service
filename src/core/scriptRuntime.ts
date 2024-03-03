@@ -21,7 +21,7 @@ export function importAll(sourceScope: any, targetScope: any) {
  * Input an be scalar or object
  */
 export default async function evaluateScript(ctx: GSContext, script: Function, taskValue?: any) {
-    childLogger.debug('before evaluateScript %s', script);
+    // childLogger.debug('before evaluateScript %s', script);
     if (!script) {
         return;
     }
@@ -29,7 +29,7 @@ export default async function evaluateScript(ctx: GSContext, script: Function, t
     try {
         return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings, taskValue);
     } catch (err: any) {
-        childLogger.error('Error in evaluating script: %s', JSON.stringify(err.stack));
+        childLogger.error('Error in evaluating script: %s %s %s', script, err, JSON.stringify(err.stack));
         ctx.exitWithStatus = new GSStatus(
             false,
             undefined,

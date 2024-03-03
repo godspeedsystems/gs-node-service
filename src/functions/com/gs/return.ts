@@ -1,24 +1,21 @@
-import { P } from "pino";
-import { GSContext, GSStatus } from "../../../godspeed";
+import { GSContext } from "../../../godspeed";
 import { PlainObject } from "../../../types";
+import transform from './transform';
 
 /*
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 export default function (ctx: GSContext, args: PlainObject) {
-  let success = args.success;
-  let code = args.code;
-  delete args.success;
-  delete args.code;
+  // We support deprecated v1 way of com.gs.return which was different in behavior with com.gs.transform
+  // So check if we have to support deprecated logic of return or the v2 logic of return
+  const v2Logic = !ctx.mappings.default?.defaults?.returnV1Compatible;
 
-  if (ctx.forAuth) {
-    success = success || false;
-    code = code || (!success && 403) || 200;
+  if (v2Logic) { //whether for authz or not
+    const transformRes = transform(ctx, args);
+    transformRes.exitWithStatus = true;
+    return transformRes;
   } else {
-    success = true;
-    code = code || 200;
+    return { success: true, code: 200, data: args, exitWithStatus: true };
   }
-  
-  return {success: success, code: code, data: args, exitWithStatus: true };
 }

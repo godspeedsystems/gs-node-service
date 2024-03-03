@@ -18,7 +18,8 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
     // let's load the event source
     const eventSourceConfig = eventsourcesConfigs[esName];
     logger.debug('evaluating event source %s', esName);
-    eventsourcesConfigs[esName] = expandVariables(eventsourcesConfigs[esName]);
+    const location = { eventsource_name: esName };
+    eventsourcesConfigs[esName] = expandVariables(eventsourcesConfigs[esName], location);
     logger.debug(
       'evaluated eventsource %s %o',
       esName,
@@ -51,7 +52,8 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
 
       eventSources[esName] = eventSourceInstance;
     } catch (error) {
-      logger.error(error);
+      logger.error('Failed to load event source %s', esName);
+      process.exit(1);
     }
   }
 

@@ -1,16 +1,7 @@
 /* eslint-disable import/first */
 import 'dotenv/config';
+import fs from 'fs';
 import { childLogger, initializeChildLogger, logger } from './logger';
-try {
-  if (process.env.OTEL_ENABLED == 'true') {
-    require('@godspeedsystems/tracing').initialize();
-  }
-} catch (error) {
-  logger.error("OTEL_ENABLED is set, unable to initialize opentelemetry tracing.");
-  logger.error(error);
-  process.exit(1);
-}
-
 var config = require('config');
 
 import { join } from 'path';
@@ -34,7 +25,8 @@ import {
   GSContext,
   GSSeriesFunction,
   GSStatus,
-  GSResponse
+  GSResponse,
+  GSFunction
 } from './core/interfaces';
 
 import {
@@ -282,13 +274,13 @@ class Godspeed {
         logger.info('[END] Load functions');
         return loadFnStatus;
       } else {
-        logger.fatal('Error in loading project functions');
+        logger.fatal('Error in loading project functions %o', loadFnStatus);
         process.exit(1);
 
       }
     } catch (err: any) {
 
-      logger.fatal('Error in loading project functions %s %o', err.message, err);
+      logger.fatal('Error in loading project functions %s %o', err.message, err.stack);
       process.exit(1);
 
     }
@@ -358,9 +350,11 @@ class Godspeed {
 
     const httpEventSource = this.eventsources['http']; // eslint-disable-line
     if (httpEventSource?.config?.docs) {
-      const _httpEvents = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
+      //@ts-ignore
+      const httpEventsSwagger = generateSwaggerJSON(httpEvents, this.definitions, httpEventSource.config);
       // @ts-ignore
-      httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(_httpEvents));
+      httpEventSource.client.use(httpEventSource.config.docs.endpoint || '/api-docs', swaggerUI.serve, swaggerUI.setup(httpEventsSwagger));
+      this.saveHttpEventsSwaggerJson(httpEventsSwagger);
     }
 
     if (process.env.OTEL_ENABLED == 'true') {
@@ -380,6 +374,13 @@ class Godspeed {
         res.end(appMetrics + prismaMetrics);
       });
     }
+  }
+
+  private saveHttpEventsSwaggerJson(swaggerJson: PlainObject) {
+    const swaggerDir = process.cwd() + '/docs/';
+    fs.mkdirSync(swaggerDir, { recursive: true });
+    const swaggerFileName = (swaggerJson.info?.title || 'http');
+    fs.writeFileSync(swaggerDir + swaggerFileName + '-swagger.json', JSON.stringify(swaggerJson), 'utf-8');
   }
 
   public async executeWorkflow(name: string, args: PlainObject): Promise<GSStatus> {
@@ -435,7 +436,6 @@ class Godspeed {
       let eventSpec = eventConfig;
 
       if (validateStatus.success === false) {
-        childLogger.error(`failed to validate request body. ${validateStatus}`);
 
         // if `on_request_validation_error` is defined in the event, let's execute that
         if (eventSpec.on_request_validation_error) {
@@ -447,17 +447,19 @@ class Godspeed {
             data: validateStatus.data
           };
 
-          childLogger.error('Validation of event request failed %s', JSON.stringify(validationError));
+          childLogger.error('Validation of event request failed %s. Will run validation error handler', JSON.stringify(validationError));
 
           event.data = { event: event.data, validation_error: validationError };
 
           // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
-          eventHandlerWorkflow = <GSSeriesFunction>(eventSpec.on_request_validation_error);
+          eventHandlerWorkflow = <GSFunction>(eventSpec.on_request_validation_error);
         } else {
+          childLogger.error('Validation of event request failed %s. Returning.', JSON.stringify(validateStatus));
+
           return validateStatus;
         }
       } else {
-        childLogger.info(
+        childLogger.debug(
           'Request JSON Schema validated successfully %o',
           validateStatus
         );
@@ -505,8 +507,8 @@ class Godspeed {
       try {
         const eventHandlerResponse = await eventHandlerWorkflow(ctx);
         // The final status of the handler workflow is calculated from the last task of the handler workflow (series function)
-        eventHandlerStatus = ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
-        
+        eventHandlerStatus = eventHandlerResponse;//ctx.outputs[eventHandlerWorkflow.id] || eventHandlerResponse;
+
         if (typeof eventHandlerStatus !== 'object' || !('success' in eventHandlerStatus)) {
           //Assume workflow has returned just the data and has executed sucessfully
           eventHandlerStatus = new GSStatus(true, 200, undefined, eventHandlerResponse);
@@ -576,7 +578,8 @@ export {
   yamlLoader,
   logger,
   childLogger,
-  RedisOptions
+  RedisOptions,
+  generateSwaggerJSON
 };
 
 export default Godspeed;

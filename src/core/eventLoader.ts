@@ -52,7 +52,7 @@ const rewiteRefsToAbsolutePath = (
       if (responses) {
         Object.keys(responses).forEach((responseCode) => {
           let responseContent = responses[responseCode].content;
-          logger.debug('responseContent %o', responseContent);
+          // logger.debug('responseContent %o', responseContent);
           if (responseContent) {
             Object.keys(responseContent).forEach((responseContentType) => {
               let responseContentTypeSchema =
@@ -91,7 +91,8 @@ export default async function loadEvents(
   }
 
   // logger.debug('event configs %o', events);
-  const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events));
+  const location = { location: "Events loading" };
+  const evalEvents = expandVariables(rewiteRefsToAbsolutePath(events), location);
 
   const checkFn = checkFunctionExists(events, allFunctions);
 
@@ -102,9 +103,29 @@ export default async function loadEvents(
   if (evalEvents) {
     await loadJsonSchemaForEvents(evalEvents);
   }
+
+  splitEventsByEventSources(evalEvents);
+
   loadEventWorkflows(evalEvents, eventSources, allFunctions, nativeFunctions);
   return evalEvents;
 };
+
+function splitEventsByEventSources(events: PlainObject) {
+  Object.keys(events).forEach((key: string) => {
+    const eventSourceName = key.split('.')[0];
+    if (!eventSourceName.includes('&')) {
+      return;
+    }
+    const eventSources = eventSourceName.split('&');
+    const commonKeyPart = key.replace(eventSourceName, ''); 
+    for (let eventSource of eventSources) {
+      eventSource = eventSource.trim();
+      const newKey = eventSource + commonKeyPart;
+      events[newKey] = JSON.parse(JSON.stringify(events[key]));
+    }
+    delete events[key];
+  });
+}
   /**
     * Iterate through all event definitions and 
     * load the authz, on_request_validation_error, on_response_validation_error and any such workflows
@@ -145,7 +166,7 @@ function loadEventWorkflows(events: PlainObject, eventSources: EventSources, all
         //For ex. authz: "com.biz.common_authz"
         _function = allFunctions[functionConfig as string];
       } else if (typeof functionConfig === 'object' ) {
-        //Is expected to be a `WorkflowJSON`
+        //Is expected to be a `WorkflowJSON` declared within a yaml eventsource/event config
         const taskLocation = { eventSourceType: eventConfig.type, eventKey: key, fn: functionType };
         _function 
           = createGSFunction(functionConfig as WorkflowJSON,allFunctions,nativeFunctions,null,taskLocation);
