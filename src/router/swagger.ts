@@ -38,7 +38,7 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
       tags: [
         eventSchema.tags
       ],
-      operationId: eventSchema.operationId || eventSchema.id || eventSchema.summary?.replace(' ', '_') || `${method}.${apiEndPoint}`,
+      operationId: eventSchema.operationId || eventSchema.id || eventSchema.summary?.replace(' ', '_') || `${method}.${apiEndPoint}`.replace(/\//g,'_'),
       requestBody: eventSchema.body,
       parameters: eventSchema.params,
       responses: eventSchema.responses,
