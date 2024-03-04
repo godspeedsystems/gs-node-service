@@ -1,4 +1,5 @@
 import { GSContext, GSStatus } from "../../../core/interfaces";
+import { logger } from "../../../godspeed";
 
 /*
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
@@ -24,10 +25,15 @@ function nonAuthzFlow (args: any) {
   const argsHasSuccess = args.hasOwnProperty('success');
   const argsHasCode = args.hasOwnProperty('code');
 
-  //For success boolean, handle success key is there but value is falsy, i.e. undefined or null or 0
-  const success =  argsHasSuccess ? (!args.success && false) : true; 
-  
   const code = args.code || 200; //code is always a number and 0 is not a valid code. when code is falsy value, default is 200.
+
+  //For success boolean, handle success key is there but value is falsy, i.e. undefined or null or 0
+  let success: boolean;
+  if (args.success === undefined || args.success === null) {
+    success = (code >= 200 && code < 400);  
+  } else {
+    success = !!args.success;
+  }
 
   //Now handle cases where args is GSStatus or plain object
   if (argsHasSuccess || argsHasCode) { 
