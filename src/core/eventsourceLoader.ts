@@ -51,8 +51,8 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
       }
 
       eventSources[esName] = eventSourceInstance;
-    } catch (error) {
-      logger.error('Failed to load event source %s', esName);
+    } catch (error: any) {
+      logger.error('Failed to load event source %s %s %o', esName, error.message, error);
       process.exit(1);
     }
   }
