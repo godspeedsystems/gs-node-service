@@ -498,6 +498,13 @@ class Godspeed {
             setAtPath(authzStatus, 'data.message', authzStatus.message || 'Access Forbidden');
           }
           return authzStatus;
+        } else {
+          //since authz was successful
+          //in case com.gs.return was used, the exitWithStatus would be there
+          //because com.gs.return sets exitWithStatus: true for every call
+          //Remove exitWithStatus otherwise it will be taken as error in 
+          //interfaces.ts when the event handler will be called
+          delete ctx.exitWithStatus;
         }
         //Autorization is passed. Proceeding.
         // childLogger.debug('Authorization passed at the event level');
