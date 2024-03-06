@@ -85,6 +85,7 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
 };
 
 function setDefinitions(finalSpecs: PlainObject, definitions: PlainObject) {
+  definitions = JSON.parse(JSON.stringify(definitions));
   //Flatten the definitions object to store as component schema as per swagger format
   const removedKeys: string[] = [];
   Object.keys(definitions).forEach((key) => {

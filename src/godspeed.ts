@@ -423,7 +423,7 @@ class Godspeed {
       // initilize child logger
       initializeChildLogger({});
       // TODO: lot's of logging related steps
-      childLogger.debug('processing event ... %s', event.type);
+      childLogger.debug('processing event %s', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config
 
 
