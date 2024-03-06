@@ -1,3 +1,4 @@
+import def from "ajv/dist/vocabularies/discriminator";
 import { PlainObject } from "../types";
 
 // Define the type of eventSourceConfig
@@ -8,8 +9,8 @@ type EventSourceConfig = {
     jwt?: PlainObject //V2 has all authentication configs in authn
   }
   docs?: {
-      info: any; // Adjust the type as needed
-      servers: any[]; // Adjust the type as needed
+    info: any; // Adjust the type as needed
+    servers: any[]; // Adjust the type as needed
   };
 };
 
@@ -17,7 +18,7 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
 
   const finalSpecs: { [key: string]: any } = { openapi: "3.0.0", paths: {} };
 
-  const { port, docs} = eventSourceConfig;
+  const { port, docs } = eventSourceConfig;
   const info = docs?.info;
   const servers = docs?.servers;
   const jwt = eventSourceConfig.authn?.jwt || eventSourceConfig.jwt;
@@ -36,7 +37,7 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
       summary: eventSchema.summary,
       description: eventSchema.description,
       tags: eventSchema.tags,
-      operationId: eventSchema.operationId || eventSchema.id || eventSchema.summary?.replace(' ', '_') || `${method}_${apiEndPoint}`.replace(/\//g,'_'),
+      operationId: eventSchema.operationId || eventSchema.id || eventSchema.summary?.replace(' ', '_') || `${method}_${apiEndPoint}`.replace(/\//g, '_'),
       requestBody: eventSchema.body,
       parameters: eventSchema.params,
       responses: eventSchema.responses,
@@ -66,11 +67,9 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
   }
 
   finalSpecs.info = info;
-  //finalSpecs.definitions = definitions;
-  finalSpecs.components = {
-    schemas: definitions
-  };
-  replaceStringInJSON(finalSpecs, "#/definitions/", "#/components/schemas/");
+
+  setDefinitions(finalSpecs, definitions);
+  
   if (jwt) {
     finalSpecs.components.securitySchemes = {
       bearerAuth: {
@@ -84,6 +83,26 @@ export const generateSwaggerJSON = (events: PlainObject, definitions: PlainObjec
 
   return finalSpecs;
 };
+
+function setDefinitions(finalSpecs: PlainObject, definitions: PlainObject) {
+  //Flatten the definitions object to store as component schema as per swagger format
+  const removedKeys: string[] = [];
+  Object.keys(definitions).forEach((key) => {
+    if (!definitions[key]?.type) {
+      const innerObj = definitions[key];
+      delete definitions[key];
+      removedKeys.push(key);
+      definitions = { ...definitions, ...innerObj };
+    }
+  });
+  //finalSpecs.definitions = definitions;
+  finalSpecs.components = {
+    schemas: definitions
+  };
+  for (let key of removedKeys) {
+    replaceStringInJSON(finalSpecs, `#/definitions/${key}/`, "#/components/schemas/");
+  }
+}
 
 function replaceStringInJSON(jsonObj: PlainObject, stringToMatch: string, replacementString: string) {
   if (jsonObj === null) {
@@ -103,7 +122,7 @@ function replaceStringInJSON(jsonObj: PlainObject, stringToMatch: string, replac
         jsonObj[key] = replaceStringInJSON(jsonObj[key], stringToMatch, replacementString);
       }
     }
-  } else if(typeof jsonObj === 'string' ) {
+  } else if (typeof jsonObj === 'string') {
     // If jsonObj is a leaf string value and contains the string to match, replace it
     if ((jsonObj as string).includes(stringToMatch)) {
       return (jsonObj as string).replace(new RegExp(stringToMatch, 'g'), replacementString);
