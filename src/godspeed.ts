@@ -362,7 +362,7 @@ class Godspeed {
       httpEventSource.client.get('/metrics', async (req, res) => {
         let prismaMetrics: string = '';
         for (let ds in this.datasources) {
-          if (this.datasources[ds].client?._previewFeatures.includes("metrics")) {
+          if (this.datasources[ds].client?._previewFeatures?.includes("metrics")) {
             // @ts-ignore
             prismaMetrics += await this.datasources[ds].client.$metrics.prometheus({
               globalLabels: { server: process.env.HOSTNAME, datasource: `${ds}` },
