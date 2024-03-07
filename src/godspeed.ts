@@ -548,7 +548,8 @@ class Godspeed {
 
             childLogger.error('Validation of event response failed %s', JSON.stringify(validationError));
 
-            event.data = { event: event.data, validationError };
+            // event.data = { event: event.data, validationError };
+            event.data.validation_error = validationError;
 
             // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
             return await (eventSpec.on_response_validation_error)(ctx);
