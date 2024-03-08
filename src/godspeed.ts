@@ -428,16 +428,36 @@ class Godspeed {
 
 
       let eventHandlerWorkflow: GSSeriesFunction;
-      let validateStatus = validateRequestSchema(
-        event.type,
-        event,
-        eventConfig
-      );
+      let validateStatus: GSStatus;
+      try {
+        validateStatus = validateRequestSchema(
+          event.type,
+          event,
+          eventConfig
+        );
+      } catch (err: any) {
+        const { headers, body, query, params } = event.data;
+        const eventInput = { headers, query, body, params };
+        childLogger.error('Validation of event request data had an unexpected error. Perhaps something wrong with your schema def? \n Event route %s \n event input %o \n error message %s error stack', route, eventInput, err.message);
+        return new GSStatus(
+          false,
+          500,
+          undefined,
+          //`Error in validating request for the event ${event.type} and request data is \n %o`, eventInput,
+          {
+            error: {
+              message: err.message
+            }
+          }
+        );
+      }
+
       let eventSpec = eventConfig;
 
       if (validateStatus.success === false) {
 
-        // if `on_request_validation_error` is defined in the event, let's execute that
+        // If `on_request_validation_error` is defined in the event, let's execute that
+        // Else return with validation error
         if (eventSpec.on_request_validation_error) {
           const validationError = {
             success: false,
@@ -450,7 +470,7 @@ class Godspeed {
           childLogger.error('Validation of event request failed %s. Will run validation error handler', JSON.stringify(validationError));
 
           // event.data = { event: event.data, validationError };
-          event.data.validation_error = validationError; 
+          event.data.validation_error = validationError;
           // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
           eventHandlerWorkflow = <GSFunction>(eventSpec.on_request_validation_error);
         } else {
@@ -459,10 +479,9 @@ class Godspeed {
           return validateStatus;
         }
       } else {
-        childLogger.debug(
-          'Request JSON Schema validated successfully %o',
-          validateStatus
-        );
+
+        childLogger.debug('Request JSON Schema validated successfully. Route %s', PerformanceResourceTiming);
+
         eventHandlerWorkflow = <GSSeriesFunction>workflows[eventSpec.fn];
       }
 
@@ -558,13 +577,13 @@ class Godspeed {
 
 
 
-      } catch (error) {
+      } catch (error: any) {
         childLogger.error(`Error occured in event handler execution for event ${eventConfig.key}. Error: ${error}`);
         return new GSStatus(
           false,
           500,
           `Error in executing handler ${eventSpec.fn} for the event ${event.type} `,
-          error
+          { error, message: error.message }
         );
       }
     };
