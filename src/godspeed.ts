@@ -449,8 +449,8 @@ class Godspeed {
 
           childLogger.error('Validation of event request failed %s. Will run validation error handler', JSON.stringify(validationError));
 
-          event.data = { event: event.data, validationError };
-
+          // event.data = { event: event.data, validationError };
+          event.data.validation_error = validationError; 
           // A workflow is always a series execution of its tasks. ie., a GSSeriesFunction
           eventHandlerWorkflow = <GSFunction>(eventSpec.on_request_validation_error);
         } else {
