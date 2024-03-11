@@ -480,7 +480,7 @@ class Godspeed {
         }
       } else {
 
-        childLogger.debug('Request JSON Schema validated successfully. Route %s', PerformanceResourceTiming);
+        childLogger.debug('Request JSON Schema validated successfully. Route %s', route);
 
         eventHandlerWorkflow = <GSSeriesFunction>workflows[eventSpec.fn];
       }

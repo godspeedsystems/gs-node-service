@@ -2,7 +2,6 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
-import _ from 'lodash';
 import parseDuration from 'parse-duration';
 import opentelemetry from "@opentelemetry/api";
 
@@ -269,7 +268,7 @@ export class GSFunction extends Function {
       if (String(this.yaml.fn).startsWith('datasource.')) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
         const [, datasourceName, entityType, method] = this.yaml.fn.split('.');
-        const datasource: any = ctx.datasources[datasourceName];
+        // const datasource: any = ctx.datasources[datasourceName];
 
         // so that prisma plugin get the entityName and method in plugin to execute respective method.
         args.meta = {
@@ -439,7 +438,7 @@ export class GSFunction extends Function {
         }
 
         if (this.onError.continue === false) {
-          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'exiting on error %s', this.id);
+          ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'exiting on error %s', this.id);
           ctx.exitWithStatus = status;
         }
       } else {
@@ -516,6 +515,10 @@ export class GSFunction extends Function {
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (this.caching) {
         cachingInstruction = await evaluateScript(ctx, this.caching, taskValue);
+        if (!cachingInstruction) {
+          logger.error('Error in evaluating cachingInstruction %o', this.yaml.caching);
+          throw new Error('Error in evaluating caching script');
+        }
         const cachingDsName: string = cachingInstruction?.datasource || (config as any).caching;
         if (!cachingDsName) {
           ctx.childLogger.fatal( 'Set a non null caching datasource in config/default or in the caching instruction itself. Exiting.');
@@ -534,10 +537,9 @@ export class GSFunction extends Function {
         if (!cachingInstruction?.noRead && cachingInstruction?.key) {
           // check in cache and return
           status = await cachingDs.get(cachingInstruction?.key);
-          ctx.childLogger.debug('Pre-fetched task result from cache %o', status);
 
           if (status) {
-            ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'reading result from cache');            
+            ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Loading result from cache');            
             status = typeof status === 'string' && JSON.parse(status) || status;
             ctx.outputs[this.id] = status;
             return status;
@@ -994,7 +996,7 @@ export class GSCloudEvent {
       this.time,
       this.source,
       this.specversion,
-      _.cloneDeep(data),
+      JSON.parse(JSON.stringify(data)),
       this.channel,
       this.actor,
       this.metadata
