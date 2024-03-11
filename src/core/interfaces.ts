@@ -99,14 +99,14 @@ export class GSFunction extends Function {
 
     if (this.yaml.logs) {
       this.logs = this.yaml.logs;
-      if (this.logs?.before) {
+      if (this.logs?.before?.attributes) {
         if (!(this.logs.before.attributes instanceof Function)) {
           this.logs.before.attributes.task_id = this.id;
           this.logs.before.attributes.workflow_name = this.workflow_name;
           this.logs.before.attributes = compileScript(this.logs.before.attributes, { ...location, section: "logs.before.attributes" } );
         }
       }
-      if (this.logs?.after) {
+      if (this.logs?.after?.attributes) {
         if (!(this.logs.after.attributes instanceof Function)) {
           this.logs.after.attributes.task_id = this.id;
           this.logs.after.attributes.workflow_name = this.workflow_name;
@@ -178,7 +178,7 @@ export class GSFunction extends Function {
     if (this.logs?.before) {
       const log = this.logs.before;
       //@ts-ignore
-      ctx.childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
+      ctx.childLogger[log.level || config.log?.level || 'info'](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
     }
 
     const timers = [];
@@ -213,7 +213,7 @@ export class GSFunction extends Function {
     if (this.logs?.after) {
       const log = this.logs.after;
       //@ts-ignore
-      ctx.childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
+      ctx.childLogger[log.level || config.log?.level || 'info'](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
     }
 
     return status;
@@ -1028,8 +1028,7 @@ export class GSContext { //span executions
 
   logger: pino.Logger; // For logging using pino for Nodejs. This has multiple useful features incudign biding some key values with the logs that are produced.  
 
-  childLogger: pino.Logger; //Child logger of logger with additional binding to print {workflow_name, task_id} with every log entry
-
+  childLogger: pino.Logger; // Additinal contextual bindings per event for the childLoggers
 
   forAuth?: boolean = false; //Whether this native or yaml workflow is being run as parth of the authz tasks
 
@@ -1044,7 +1043,6 @@ export class GSContext { //span executions
     this.plugins = plugins;
     this.logger = logger;
     this.childLogger = childLogger;
-
     // childLogger.debug('inputs for context %o', event.data);
   }
 

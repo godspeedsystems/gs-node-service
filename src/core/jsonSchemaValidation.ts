@@ -5,7 +5,7 @@
 
 import { GSStatus } from './interfaces';
 import { PlainObject } from './common';
-import { logger, childLogger } from '../logger';
+import { logger } from '../logger';
 import ajvInstance, { isValidEvent } from './validation';
 
 export function loadJsonSchemaForEvents(allEventsConfigs: PlainObject) {
@@ -131,7 +131,7 @@ export function validateRequestSchema(
     if (ajv_validate) {
       // childLogger.debug('ajv_validate for body');
       if (!ajv_validate(event.data.body)) {
-        childLogger.error('event.data.body validation failed %o \n Request body %o', ajv_validate.errors, event.data.body);
+        logger.error({event: eventSpec.key}, 'event.data.body validation failed %o \n Request body %o', ajv_validate.errors, event.data.body);
         status = {
           success: false,
           code: 400,
@@ -185,7 +185,7 @@ export function validateRequestSchema(
       // childLogger.debug('topic_param: %s', topic_param);
       if (ajv_validate) {
         if (!ajv_validate(event.data[MAP[param]])) {
-          childLogger.debug(`Event param validation failed ${event.data[MAP[param]]} %s`, topic_param);
+          logger.debug({event: eventSpec.key}, `Event param validation failed ${event.data[MAP[param]]} %s`, topic_param);
           ajv_validate.errors![0].message += ' in ' + param;
           status = {
             success: false,
@@ -216,7 +216,7 @@ export function validateResponseSchema(
     const ajvValidate = ajvInstance.getSchema(topicResponse);
     if (ajvValidate) {
       if (!ajvValidate(gsStatus.data)) {
-        childLogger.error('ajv_validation of the response data failed');
+        logger.error({event: topic, response_code: gsStatus.code}, 'ajv_validation of the response data failed %o',gsStatus.data);
         let message: string ;
         if (gsStatus.success) {
           message = `The API execution was successful. But, there was a failure in validating the response body as per the API schema for response with status code ${gsStatus.code}.`;
