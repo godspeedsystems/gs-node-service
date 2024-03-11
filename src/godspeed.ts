@@ -1,7 +1,7 @@
 /* eslint-disable import/first */
 import 'dotenv/config';
 import fs from 'fs';
-import { childLogger, initializeChildLogger, logger } from './logger';
+import { logger } from './logger';
 var config = require('config');
 
 import { join } from 'path';
@@ -383,8 +383,10 @@ class Godspeed {
     fs.writeFileSync(swaggerDir + swaggerFileName + '-swagger.json', JSON.stringify(swaggerJson), 'utf-8');
   }
 
+  /**
+   * For executing a workflow directly without an eventsource from a Nodejs project
+   */
   public async executeWorkflow(name: string, args: PlainObject): Promise<GSStatus> {
-    initializeChildLogger({});
     const event: GSCloudEvent = new GSCloudEvent(
       'id',
       "",
@@ -396,6 +398,8 @@ class Godspeed {
       new GSActor('user'),
       {}
     );
+    const childLogger: typeof logger = logger.child(this.getCommonAttrs(event));
+
     const ctx: GSContext = new GSContext(
       this.config, this.datasources, event, this.mappings, this.nativeFunctions, this.plugins, logger, childLogger);
     const workflow = this.workflows[name];
@@ -414,14 +418,12 @@ class Godspeed {
     (event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>
   > {
     const { workflows, datasources, mappings } = local;
-
     return async (
       event: GSCloudEvent,
       eventConfig: PlainObject
     ): Promise<GSStatus> => {
-      // TODO: improve child logger initilization
-      // initilize child logger
-      initializeChildLogger({});
+      
+      const childLogger: typeof logger = logger.child(this.getLogAttributes(event, eventConfig));
       // TODO: lot's of logging related steps
       childLogger.debug('processing event %s', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config
@@ -589,6 +591,59 @@ class Godspeed {
     };
   }
 
+  /**
+   * 
+   * @param event 
+   * @param eventConfig 
+   * @returns All the log attributes specific to this event
+   */
+
+  private getLogAttributes(event: GSCloudEvent, eventConfig: PlainObject): PlainObject {
+    const attrs: PlainObject = this.getCommonAttrs(event);
+    attrs.event = event.type;
+    attrs.workflow_name = eventConfig.fn;
+    // Now override common log_attributes with event level attributes
+
+    const eventAttrs = eventConfig.log?.attributes;
+    if (!eventAttrs) {
+      return attrs;
+    }
+    for (const key in eventAttrs) {
+      if (typeof eventAttrs[key] === "string" && eventAttrs[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.|user\?.\.?|user\.)/)) {
+        // eslint-disable-next-line no-template-curly-in-string
+        const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, eventAttrs[key]);
+        attrs[key] = obj;
+      } else {
+        attrs[key] = eventAttrs[key];
+      }
+    }
+    return attrs;
+  }
+
+  /**
+   * 
+   * @param event 
+   * @returns Attributes common to all events, based on `log.attributes` spec in config
+   */
+
+  private getCommonAttrs(event: GSCloudEvent): PlainObject {
+    const attrs: PlainObject = {};
+    
+    //Common log attributes
+    const commonAttrs = (this.config as any).log?.attributes || [];
+
+    for (const key in commonAttrs) {
+      if (typeof commonAttrs[key] === "string" && commonAttrs[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.|user\?.\.?|user\.)/)) {
+        // eslint-disable-next-line no-template-curly-in-string
+        const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, commonAttrs[key]);
+        attrs[key] = obj;
+      } else {
+        attrs[key] = commonAttrs[key];
+      }
+      
+    }
+    return attrs;
+  }
 }
 
 export {
@@ -604,7 +659,6 @@ export {
   GSCachingDataSource,
   yamlLoader,
   logger,
-  childLogger,
   RedisOptions,
   generateSwaggerJSON
 };

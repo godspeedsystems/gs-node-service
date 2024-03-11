@@ -38,6 +38,7 @@ let timestampSetting;
 if (conf.log?.timestamp) {
   timestampSetting = getAtPath(Pino, conf.log.timestamp);
 }
+
 const logger: Pino.Logger = Pino({
   level: conf.log?.level || conf.log_level || 'info',
   //@ts-ignore
