@@ -13,6 +13,7 @@ import promClient from '@godspeedsystems/metrics';
 import config from 'config';
 import pino from 'pino';
 import { GSCachingDataSource } from './_interfaces/sources';
+import { cacheAfter, cacheBefore, preChecksAndInvalidateCache } from './caching';
 
 const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
@@ -47,7 +48,7 @@ export class GSFunction extends Function {
 
   fnScript?: Function;
 
-  caching?: Function;
+  caching?: PlainObject;
 
   constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function, location?: PlainObject) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
@@ -58,7 +59,6 @@ export class GSFunction extends Function {
     this.workflows = workflows;
     this.nativeFunctions = nativeFunctions;
     this.fnScript = fnScript;
-
 
     this.args = args || {};
     const str = JSON.stringify(this.args);
@@ -170,7 +170,13 @@ export class GSFunction extends Function {
 
     //caching
     if (this.yaml.caching) {
-      this.caching = compileScript(this.yaml.caching, { ...location, section: "caching" });
+      this.caching = {};
+      if (this.yaml.caching.before) {
+        this.caching.before = compileScript(this.yaml.caching.before, { ...location, section: "caching.before" });
+      }
+      if (this.yaml.caching.after) {
+        this.caching.after = compileScript(this.yaml.caching.after, { ...location, section: "caching.after" });
+      }
     }
   }
 
@@ -513,37 +519,16 @@ export class GSFunction extends Function {
         datastoreAuthzArgs = authzRes.data;
       }
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
-      if (this.caching) {
-        cachingInstruction = await evaluateScript(ctx, this.caching, taskValue);
-        if (!cachingInstruction) {
-          logger.error('Error in evaluating cachingInstruction %o', this.yaml.caching);
-          throw new Error('Error in evaluating caching script');
-        }
-        const cachingDsName: string = cachingInstruction?.datasource || (config as any).caching;
-        if (!cachingDsName) {
-          ctx.childLogger.fatal( 'Set a non null caching datasource in config/default or in the caching instruction itself. Exiting.');
-          process.exit(1);
-        }
-        cachingDs = ctx.datasources[cachingDsName];
-        if (!cachingDs) {
-          ctx.childLogger.fatal( 'Could not find a valid datasource by the name %s . Exiting', cachingDsName);
-          process.exit(1);
-        }
-        if (cachingInstruction?.invalidate) {
-          ctx.childLogger.debug('Invalidating cache for key %s', cachingInstruction?.invalidate);
-          await cachingDs.del(cachingInstruction.invalidate);
-        }
+      if (this.caching?.before) {
+        cachingInstruction = await preChecksAndInvalidateCache(ctx, this.caching?.before, taskValue);
 
-        if (!cachingInstruction?.noRead && cachingInstruction?.key) {
-          // check in cache and return
-          status = await cachingDs.get(cachingInstruction?.key);
-
-          if (status) {
-            ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Loading result from cache');            
-            status = typeof status === 'string' && JSON.parse(status) || status;
-            ctx.outputs[this.id] = status;
-            return status;
-          }
+        // check in cache and return
+        status = await cacheBefore(cachingInstruction);
+        if (status) {
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Loading result from cache');            
+          status = typeof status === 'string' && JSON.parse(status) || status;
+          ctx.outputs[this.id] = status;
+          return status;
         }
       }
 
@@ -612,6 +597,18 @@ export class GSFunction extends Function {
         this.args = args;
         status = await this._executefn(ctx, taskValue);
       }
+
+      status = await this.handleError(ctx, status, taskValue);
+      if (ctx.forAuth) {
+        if (status.success !== true) {
+          ctx.exitWithStatus = status;
+        }
+      }
+  
+      if (this.caching?.after) {
+        cachingInstruction = await preChecksAndInvalidateCache(ctx, this.caching?.after, taskValue);
+        await cacheAfter(ctx, cachingInstruction, status);
+      }    
     } catch (err: any) {
       ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o', this.id, err);
       status = new GSStatus(
@@ -622,20 +619,6 @@ export class GSFunction extends Function {
           message: "Internal server error"
         }
       );
-    }
-
-    status = await this.handleError(ctx, status, taskValue);
-    if (ctx.forAuth) {
-      if (status.success !== true) {
-        ctx.exitWithStatus = status;
-      }
-    }
-    if (cachingInstruction && !cachingInstruction.noWrite && cachingInstruction.key) {
-      if (status?.success || cachingInstruction.cache_on_failure) {
-        ctx.childLogger.debug('Storing task result in cache for %s and value %o', cachingInstruction.key, status);
-        //@ts-ignore
-        await cachingDs.set(cachingInstruction.key, JSON.stringify(status), cachingInstruction.options);//{ EX: cachingInstruction.expires });
-      }
     }
 
     return status;
