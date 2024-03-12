@@ -437,7 +437,8 @@ export class GSFunction extends Function {
           ctx.childLogger.setBindings({ error });
         }
 
-        if (this.onError.continue === false) {
+        const onErrorContinue = this.onError.continue ?? ctx.config?.defaults?.on_error?.continue ?? false;
+        if (onErrorContinue === false) {
           ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'exiting on error %s', this.id);
           ctx.exitWithStatus = status;
         }

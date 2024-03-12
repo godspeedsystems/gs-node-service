@@ -167,7 +167,7 @@ export function prepareScript(str: string, location: PlainObject): Function {
   let langs = (/<(.*?)%/).exec(str);
 
   //@ts-ignore
-  const lang = langs[1] || config.lang || 'js';
+  const lang = langs[1] || config.defaults?.lang || config.lang || 'js';
 
   str = str.trim();
   if (str.match(/^<(.*?)%/) && str.match(/%>$/)) {
