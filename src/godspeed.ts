@@ -377,10 +377,10 @@ class Godspeed {
   }
 
   private saveHttpEventsSwaggerJson(swaggerJson: PlainObject) {
-    const swaggerDir = process.cwd() + '/docs/';
+    const swaggerDir = join(process.cwd(), 'docs') ;
     fs.mkdirSync(swaggerDir, { recursive: true });
     const swaggerFileName = (swaggerJson.info?.title || 'http');
-    fs.writeFileSync(swaggerDir + swaggerFileName + '-swagger.json', JSON.stringify(swaggerJson), 'utf-8');
+    fs.writeFileSync(join(swaggerDir, swaggerFileName + '-swagger.json'), JSON.stringify(swaggerJson), 'utf-8');
   }
 
   /**
