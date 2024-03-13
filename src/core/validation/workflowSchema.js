@@ -1,5 +1,4 @@
 const taskSchema = require("./tasks.schema.json");
-
 module.exports = {
     "$id": "workflow_schema",
     "type": "object",
@@ -26,4 +25,4 @@ module.exports = {
     "definitions": {
         "task": taskSchema
     }
-}
+};

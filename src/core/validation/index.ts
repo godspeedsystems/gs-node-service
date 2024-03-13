@@ -9,17 +9,17 @@ const ajvInstance = new Ajv({ allErrors: true, coerceTypes: true, strictTuples: 
 addFormats(ajvInstance);
 require('ajv-errors')(ajvInstance);
 
-const validateEvent = ajvInstance.compile(eventSchema);
+// const validateEvent = ajvInstance.compile(eventSchema);
 const validateWorkflow = ajvInstance.compile(workflowSchema);
 
-export const isValidEvent = (event: PlainObject, eventKey: string): boolean => {
-  if (!validateEvent(event)) {
-    logger.error('Event validation failed for %s', eventKey);
-    logger.error(validateEvent.errors);
-    return false;
-  }
-  return true;
-};
+// export const isValidEvent = (event: PlainObject, eventKey: string): boolean => {
+//   if (!validateEvent(event)) {
+//     logger.error('Event validation failed for %s', eventKey);
+//     logger.error(validateEvent.errors);
+//     return false;
+//   }
+//   return true;
+// };
 
 export const isValidWorkflow = (
   workflow: PlainObject,

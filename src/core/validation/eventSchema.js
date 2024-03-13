@@ -13,7 +13,7 @@ const fnNameOrTasks = {
             ]
         }
     ]
-}
+};
 module.exports = {
     "$id": "event_schema",
     "type": "object",
@@ -97,5 +97,4 @@ module.exports = {
         "task": taskSchema
     },
     "errorMessage": "It's not a valid event definition. Refer above error for more detail."
-}
-
+};
