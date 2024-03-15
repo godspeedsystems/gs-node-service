@@ -13,7 +13,7 @@ import promClient from '@godspeedsystems/metrics';
 import config from 'config';
 import pino from 'pino';
 import { GSCachingDataSource } from './_interfaces/sources';
-import { cacheAfter, cacheBefore, preChecksAndInvalidateCache } from './caching';
+import { fetchFromCache, setInCache, evaluateCachingInstAndInvalidates, checkCachingDs } from './caching';
 
 const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
@@ -171,11 +171,16 @@ export class GSFunction extends Function {
     //caching
     if (this.yaml.caching) {
       this.caching = {};
+      let cachingLocation: PlainObject;
       if (this.yaml.caching.before) {
-        this.caching.before = compileScript(this.yaml.caching.before, { ...location, section: "caching.before" });
+        cachingLocation = { ...location, section: "caching.before" };
+        checkCachingDs(this.yaml.caching.before, cachingLocation);
+        this.caching.before = compileScript(this.yaml.caching.before, cachingLocation);
       }
       if (this.yaml.caching.after) {
-        this.caching.after = compileScript(this.yaml.caching.after, { ...location, section: "caching.after" });
+        cachingLocation = { ...location, section: "caching.after" };
+        checkCachingDs(this.yaml.caching.after, cachingLocation);
+        this.caching.after = compileScript(this.yaml.caching.after, cachingLocation);
       }
     }
   }
@@ -520,10 +525,10 @@ export class GSFunction extends Function {
       }
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
       if (this.caching?.before) {
-        cachingInstruction = await preChecksAndInvalidateCache(ctx, this.caching?.before, taskValue);
+        cachingInstruction = await evaluateCachingInstAndInvalidates(ctx, this.caching?.before, taskValue);
 
         // check in cache and return
-        status = await cacheBefore(cachingInstruction);
+        status = await fetchFromCache(cachingInstruction);
         if (status) {
           ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Loading result from cache');            
           status = typeof status === 'string' && JSON.parse(status) || status;
@@ -606,8 +611,8 @@ export class GSFunction extends Function {
       }
   
       if (this.caching?.after) {
-        cachingInstruction = await preChecksAndInvalidateCache(ctx, this.caching?.after, taskValue);
-        await cacheAfter(ctx, cachingInstruction, status);
+        cachingInstruction = await evaluateCachingInstAndInvalidates(ctx, this.caching?.after, taskValue);
+        await setInCache(ctx, cachingInstruction, status);
       }    
     } catch (err: any) {
       ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o', this.id, err);

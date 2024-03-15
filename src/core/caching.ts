@@ -4,26 +4,35 @@ import evaluateScript from './scriptRuntime';
 import { logger } from '../logger';
 import config from 'config';
 import { GSCachingDataSource } from './_interfaces/sources';
+import expandVariables from './expandVariables';
 
-export async function preChecksAndInvalidateCache(ctx: GSContext, caching: GSFunction, taskValue: any) {
-    let cachingInstruction: PlainObject | null = null;
-    let cachingDs: GSCachingDataSource;
-    
+export function checkCachingDs(caching: any, location?: PlainObject) {
+    //@ts-ignore
+    const datasources = global.datasources;
+
+    const cachingDsName: string = caching?.datasource || (config as any).caching;
+    const evaluatedCachingDsName = expandVariables(cachingDsName, location!);
+    if (!evaluatedCachingDsName) {
+        logger.fatal(location, 'Exiting. Set a non null caching datasource in config/default or in the caching instruction itself %o', caching);
+        process.exit(1);
+    }
+    const cachingDs: GSCachingDataSource = datasources[evaluatedCachingDsName];
+    if (!cachingDs) {
+        logger.fatal(location, 'Exiting. Could not find a valid datasource by the name %s in the caching instruction %o', cachingDsName, caching);
+        process.exit(1);
+    }
+}
+
+export async function evaluateCachingInstAndInvalidates(ctx: GSContext, caching: GSFunction, taskValue: any) {
+    let cachingInstruction: PlainObject | null = null;   
     cachingInstruction = await evaluateScript(ctx, caching, taskValue);
     if (!cachingInstruction) {
-      logger.error('Error in evaluating cachingInstruction %o', caching);
-      throw new Error('Error in evaluating caching script');
+        ctx.childLogger.error('Error in evaluating cachingInstruction %o', caching);
+        throw new Error('Error in evaluating caching script');
     }
     const cachingDsName: string = cachingInstruction?.datasource || (config as any).caching;
-    if (!cachingDsName) {
-      ctx.childLogger.fatal( 'Set a non null caching datasource in config/default or in the caching instruction itself. Exiting.');
-      process.exit(1);
-    }
-    cachingDs = ctx.datasources[cachingDsName];
-    if (!cachingDs) {
-      ctx.childLogger.fatal( 'Could not find a valid datasource by the name %s . Exiting', cachingDsName);
-      process.exit(1);
-    }
+    const cachingDs: GSCachingDataSource = ctx.datasources[cachingDsName];
+
     if (cachingInstruction?.invalidate) {
         ctx.childLogger.debug('Invalidating cache for key %s', cachingInstruction?.invalidate);
         await cachingDs.del(cachingInstruction.invalidate);
@@ -35,7 +44,7 @@ export async function preChecksAndInvalidateCache(ctx: GSContext, caching: GSFun
     };
 }
 
-export async function cacheBefore(cachingInstruction: PlainObject | null) {
+export async function fetchFromCache(cachingInstruction: PlainObject | null) {
     let status;
     const cachingDs: GSCachingDataSource = cachingInstruction?.cachingDs;
 
@@ -46,7 +55,7 @@ export async function cacheBefore(cachingInstruction: PlainObject | null) {
     return status;
 }
 
-export async function cacheAfter(ctx: GSContext, cachingInstruction: PlainObject | null, status: any) {
+export async function setInCache(ctx: GSContext, cachingInstruction: PlainObject | null, status: any) {
     const cachingDs: GSCachingDataSource = cachingInstruction?.cachingDs;
 
     if (cachingInstruction?.key) {
