@@ -5,6 +5,7 @@ import { logger } from '../logger';
 import config from 'config';
 import { GSCachingDataSource } from './_interfaces/sources';
 import expandVariables from './expandVariables';
+import { P } from 'pino';
 
 export function checkCachingDs(caching: any, location?: PlainObject) {
     //@ts-ignore
@@ -60,7 +61,11 @@ export async function setInCache(ctx: GSContext, cachingInstruction: PlainObject
 
     if (cachingInstruction?.key) {
         if (status?.success || cachingInstruction.cache_on_failure) {
-            ctx.childLogger.debug('Storing task result in cache for %s and value %o', cachingInstruction.key, status);
+            if (!status?.success) {
+                ctx.childLogger.debug('Storing failure task result in cache for %s and value %o', cachingInstruction.key, status);    
+            } else {
+                ctx.childLogger.debug('Storing task result in cache for %s and value %o', cachingInstruction.key, status);
+            }
             await cachingDs.set(cachingInstruction.key, JSON.stringify(status), cachingInstruction.options);//{ EX: cachingInstruction.expires });
         }
     }
