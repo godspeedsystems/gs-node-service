@@ -1,5 +1,5 @@
 import path from "path";
-import { childLogger, logger } from "../logger";
+import { logger } from "../logger";
 import { PlainObject } from "../types";
 import loadYaml from "./yamlLoader";
 import { EventSources, GSDataSourceAsEventSource, GSEventSource } from "./_interfaces/sources";
@@ -43,7 +43,7 @@ export default async function (eventsourcesFolderPath: string, datasources: Plai
       } else {
         let correspondingDatasource = datasources[esName]; // By design, datasource and event source need to share the same name.
         if (!correspondingDatasource) {
-          childLogger.fatal(`Corresponding data source for event source ${esName} is not defined. Please ensure a data source type exists with the same file name in src/datasources directory`);
+          logger.fatal(`Corresponding data source for event source ${esName} is not defined. Please ensure a data source type exists with the same file name in src/datasources directory`);
           process.exit(1);
         } else {
           eventSourceInstance = new Constructor(eventsourcesConfigs[esName], correspondingDatasource.client) as GSDataSourceAsEventSource;

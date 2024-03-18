@@ -23,7 +23,12 @@ function substitute(value: string, location: PlainObject): any {
       }
     }
   } catch (ex: any) {
-    logger.warn(location, 'Caught exception in script compilation, script: %s compiled script %s. Error message %s\n error %o %o', initialStr, value, ex.message, ex, ex.stack);
+    if (initialStr.includes('inputs') || initialStr.includes('outputs')) {
+      logger.info(location, 'Could not compile script containing `inputs` or `outputs` because they are available during runtime and not loadtime. if intended use of this script is during runtime you should ignore this message. Original script: %s. Compiled script %s. Error message %s', initialStr, value, ex.message);
+    } else {
+      logger.fatal(location, 'Caught exception in script compilation, script: %s compiled script %s. Error message %s\n error %o %o', initialStr, value, ex.message, ex, ex.stack);
+      process.exit(1);
+    }
   }
   return value;
 }

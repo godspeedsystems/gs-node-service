@@ -9,7 +9,7 @@ import transform from './transform';
 export default function (ctx: GSContext, args: PlainObject) {
   // We support deprecated v1 way of com.gs.return which was different in behavior with com.gs.transform
   // So check if we have to support deprecated logic of return or the v2 logic of return
-  const v2Logic = !ctx.mappings.default?.defaults?.returnV1Compatible;
+  const v2Logic = !ctx.config.defaults?.returnV1Compatible;
 
   if (v2Logic) { //whether for authz or not
     const transformRes = transform(ctx, args);

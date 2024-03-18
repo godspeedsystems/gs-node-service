@@ -8,7 +8,7 @@
 import _ from 'lodash';
 
 import { GSContext, GSStatus } from "./interfaces"; // eslint-disable-line
-import { childLogger } from '../logger';
+import { logger } from '../logger';
 
 export function importAll(sourceScope: any, targetScope: any) {
     for (let name in sourceScope) {
@@ -29,7 +29,7 @@ export default async function evaluateScript(ctx: GSContext, script: Function, t
     try {
         return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings, taskValue);
     } catch (err: any) {
-        childLogger.error('Error in evaluating script: %s %s %s', script, err, JSON.stringify(err.stack));
+        logger.error('Error in evaluating script: %s %s %s', script, err, JSON.stringify(err.stack));
         ctx.exitWithStatus = new GSStatus(
             false,
             undefined,

@@ -2,7 +2,6 @@
 * You are allowed to study this software for learning and local * development purposes only. Any other use without explicit permission by Mindgrep, is prohibited.
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
-import _ from 'lodash';
 import parseDuration from 'parse-duration';
 import opentelemetry from "@opentelemetry/api";
 
@@ -14,6 +13,7 @@ import promClient from '@godspeedsystems/metrics';
 import config from 'config';
 import pino from 'pino';
 import { GSCachingDataSource } from './_interfaces/sources';
+import { fetchFromCache, setInCache, evaluateCachingInstAndInvalidates, checkCachingDs } from './caching';
 
 const tracer = opentelemetry.trace.getTracer(
   'my-service-tracer'
@@ -48,7 +48,7 @@ export class GSFunction extends Function {
 
   fnScript?: Function;
 
-  caching?: Function;
+  caching?: PlainObject;
 
   constructor(yaml: PlainObject, workflows: PlainObject, nativeFunctions: PlainObject, _fn?: Function, args?: any, isSubWorkflow?: boolean, fnScript?: Function, location?: PlainObject) {
     super('return arguments.callee._observability.apply(arguments.callee, arguments)');
@@ -59,7 +59,6 @@ export class GSFunction extends Function {
     this.workflows = workflows;
     this.nativeFunctions = nativeFunctions;
     this.fnScript = fnScript;
-
 
     this.args = args || {};
     const str = JSON.stringify(this.args);
@@ -100,14 +99,14 @@ export class GSFunction extends Function {
 
     if (this.yaml.logs) {
       this.logs = this.yaml.logs;
-      if (this.logs?.before) {
+      if (this.logs?.before?.attributes) {
         if (!(this.logs.before.attributes instanceof Function)) {
           this.logs.before.attributes.task_id = this.id;
           this.logs.before.attributes.workflow_name = this.workflow_name;
           this.logs.before.attributes = compileScript(this.logs.before.attributes, { ...location, section: "logs.before.attributes" } );
         }
       }
-      if (this.logs?.after) {
+      if (this.logs?.after?.attributes) {
         if (!(this.logs.after.attributes instanceof Function)) {
           this.logs.after.attributes.task_id = this.id;
           this.logs.after.attributes.workflow_name = this.workflow_name;
@@ -171,7 +170,18 @@ export class GSFunction extends Function {
 
     //caching
     if (this.yaml.caching) {
-      this.caching = compileScript(this.yaml.caching, { ...location, section: "caching" });
+      this.caching = {};
+      let cachingLocation: PlainObject;
+      if (this.yaml.caching.before) {
+        cachingLocation = { ...location, section: "caching.before" };
+        checkCachingDs(this.yaml.caching.before, cachingLocation);
+        this.caching.before = compileScript(this.yaml.caching.before, cachingLocation);
+      }
+      if (this.yaml.caching.after) {
+        cachingLocation = { ...location, section: "caching.after" };
+        checkCachingDs(this.yaml.caching.after, cachingLocation);
+        this.caching.after = compileScript(this.yaml.caching.after, cachingLocation);
+      }
     }
   }
 
@@ -179,7 +189,7 @@ export class GSFunction extends Function {
     if (this.logs?.before) {
       const log = this.logs.before;
       //@ts-ignore
-      ctx.childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
+      ctx.childLogger[log.level || config.log?.level || 'info'](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
     }
 
     const timers = [];
@@ -214,7 +224,7 @@ export class GSFunction extends Function {
     if (this.logs?.after) {
       const log = this.logs.after;
       //@ts-ignore
-      ctx.childLogger[log.level](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
+      ctx.childLogger[log.level || config.log?.level || 'info'](log.attributes ? await evaluateScript(ctx, log.attributes, taskValue) : null, `${log.message} %o`, log.params);
     }
 
     return status;
@@ -269,7 +279,7 @@ export class GSFunction extends Function {
       if (String(this.yaml.fn).startsWith('datasource.')) {
         // If datasource is a script then evaluate it else load ctx.datasources as it is.
         const [, datasourceName, entityType, method] = this.yaml.fn.split('.');
-        const datasource: any = ctx.datasources[datasourceName];
+        // const datasource: any = ctx.datasources[datasourceName];
 
         // so that prisma plugin get the entityName and method in plugin to execute respective method.
         args.meta = {
@@ -438,8 +448,9 @@ export class GSFunction extends Function {
           ctx.childLogger.setBindings({ error });
         }
 
-        if (this.onError.continue === false) {
-          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'exiting on error %s', this.id);
+        const onErrorContinue = this.onError.continue ?? ctx.config?.defaults?.on_error?.continue ?? false;
+        if (onErrorContinue === false) {
+          ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'exiting on error %s', this.id);
           ctx.exitWithStatus = status;
         }
       } else {
@@ -514,34 +525,16 @@ export class GSFunction extends Function {
         datastoreAuthzArgs = authzRes.data;
       }
       ctx.childLogger.setBindings({ 'workflow_name': this.workflow_name, 'task_id': this.id });
-      if (this.caching) {
-        cachingInstruction = await evaluateScript(ctx, this.caching, taskValue);
-        const cachingDsName: string = cachingInstruction?.datasource || (config as any).caching;
-        if (!cachingDsName) {
-          ctx.childLogger.fatal( 'Set a non null caching datasource in config/default or in the caching instruction itself. Exiting.');
-          process.exit(1);
-        }
-        cachingDs = ctx.datasources[cachingDsName];
-        if (!cachingDs) {
-          ctx.childLogger.fatal( 'Could not find a valid datasource by the name %s . Exiting', cachingDsName);
-          process.exit(1);
-        }
-        if (cachingInstruction?.invalidate) {
-          ctx.childLogger.debug('Invalidating cache for key %s', cachingInstruction?.invalidate);
-          await cachingDs.del(cachingInstruction.invalidate);
-        }
+      if (this.caching?.before) {
+        cachingInstruction = await evaluateCachingInstAndInvalidates(ctx, this.caching?.before, taskValue);
 
-        if (!cachingInstruction?.noRead && cachingInstruction?.key) {
-          // check in cache and return
-          status = await cachingDs.get(cachingInstruction?.key);
-          ctx.childLogger.debug('Pre-fetched task result from cache %o', status);
-
-          if (status) {
-            ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'reading result from cache');            
-            status = typeof status === 'string' && JSON.parse(status) || status;
-            ctx.outputs[this.id] = status;
-            return status;
-          }
+        // check in cache and return
+        status = await fetchFromCache(cachingInstruction);
+        if (status) {
+          ctx.childLogger.debug({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Loading result from cache');            
+          status = typeof status === 'string' && JSON.parse(status) || status;
+          ctx.outputs[this.id] = status;
+          return status;
         }
       }
 
@@ -610,6 +603,18 @@ export class GSFunction extends Function {
         this.args = args;
         status = await this._executefn(ctx, taskValue);
       }
+
+      status = await this.handleError(ctx, status, taskValue);
+      if (ctx.forAuth) {
+        if (status.success !== true) {
+          ctx.exitWithStatus = status;
+        }
+      }
+  
+      if (this.caching?.after) {
+        cachingInstruction = await evaluateCachingInstAndInvalidates(ctx, this.caching?.after, taskValue);
+        await setInCache(ctx, cachingInstruction, status);
+      }    
     } catch (err: any) {
       ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o', this.id, err);
       status = new GSStatus(
@@ -620,20 +625,6 @@ export class GSFunction extends Function {
           message: "Internal server error"
         }
       );
-    }
-
-    status = await this.handleError(ctx, status, taskValue);
-    if (ctx.forAuth) {
-      if (status.success !== true) {
-        ctx.exitWithStatus = status;
-      }
-    }
-    if (cachingInstruction && !cachingInstruction.noWrite && cachingInstruction.key) {
-      if (status?.success || cachingInstruction.cache_on_failure) {
-        ctx.childLogger.debug('Storing task result in cache for %s and value %o', cachingInstruction.key, status);
-        //@ts-ignore
-        await cachingDs.set(cachingInstruction.key, JSON.stringify(status), cachingInstruction.options);//{ EX: cachingInstruction.expires });
-      }
     }
 
     return status;
@@ -994,7 +985,7 @@ export class GSCloudEvent {
       this.time,
       this.source,
       this.specversion,
-      _.cloneDeep(data),
+      JSON.parse(JSON.stringify(data)),
       this.channel,
       this.actor,
       this.metadata
@@ -1026,8 +1017,7 @@ export class GSContext { //span executions
 
   logger: pino.Logger; // For logging using pino for Nodejs. This has multiple useful features incudign biding some key values with the logs that are produced.  
 
-  childLogger: pino.Logger; //Child logger of logger with additional binding to print {workflow_name, task_id} with every log entry
-
+  childLogger: pino.Logger; // Additinal contextual bindings per event for the childLoggers
 
   forAuth?: boolean = false; //Whether this native or yaml workflow is being run as parth of the authz tasks
 
@@ -1042,7 +1032,6 @@ export class GSContext { //span executions
     this.plugins = plugins;
     this.logger = logger;
     this.childLogger = childLogger;
-
     // childLogger.debug('inputs for context %o', event.data);
   }
 
