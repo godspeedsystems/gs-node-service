@@ -616,7 +616,8 @@ export class GSFunction extends Function {
         await setInCache(ctx, cachingInstruction, status);
       }    
     } catch (err: any) {
-      ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error in evaluation in task id: %s, error: %o', this.id, err);
+      ctx.childLogger.error({ 'workflow_name': this.workflow_name, 'task_id': this.id }, 'Caught error in evaluation in task id: %s', this.id);
+      ctx.childLogger.debug('error: %o', err)
       status = new GSStatus(
         false,
         500,

@@ -29,7 +29,8 @@ export default async function evaluateScript(ctx: GSContext, script: Function, t
     try {
         return script(ctx.config, ctx.inputs.data, ctx.outputs, ctx.mappings, taskValue);
     } catch (err: any) {
-        logger.error('Error in evaluating script: %s %s %s', script, err, JSON.stringify(err.stack));
+        logger.error('Error in evaluating script: %s', err);
+        logger.debug('%s', err.stack);
         ctx.exitWithStatus = new GSStatus(
             false,
             undefined,
