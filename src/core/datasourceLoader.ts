@@ -7,7 +7,7 @@ import https from 'https';
 import OpenAPIClientAxios from 'openapi-client-axios';
 import axios from 'axios';
 import path from 'path';
-import { fieldEncryptionMiddleware } from '@mindgrep/prisma-deterministic-search-field-encryption';
+import { fieldEncryptionMiddleware } from '@godspeedsystems/prisma-deterministic-search-field-encryption';
 import { Buffer } from 'buffer';
 import crypto from 'crypto';
 import { logger } from './logger';

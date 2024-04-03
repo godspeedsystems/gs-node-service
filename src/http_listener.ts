@@ -11,7 +11,7 @@ import config from 'config';
 import Prometheus from 'prom-client';
 import fileUpload from 'express-fileupload';
 //@ts-ignore
-import promMid from '@mindgrep/express-prometheus-middleware';
+import promMid from '@godspeedsystems/express-prometheus-middleware';
 import { logger } from './core/logger';
 import { PROJECT_ROOT_DIRECTORY } from './core/utils';
 import generateSchema from './api-specs/api-spec';
