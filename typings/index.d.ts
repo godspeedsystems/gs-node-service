@@ -3,4 +3,4 @@
 * © 2022 Mindgrep Technologies Pvt Ltd
 */
 declare module 'pino-debug';
-declare module '@mindgrep/express-prometheus-middleware';
+declare module '@godspeedsystems/express-prometheus-middleware';
