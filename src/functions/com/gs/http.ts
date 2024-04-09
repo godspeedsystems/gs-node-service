@@ -140,7 +140,34 @@ export default async function(args:{[key:string]:any;}) {
                         childLogger.debug('returning retryDelay function with 0');
 
                         return 0;
-                    }
+                    },
+                     retryCondition: (error) => {
+                        if (args.retry.if) {
+                            let conditions = {};
+                            if (args.retry.if.message) {
+                              conditions[`message`] = error.message;
+                            }
+                            if (args.retry.if.status) {
+                              conditions[`status`] = error.response?.status;
+                            }
+                            if (args.retry.if.code) {
+                              conditions[`code`] = error.code;
+                            }
+                            const matches = (obj, source) =>
+                              Object.keys(source).every(
+                                (key) => obj.hasOwnProperty(key) && obj[key] === source[key]
+                              );
+                            if (matches(args.retry.if, conditions)) {
+                              matches(args.retry.if, conditions);
+                              return true;
+                            } else {
+                              matches(args.retry.if, conditions);
+                              return false;
+                            }
+                          } else {
+                            return true;
+                          }
+                      },
                 });
             }
 
