@@ -142,31 +142,25 @@ export default async function(args:{[key:string]:any;}) {
                         return 0;
                     },
                      retryCondition: (error) => {
-                        if (args.retry.if) {
-                            let conditions = {};
-                            if (args.retry.if.message) {
-                              conditions[`message`] = error.message;
-                            }
-                            if (args.retry.if.status) {
-                              conditions[`status`] = error.response?.status;
-                            }
-                            if (args.retry.if.code) {
-                              conditions[`code`] = error.code;
-                            }
-                            const matches = (obj, source) =>
-                              Object.keys(source).every(
-                                (key) => obj.hasOwnProperty(key) && obj[key] === source[key]
-                              );
-                            if (matches(args.retry.if, conditions)) {
-                              matches(args.retry.if, conditions);
-                              return true;
-                            } else {
-                              matches(args.retry.if, conditions);
-                              return false;
-                            }
-                          } else {
+                        const retryConf = args.retry
+                        if (!retryConf.when) {
+                            // There is no special condition to retry
+                            // Always retry upon error (500 status)
                             return true;
                           }
+                  
+                          const retryCondition = retryConf.when;
+                          // Response status must be one of the retry statuses configured
+                          if (retryCondition.status && !retryCondition.status.includes( error.response?.status)) {
+                            return false;
+                          }
+                          // Error message if given must match the message in the condition
+                          if (retryCondition.message && retryCondition.message !== error.message) {
+                            return false;
+                          }
+                          // All conditions matched, so let's retry
+                          return true;
+                        },
                       },
                 });
             }
