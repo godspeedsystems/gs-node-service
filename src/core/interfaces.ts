@@ -437,12 +437,12 @@ export class GSFunction extends Function {
           status = await this.onError.tasks(ctx);
         }
 
-        if (this.onError.log_attributes) {
+        if (this.onError.log?.attributes || this.onError.log_attributes) {
           const error: PlainObject = {};
-          const logAttributes: PlainObject = this.onError.log_attributes;
+          const logAttributes: PlainObject = this.onError.log?.attributes || this.onError.log_attributes;
 
           for (let key in logAttributes) {
-            const script = compileScript(logAttributes[key], { section: "on_error.log_attributes" });
+            const script = compileScript(logAttributes[key], { section: "on_error.log.attributes" });
             error[key] = await evaluateScript(ctx, script, taskValue);
           }
           ctx.childLogger.setBindings({ error });
