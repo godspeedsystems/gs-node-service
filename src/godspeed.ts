@@ -418,12 +418,13 @@ class Godspeed {
     (event: GSCloudEvent, eventConfig: PlainObject) => Promise<GSStatus>
   > {
     const { workflows, datasources, mappings } = local;
+    const eventSourceName = route.split('.')[0];
     return async (
       event: GSCloudEvent,
       eventConfig: PlainObject
     ): Promise<GSStatus> => {
       
-      const childLogger: typeof logger = logger.child(this.getLogAttributes(event, eventConfig));
+      const childLogger: typeof logger = logger.child(this.getLogAttributes(event, eventConfig, eventSourceName));
       // TODO: lot's of logging related steps
       childLogger.debug('processing event %s', event.type);
       // TODO: Once the config loader is sorted, fetch the apiVersion from config
@@ -598,23 +599,37 @@ class Godspeed {
    * @returns All the log attributes specific to this event
    */
 
-  private getLogAttributes(event: GSCloudEvent, eventConfig: PlainObject): PlainObject {
+  private getLogAttributes(event: GSCloudEvent, eventConfig: PlainObject, eventSourceName: string): PlainObject {
     const attrs: PlainObject = this.getCommonAttrs(event);
     attrs.event = event.type;
     attrs.workflow_name = eventConfig.fn;
-    // Now override common log_attributes with event level attributes
 
-    const eventAttrs = eventConfig.log?.attributes;
+    // Now override common log.attributes/log_attributes with event source level attributes
+    const eventSrcAttrs = this.eventsources[eventSourceName].config?.log?.attributes;
+    for (const key in eventSrcAttrs) {
+      const value = eventSrcAttrs[key].replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
+      if (typeof value === "string" && value.match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.|user\?.\.?|user\.)/)) {
+        // eslint-disable-next-line no-template-curly-in-string
+        const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, value);
+        attrs[key] = obj;
+      } else {
+        attrs[key] = value;
+      }
+    }
+
+    // Now override common log.attributes/log_attributes with event level attributes
+    const eventAttrs = eventConfig.log?.attributes || eventConfig.log_attributes;
     if (!eventAttrs) {
       return attrs;
     }
     for (const key in eventAttrs) {
-      if (typeof eventAttrs[key] === "string" && eventAttrs[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.|user\?.\.?|user\.)/)) {
+      const value = eventAttrs[key].replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
+      if (typeof value === "string" && value.match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.|user\?.\.?|user\.)/)) {
         // eslint-disable-next-line no-template-curly-in-string
-        const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, eventAttrs[key]);
+        const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, value);
         attrs[key] = obj;
       } else {
-        attrs[key] = eventAttrs[key];
+        attrs[key] = value;
       }
     }
     return attrs;
@@ -630,15 +645,16 @@ class Godspeed {
     const attrs: PlainObject = {};
     
     //Common log attributes
-    const commonAttrs = (this.config as any).log?.attributes || [];
+    const commonAttrs = (this.config as any).log?.attributes || (this.config as any).log_attributes || [];
 
     for (const key in commonAttrs) {
-      if (typeof commonAttrs[key] === "string" && commonAttrs[key].match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.|user\?.\.?|user\.)/)) {
+      const value = commonAttrs[key].replace(/"?<(.*?)%\s*(.*?)\s*%>"?/, '$2');
+      if (typeof value === "string" && value.match(/^(?:body\?.\.?|body\.|query\?.\.?|query\.|params\?.\.?|params\.|headers\?.\.?|headers\.|user\?.\.?|user\.)/)) {
         // eslint-disable-next-line no-template-curly-in-string
-        const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, commonAttrs[key]);
+        const obj = Function('event', 'filter', 'return eval(`event.data.${filter}`)')(event, value);
         attrs[key] = obj;
       } else {
-        attrs[key] = commonAttrs[key];
+        attrs[key] = value;
       }
       
     }

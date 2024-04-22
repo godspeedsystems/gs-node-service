@@ -61,7 +61,8 @@ let logger: Pino.Logger = Pino({
       Resource: {
         'service.name': process.env.OTEL_SERVICE_NAME || 'unknown_service:node',
         env: process.env.NODE_ENV
-      }
+      },
+      include: 'level,time,hostname,pid'
     }
   },
   redact: {
