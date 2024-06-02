@@ -23,27 +23,51 @@ export function loadJsonSchemaForEvents(allEventsConfigs: PlainObject) {
         //Set the key in the event config. This will be needed later for ajv validation of incoming requests
         // the ajv validators for each event are stored against these keys (routes)
         eventConfig.key = route;
-        //Object.keys(eventObjTopic).forEach(function(topic) {
-        const body_content =
+        
+        //HANDLE BODY SCHEMA
+          /**
+           * Typical body in swagger spec
+           * body: #requestBody 
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: ['name']
+                    properties:
+                      name:
+                        type: string
+                        example: Godspeed
+           */
+        const bodyContent =
           eventConfig?.body?.content || //just like OpenAPI Spec but with body instead of requestBody
           eventConfig?.data?.schema?.body?.content; //Legacy
-        if (body_content) {
-          Object.keys(body_content).forEach(function (k) {
-            const content_schema = body_content[k].schema;
-            if (content_schema) {
+        if (bodyContent) {
+          Object.keys(bodyContent).forEach(function (k) {
+            const contentSchema = bodyContent[k].schema;
+            if (contentSchema) {
               logger.debug('adding body schema for %s', route);
               // logger.debug('content_schema %o', content_schema);
               if (!ajvInstance.getSchema(route)) {
-                ajvInstance.addSchema(content_schema, route);
+                ajvInstance.addSchema(contentSchema, route);
               }
             }
           });
         }
 
+        //HANDLE PARAMS SCHEMA
+
         // Add params schema in ajv for each param per topic
         const params = eventConfig?.parameters || eventConfig?.params || eventConfig?.data?.schema?.params;
         let paramSchema: PlainObject = {};
-
+        /**
+         * Typical params schema in swagger
+         *   params:
+              - name: id
+                in: path
+                required: true
+                schema:
+                  type: string
+         */
         if (params) {
           for (let param of params) {
             if (param.schema) {
@@ -84,26 +108,41 @@ export function loadJsonSchemaForEvents(allEventsConfigs: PlainObject) {
           }
         }
 
+        // HANDLE RESPONSES SCHEMA
+        
         // Add responses schema in ajv for each response per topic
         const responsesSchema = eventConfig?.responses;
+        /**
+         * Typical response schema in swagger
+         *  responses:
+              200:
+                content:
+                  application/json: #or application/text or something else
+                    schema:
+                      type: string
+         */
         if (responsesSchema) {
           Object.keys(responsesSchema).forEach(function (k) {
-            const response_s =
-              responsesSchema[k]?.content?.['application/json']?.schema || //Exactly as OpenApi spec
-              responsesSchema[k]?.schema?.data?.content?.['application/json']?.schema; //Legacy implementation
-            if (response_s) {
-              const response_schema = response_s;
-              const _topic = route.replace(/{(.*?)}/g, ':$1'); //removing curly braces in topic (event key)
-              const endpoint = _topic.split('.').pop(); //extracting endpoint from eventkey
-              const topic_response = endpoint + ':responses:' + k;
-              if (!ajvInstance.getSchema(topic_response)) {
-                ajvInstance.addSchema(response_schema, topic_response);
+            const codeContent = responsesSchema[k]?.content || responsesSchema[k]?.schema?.data?.content; //latter is legacy implementation supporting v1
+            if (!codeContent) {
+              return;
+            }
+            const contentType = Object.keys(codeContent)[0]; //Swagger has a single key for every status code
+            const responses =
+              codeContent[contentType]?.schema;
+            if (responses) {
+              const responseSchema = responses;
+              const topic = route.replace(/{(.*?)}/g, ':$1'); //removing curly braces in topic (event key)
+              const endpoint = topic.split('.').pop(); //extracting endpoint from eventkey
+              const topicResponse = endpoint + ':responses:' + k;
+              if (!ajvInstance.getSchema(topicResponse)) {
+                ajvInstance.addSchema(responseSchema, topicResponse);
               }
             }
           });
         }
       } else {
-        logger.error(`Event config validation failed during load time for ${route} in ${allEventsConfigs}`);
+        logger.fatal(`Event config validation failed during load time for ${route}`);
         process.exit(1);
       }
     });
@@ -120,8 +159,8 @@ export function validateRequestSchema(
   let status: GSStatus;
 
   // Validate event.data.body
-  const hasSchema: any = eventSpec?.body || eventSpec?.data?.schema?.body;
-  if (event.data.body && hasSchema) {
+  const hasBodySchema: any = eventSpec?.body || eventSpec?.data?.schema?.body;
+  if (event.data.body && hasBodySchema) {
     // childLogger.info('event body and eventSpec exist');
     // childLogger.debug('event.data.body: %o', event.data.body);
     // if (!eventSpec.key) {
@@ -146,7 +185,7 @@ export function validateRequestSchema(
     } else {
       status = { success: true };
     }
-  } else if (!event.data.body && hasSchema) {
+  } else if (!event.data.body && hasBodySchema) {
     status = {
       success: false,
       code: 400,
@@ -179,19 +218,19 @@ export function validateRequestSchema(
 
   if (params) {
     for (let param in MAP) {
-      const topic_param = eventSpec.key + ':' + param;
-      const ajv_validate = ajvInstance.getSchema(topic_param);
+      const topicParam = eventSpec.key + ':' + param;
+      const ajvValidate = ajvInstance.getSchema(topicParam);
 
       // childLogger.debug('topic_param: %s', topic_param);
-      if (ajv_validate) {
-        if (!ajv_validate(event.data[MAP[param]])) {
-          logger.debug({event: eventSpec.key}, `Event param validation failed ${event.data[MAP[param]]} %s`, topic_param);
-          ajv_validate.errors![0].message += ' in ' + param;
+      if (ajvValidate) {
+        if (!ajvValidate(event.data[MAP[param]])) {
+          logger.debug({event: eventSpec.key}, `Event param validation failed ${event.data[MAP[param]]} %s`, topicParam);
+          ajvValidate.errors![0].message += ' in ' + param;
           status = {
             success: false,
             code: 400,
-            message: ajv_validate.errors![0].message,
-            data: {message: "The API cannot be executed due to a failure in request params schema validation.", error: ajv_validate.errors![0]}
+            message: ajvValidate.errors![0].message,
+            data: {message: `The API cannot be executed due to a failure in request ${param} schema validation.`, error: ajvValidate.errors![0]}
           };
           return status;
         } else {
