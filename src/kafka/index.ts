@@ -198,9 +198,9 @@ export default class KafkaMessageBus {
               },
               ssl: {
                       rejectUnauthorized: false,
-                      key: fs.readFileSync(config.ssl_key),
-                      cert: fs.readFileSync(config.ssl_cert),
-                      ca: [fs.readFileSync(config.ssl_ca)],
+                      key: fs.readFileSync(config.ssl_key,'utf-8'),
+                      cert: fs.readFileSync(config.ssl_cert,'utf-8'),
+                      ca: [fs.readFileSync(config.ssl_ca,'utf-8')],
                       passphrase: config.ssl_passphrase
                     },
               logCreator: pinoLogCreator
