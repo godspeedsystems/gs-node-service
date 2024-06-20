@@ -5,7 +5,7 @@
 import { Consumer, Kafka, Producer, logLevel as kafkaLogLevel }  from 'kafkajs';
 import axios from 'axios';
 import config from 'config';
-
+import fs from 'fs'; 
 import { GSActor, GSCloudEvent, GSStatus } from '../core/interfaces';
 import { logger } from '../core/logger';
 
@@ -192,8 +192,13 @@ export default class KafkaMessageBus {
                   const { host, port } = broker.attributes;
                   return `${host}:${port}`;
                 });
-
                 return brokers;
+              },
+              ssl: {
+                rejectUnauthorized: config.reject,
+                key: fs.readFileSync(config.ssl_key,'utf-8'),
+                cert: fs.readFileSync(config.ssl_cert,'utf-8'),
+                ca: [fs.readFileSync(config.ssl_ca,'utf-8')]
               },
               logCreator: pinoLogCreator
         });
