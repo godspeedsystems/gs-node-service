@@ -161,7 +161,6 @@ export default async function(args:{[key:string]:any;}) {
                           // All conditions matched, so let's retry
                           return true;
                         },
-                      },
                 });
             }
 
