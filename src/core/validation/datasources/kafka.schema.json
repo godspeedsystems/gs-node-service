@@ -18,6 +18,18 @@
             ],
             "minItems": 1
         },
+        "ssl_key": {
+            "type": "string"
+        },
+        "ssl_cert": {
+            "type": "string"
+        },
+        "ssl_ca": {
+            "type": "string"
+        },
+        "reject": {
+            "type": "boolean"
+        },
         "producer": {
             "type": "object",
             "properties": {
