@@ -92,8 +92,13 @@ function setDefinitions(finalSpecs: PlainObject, definitions: PlainObject) {
     if (!definitions[key]?.type) {
       const innerObj = definitions[key];
       delete definitions[key];
-      removedKeys.push(key);
-      definitions = { ...definitions, ...innerObj };
+      // removedKeys.push(key);
+      const updatedInnerObj: { [key: string]: any } = {};
+      Object.keys(innerObj).forEach(subKey => {
+          removedKeys.push(`${key}_${subKey}`);
+          updatedInnerObj[`${key}_${subKey}`] = innerObj[subKey];
+      });
+      definitions = { ...definitions, ...updatedInnerObj };
     }
   });
   //finalSpecs.definitions = definitions;
