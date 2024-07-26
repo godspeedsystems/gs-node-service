@@ -1,4 +1,4 @@
-import def from "ajv/dist/vocabularies/discriminator";
+import { logger } from "../logger";
 import { PlainObject } from "../types";
 
 // Define the type of eventSourceConfig
@@ -92,11 +92,11 @@ function setDefinitions(finalSpecs: PlainObject, definitions: PlainObject) {
     if (!definitions[key]?.type) {
       const innerObj = definitions[key];
       delete definitions[key];
-      // removedKeys.push(key);
+      
       const updatedInnerObj: { [key: string]: any } = {};
       Object.keys(innerObj).forEach(subKey => {
-          removedKeys.push(`${key}_${subKey}`);
-          updatedInnerObj[`${key}_${subKey}`] = innerObj[subKey];
+        removedKeys.push(`${key}/${subKey}`);
+        updatedInnerObj[`${key}_${subKey}`] = innerObj[subKey];
       });
       definitions = { ...definitions, ...updatedInnerObj };
     }
@@ -105,8 +105,9 @@ function setDefinitions(finalSpecs: PlainObject, definitions: PlainObject) {
   finalSpecs.components = {
     schemas: definitions
   };
+
   for (let key of removedKeys) {
-    replaceStringInJSON(finalSpecs, `#/definitions/${key}/`, "#/components/schemas/");
+    replaceStringInJSON(finalSpecs, `#/definitions/${key}`, `#/components/schemas/${key.replace("/", "_")}`);
   }
 }
 
