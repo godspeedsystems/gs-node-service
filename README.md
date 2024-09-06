@@ -36,7 +36,7 @@ Godspeed is the ultimate **4th generation microservices framework** built over N
 
 ## 📖 Documentation <a name="Documentation"></a>
 
-You can find the complete documentation of Godspeed [here](https://godspeed.systems/docs/microservices-framework/getting-started/overview).
+You can find the complete documentation of Godspeed [here]([https://godspeed.systems/docs/microservices-framework/getting-started/overview](https://godspeed.systems/docs/microservices-framework/guide/get-started).
 
 ## Show Your Love ❤️ & Support 🙏
 
@@ -63,7 +63,7 @@ If you want to learn and develop a microservice here is the [step by step walkth
 
 Video Walkthrough of Godspeed tutorials are -
 
-1. [Getting Started with Godspeed](https://youtu.be/f1jlvaM7Sbo?si=xT3nd2RQckIzOMO4)
+1. [Getting Started with Godspeed](https://youtu.be/vudhjYjGeLQ?si=JQZszFgJ0fZXcZuW)
 2. [How to create plugin using Godspeed Part- 1](https://youtu.be/owQEuBO8_lk?si=WF_vIF8smdlExD9W)
 3. [Godspeed Project Demo](https://youtu.be/UD6m4Z_nLCc?si=Y3UuRi-tMAklpeho)
 
