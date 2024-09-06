@@ -36,7 +36,7 @@ Godspeed is the ultimate **4th generation microservices framework** built over N
 
 ## 📖 Documentation <a name="Documentation"></a>
 
-You can find the complete documentation of Godspeed [here]([https://godspeed.systems/docs/microservices-framework/getting-started/overview](https://godspeed.systems/docs/microservices-framework/guide/get-started).
+You can find the complete documentation of Godspeed [here](https://godspeed.systems/docs/microservices-framework/guide/get-started).
 
 ## Show Your Love ❤️ & Support 🙏
 
@@ -59,13 +59,14 @@ Your support motivates us to continue improving the framework and providing new 
 
 ## Building your first microservice
 
-If you want to learn and develop a microservice here is the [step by step walkthrough of Godspeed](https://docs.godspeed.systems/microservices-framework/getting-started/overview)
+If you want to learn and develop a microservice here is the [step by step walkthrough of Godspeed](https://godspeed.systems/docs/microservices-framework/guide/get-started).
 
 Video Walkthrough of Godspeed tutorials are -
 
 1. [Getting Started with Godspeed](https://youtu.be/vudhjYjGeLQ?si=JQZszFgJ0fZXcZuW)
-2. [How to create plugin using Godspeed Part- 1](https://youtu.be/owQEuBO8_lk?si=WF_vIF8smdlExD9W)
-3. [Godspeed Project Demo](https://youtu.be/UD6m4Z_nLCc?si=Y3UuRi-tMAklpeho)
+2. [Generate CRUD-API using Godspeed](https://youtu.be/Jcy9zvFQjlQ?si=Mtonk6-KHKHpO2Ya)
+3. [How to create plugin using Godspeed Part- 1](https://youtu.be/owQEuBO8_lk?si=WF_vIF8smdlExD9W)
+4. [Godspeed Project Demo](https://youtu.be/UD6m4Z_nLCc?si=Y3UuRi-tMAklpeho)
 
 ## Godspeed's Four Guard Rails
 
